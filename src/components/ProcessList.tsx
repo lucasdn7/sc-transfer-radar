@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Filter, Eye, Download, MapPin } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type ProcessStatus = Database['public']['Enums']['process_status'];
 
 export function ProcessList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<ProcessStatus | "all">("all");
 
   const { data: processes, isLoading, error } = useQuery({
     queryKey: ['processes', searchTerm, statusFilter],
@@ -58,7 +60,7 @@ export function ProcessList() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: ProcessStatus) => {
     const colors = {
       'created': 'bg-blue-100 text-blue-800',
       'in_analysis': 'bg-yellow-100 text-yellow-800',
@@ -66,11 +68,11 @@ export function ProcessList() {
       'in_execution': 'bg-purple-100 text-purple-800',
       'finished': 'bg-gray-100 text-gray-800',
       'cancelled': 'bg-red-100 text-red-800'
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    } as const;
+    return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: ProcessStatus) => {
     const labels = {
       'created': 'Criado',
       'in_analysis': 'Em Análise',
@@ -78,8 +80,8 @@ export function ProcessList() {
       'in_execution': 'Em Execução',
       'finished': 'Finalizado',
       'cancelled': 'Cancelado'
-    };
-    return labels[status as keyof typeof labels] || status;
+    } as const;
+    return labels[status] || status;
   };
 
   if (isLoading) {
@@ -129,7 +131,7 @@ export function ProcessList() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(value: ProcessStatus | "all") => setStatusFilter(value)}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
