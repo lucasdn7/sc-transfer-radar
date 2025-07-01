@@ -39,11 +39,6 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
         setSessionToken(null);
       } else {
         setSessionToken(token);
-        // Configurar token na sessão do Supabase para as políticas RLS
-        await supabase.rpc('set', { 
-          parameter: 'app.current_session_token', 
-          value: token 
-        });
       }
     } catch (error) {
       console.error('Erro ao validar sessão:', error);
@@ -73,12 +68,6 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
       if (token) {
         setSessionToken(token);
         localStorage.setItem('technical_session_token', token);
-        
-        // Configurar token na sessão do Supabase
-        await supabase.rpc('set', { 
-          parameter: 'app.current_session_token', 
-          value: token 
-        });
 
         toast({
           title: 'Login realizado com sucesso',
