@@ -1,158 +1,103 @@
 
-import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { 
-  LayoutDashboard, 
+  Home, 
   FileText, 
   Building, 
   MapPin, 
-  Users, 
-  BarChart3,
+  BarChart3, 
   Settings,
-  HelpCircle,
-  ChevronDown,
-  ChevronRight
+  Users,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from "@/hooks/useAuth";
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Processos', href: '/processes', icon: FileText },
-  { name: 'Municípios', href: '/municipalities', icon: Building },
-  { name: 'Mapa Interativo', href: '/map', icon: MapPin },
-  {
-    name: 'Relatórios',
-    icon: BarChart3,
-    children: [
-      { name: 'Estatísticas Gerais', href: '/reports/stats' },
-      { name: 'Financeiro', href: '/reports/financial' },
-      { name: 'Por Região', href: '/reports/regions' },
-    ]
-  },
-  { name: 'Núcleos Regionais', href: '/regional-nuclei', icon: Users },
+const publicNavItems = [
+  { to: "/", icon: Home, label: "Dashboard" },
+  { to: "/map", icon: MapPin, label: "Mapa" },
+  { to: "/reports", icon: BarChart3, label: "Relatórios" },
 ];
 
-const bottomNavigation = [
-  { name: 'Configurações', href: '/settings', icon: Settings },
-  { name: 'Ajuda', href: '/help', icon: HelpCircle },
+const technicalNavItems = [
+  { to: "/processes", icon: FileText, label: "Processos" },
+  { to: "/municipalities", icon: Building, label: "Municípios" },
+  { to: "/regional-nuclei", icon: MapPin, label: "Núcleos Regionais" },
 ];
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const location = useLocation();
-  const [openGroups, setOpenGroups] = useState<string[]>(['Relatórios']);
+const adminNavItems = [
+  { to: "/settings", icon: Settings, label: "Configurações" },
+];
 
-  const toggleGroup = (groupName: string) => {
-    setOpenGroups(prev => 
-      prev.includes(groupName) 
-        ? prev.filter(name => name !== groupName)
-        : [...prev, groupName]
-    );
-  };
+export function Sidebar() {
+  const { isAuthenticated, isTechnical, isAdmin } = useAuth();
 
-  const isActiveLink = (href: string) => {
-    if (href === '/') {
-      return location.pathname === '/';
+  const getNavItems = () => {
+    let items = [...publicNavItems];
+    
+    if (isTechnical) {
+      items = [...items, ...technicalNavItems];
     }
-    return location.pathname.startsWith(href);
-  };
-
-  const renderNavItem = (item: any) => {
-    if (item.children) {
-      const isOpen = openGroups.includes(item.name);
-      const hasActiveChild = item.children.some((child: any) => isActiveLink(child.href));
-      
-      return (
-        <Collapsible key={item.name} open={isOpen} onOpenChange={() => toggleGroup(item.name)}>
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-between h-10 px-3 text-left font-normal",
-                (hasActiveChild || isOpen) && "bg-accent text-accent-foreground"
-              )}
-            >
-              <div className="flex items-center">
-                <item.icon className="mr-3 h-4 w-4" />
-                {item.name}
-              </div>
-              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 pl-6">
-            {item.children.map((child: any) => (
-              <NavLink
-                key={child.href}
-                to={child.href}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center h-9 px-3 text-sm rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
-                    isActive && "bg-accent text-accent-foreground font-medium"
-                  )
-                }
-              >
-                {child.name}
-              </NavLink>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      );
+    
+    if (isAdmin) {
+      items = [...items, ...adminNavItems];
     }
-
-    return (
-      <NavLink
-        key={item.href}
-        to={item.href}
-        onClick={onClose}
-        className={({ isActive }) =>
-          cn(
-            "flex items-center h-10 px-3 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
-            isActive && "bg-accent text-accent-foreground font-medium"
-          )
-        }
-      >
-        <item.icon className="mr-3 h-4 w-4" />
-        {item.name}
-      </NavLink>
-    );
+    
+    return items;
   };
 
   return (
-    <>
-      {/* Mobile backdrop */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 md:hidden" 
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <aside className={cn(
-        "fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-64 bg-background border-r transition-transform duration-200 ease-in-out md:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-auto py-4">
-            <nav className="space-y-1 px-3">
-              {navigation.map(renderNavItem)}
-            </nav>
-          </div>
-          
-          <div className="border-t p-3">
-            <nav className="space-y-1">
-              {bottomNavigation.map(renderNavItem)}
-            </nav>
+    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center space-x-2">
+          <Shield className="h-6 w-6 text-blue-600" />
+          <div>
+            <h2 className="font-semibold text-gray-900">Transfer Radar</h2>
+            <p className="text-xs text-gray-600">Santa Catarina</p>
           </div>
         </div>
-      </aside>
-    </>
+      </div>
+
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {getNavItems().map((item) => (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  )
+                }
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+
+        {isAuthenticated && (
+          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <Users className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Área Técnica</span>
+            </div>
+            <p className="text-xs text-blue-700">
+              Acesso restrito para edição e gerenciamento de dados.
+            </p>
+          </div>
+        )}
+      </nav>
+
+      <div className="p-4 border-t border-gray-200">
+        <p className="text-xs text-gray-500 text-center">
+          Portal desenvolvido pela GEINFRA
+        </p>
+      </div>
+    </div>
   );
 }

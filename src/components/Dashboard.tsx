@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { formatCurrency, getStatusColor, getStatusLabel } from "@/utils/processUtils";
 
 interface DashboardStats {
   totalProcesses: number;
@@ -82,25 +83,6 @@ export function Dashboard() {
       };
     }
   });
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      'created': 'bg-blue-100 text-blue-800',
-      'in_analysis': 'bg-yellow-100 text-yellow-800',
-      'approved': 'bg-green-100 text-green-800',
-      'in_execution': 'bg-purple-100 text-purple-800',
-      'finished': 'bg-gray-100 text-gray-800',
-      'cancelled': 'bg-red-100 text-red-800'
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -211,8 +193,8 @@ export function Dashboard() {
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(status)}
-                    <span className="text-sm font-medium capitalize">
-                      {status.replace('_', ' ')}
+                    <span className="text-sm font-medium">
+                      {getStatusLabel(status)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -243,7 +225,7 @@ export function Dashboard() {
                     <p className="text-xs text-gray-600">{process.object}</p>
                   </div>
                   <Badge className={getStatusColor(process.current_status)}>
-                    {process.current_status}
+                    {getStatusLabel(process.current_status)}
                   </Badge>
                 </div>
               ))}
