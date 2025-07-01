@@ -15,14 +15,11 @@ import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 
 const publicNavItems = [
   { to: "/", icon: Home, label: "Dashboard" },
-  { to: "/map", icon: MapPin, label: "Mapa" },
-  { to: "/reports", icon: BarChart3, label: "Relatórios" },
-];
-
-const technicalNavItems = [
   { to: "/processes", icon: FileText, label: "Processos" },
   { to: "/municipalities", icon: Building, label: "Municípios" },
   { to: "/regional-nuclei", icon: MapPin, label: "Núcleos Regionais" },
+  { to: "/map", icon: MapPin, label: "Mapa" },
+  { to: "/reports", icon: BarChart3, label: "Relatórios" },
 ];
 
 interface SidebarProps {
@@ -32,16 +29,6 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { isAuthenticated } = useTechnicalAuth();
-
-  const getNavItems = () => {
-    let items = [...publicNavItems];
-    
-    if (isAuthenticated) {
-      items = [...items, ...technicalNavItems];
-    }
-    
-    return items;
-  };
 
   return (
     <div className={cn(
@@ -60,7 +47,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {getNavItems().map((item) => (
+          {publicNavItems.map((item) => (
             <li key={item.to}>
               <NavLink
                 to={item.to}

@@ -43,7 +43,7 @@ export function ProcessList() {
         throw error;
       }
       
-      return data;
+      return data || [];
     }
   });
 
@@ -54,7 +54,7 @@ export function ProcessList() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">Erro ao carregar processos: {error.message}</p>
+        <p className="text-red-600">Erro ao carregar processos: {(error as Error).message}</p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function ProcessList() {
         onStatusChange={setStatusFilter}
       />
 
-      <ProcessTable processes={processes} />
+      <ProcessTable processes={processes || []} />
     </div>
   );
 }
