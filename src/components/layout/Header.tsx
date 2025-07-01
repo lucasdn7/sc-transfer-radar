@@ -3,10 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { useAuth } from "@/hooks/useAuth";
-import { LogIn, LogOut, User, Shield } from "lucide-react";
+import { LogIn, LogOut, User, Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
-export function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+  isMobileMenuOpen?: boolean;
+}
+
+export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
   const { isAuthenticated, user, userRole, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -44,6 +49,17 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          {onMenuToggle && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMenuToggle}
+              className="md:hidden"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          )}
+          
           <Link to="/" className="flex items-center space-x-2">
             <Shield className="h-8 w-8 text-blue-600" />
             <div>
