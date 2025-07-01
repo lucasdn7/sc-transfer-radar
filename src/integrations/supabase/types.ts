@@ -748,6 +748,30 @@ export type Database = {
         }
         Relationships: []
       }
+      technical_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          session_token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          session_token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          session_token?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -810,9 +834,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_technical_user: {
+        Args: { password_input: string }
+        Returns: boolean
+      }
       create_expiration_notifications: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_technical_session: {
+        Args: { password_input: string }
+        Returns: {
+          session_token: string
+          expires_at: string
+        }[]
       }
       get_user_role: {
         Args: { user_id: string }
@@ -820,6 +855,14 @@ export type Database = {
       }
       has_role: {
         Args: { user_id: string; required_role: string }
+        Returns: boolean
+      }
+      invalidate_technical_session: {
+        Args: { token_input: string }
+        Returns: boolean
+      }
+      validate_technical_session: {
+        Args: { token_input: string }
         Returns: boolean
       }
     }

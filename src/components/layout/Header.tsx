@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { useAuth } from "@/hooks/useAuth";
+import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 import { LogIn, LogOut, User, Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -12,36 +12,14 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
-  const { isAuthenticated, user, userRole, signOut } = useAuth();
+  const { isAuthenticated, signOut } = useTechnicalAuth();
   const navigate = useNavigate();
 
   const handleAuthAction = () => {
     if (isAuthenticated) {
       signOut();
     } else {
-      navigate('/auth');
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'technical':
-        return 'Técnico';
-      default:
-        return 'Visualizador';
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'technical':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      navigate('/technical-auth');
     }
   };
 
@@ -75,16 +53,9 @@ export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
               <NotificationCenter />
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4 text-gray-600" />
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.email}
-                  </p>
-                  {userRole && (
-                    <Badge className={getRoleColor(userRole)}>
-                      {getRoleLabel(userRole)}
-                    </Badge>
-                  )}
-                </div>
+                <Badge className="bg-blue-100 text-blue-800">
+                  Área Técnica
+                </Badge>
               </div>
             </>
           )}

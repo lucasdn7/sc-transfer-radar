@@ -11,7 +11,7 @@ import {
   Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 
 const publicNavItems = [
   { to: "/", icon: Home, label: "Dashboard" },
@@ -25,27 +25,19 @@ const technicalNavItems = [
   { to: "/regional-nuclei", icon: MapPin, label: "Núcleos Regionais" },
 ];
 
-const adminNavItems = [
-  { to: "/settings", icon: Settings, label: "Configurações" },
-];
-
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { isAuthenticated, isTechnical, isAdmin } = useAuth();
+  const { isAuthenticated } = useTechnicalAuth();
 
   const getNavItems = () => {
     let items = [...publicNavItems];
     
-    if (isTechnical) {
+    if (isAuthenticated) {
       items = [...items, ...technicalNavItems];
-    }
-    
-    if (isAdmin) {
-      items = [...items, ...adminNavItems];
     }
     
     return items;
@@ -87,6 +79,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </NavLink>
             </li>
           ))}
+          
+          <li>
+            <NavLink
+              to="/app-settings"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                )
+              }
+              onClick={onClose}
+            >
+              <Settings className="h-5 w-5" />
+              <span>Configurações</span>
+            </NavLink>
+          </li>
         </ul>
 
         {isAuthenticated && (
@@ -96,7 +106,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span className="text-sm font-medium text-blue-900">Área Técnica</span>
             </div>
             <p className="text-xs text-blue-700">
-              Acesso restrito para edição e gerenciamento de dados.
+              Acesso autenticado para edição e gerenciamento de dados.
             </p>
           </div>
         )}
