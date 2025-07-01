@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RegionalNucleusFormData {
+  id?: number;
   name: string;
   acronym: string;
   geographic_region?: string;

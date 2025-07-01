@@ -17,6 +17,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency, getStatusColor, getStatusLabel } from "@/utils/processUtils";
+import type { Database } from "@/integrations/supabase/types";
+
+type ProcessStatus = Database['public']['Enums']['process_status'];
 
 interface DashboardStats {
   totalProcesses: number;
@@ -194,11 +197,11 @@ export function Dashboard() {
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(status)}
                     <span className="text-sm font-medium">
-                      {getStatusLabel(status)}
+                      {getStatusLabel(status as ProcessStatus)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={getStatusColor(status)}>
+                    <Badge className={getStatusColor(status as ProcessStatus)}>
                       {count}
                     </Badge>
                   </div>
@@ -224,8 +227,8 @@ export function Dashboard() {
                     <p className="text-sm font-medium">{process.process_number}</p>
                     <p className="text-xs text-gray-600">{process.object}</p>
                   </div>
-                  <Badge className={getStatusColor(process.current_status)}>
-                    {getStatusLabel(process.current_status)}
+                  <Badge className={getStatusColor(process.current_status as ProcessStatus)}>
+                    {getStatusLabel(process.current_status as ProcessStatus)}
                   </Badge>
                 </div>
               ))}

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,6 +94,17 @@ export default function Settings() {
     updateSettingMutation.mutate({ key, value: JSON.stringify(value) });
   };
 
+  const getSettingValue = (settingValue: any): string => {
+    if (typeof settingValue === 'string') {
+      try {
+        return JSON.parse(settingValue);
+      } catch {
+        return settingValue;
+      }
+    }
+    return String(settingValue);
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -149,7 +159,7 @@ export default function Settings() {
                   <div className="flex space-x-2">
                     <Input
                       id={setting.setting_key}
-                      defaultValue={JSON.parse(setting.setting_value)}
+                      defaultValue={getSettingValue(setting.setting_value)}
                       onBlur={(e) => handleSettingUpdate(setting.setting_key, e.target.value)}
                     />
                   </div>

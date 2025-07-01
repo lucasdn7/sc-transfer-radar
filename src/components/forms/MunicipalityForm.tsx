@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 interface MunicipalityFormData {
+  id?: number;
   name: string;
   cnpj: string;
   region?: string;

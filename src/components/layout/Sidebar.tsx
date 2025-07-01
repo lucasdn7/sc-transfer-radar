@@ -29,7 +29,12 @@ const adminNavItems = [
   { to: "/settings", icon: Settings, label: "Configurações" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { isAuthenticated, isTechnical, isAdmin } = useAuth();
 
   const getNavItems = () => {
@@ -47,7 +52,10 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
+    <div className={cn(
+      "fixed left-0 top-16 z-40 w-64 bg-white border-r border-gray-200 h-screen flex flex-col transform transition-transform duration-200 ease-in-out md:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <Shield className="h-6 w-6 text-blue-600" />
@@ -72,6 +80,7 @@ export function Sidebar() {
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   )
                 }
+                onClick={onClose}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>

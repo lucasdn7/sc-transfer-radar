@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -10,8 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import type { Database } from '@/integrations/supabase/types';
+
+type ProcessStatus = Database['public']['Enums']['process_status'];
 
 interface ProcessFormData {
+  id?: number;
   process_number: string;
   object: string;
   municipality_id: number;
@@ -21,7 +24,7 @@ interface ProcessFormData {
   total_proponente_value: number;
   licitado_value?: number;
   vigencia_date: string;
-  current_status: string;
+  current_status: ProcessStatus;
   portaria_number?: string;
   latitude?: number;
   longitude?: number;
@@ -40,7 +43,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProcessFormData>({
     defaultValues: initialData || {
-      current_status: 'created',
+      current_status: 'created' as ProcessStatus,
     },
   });
 
@@ -70,7 +73,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     },
   });
 
-  const statusOptions = [
+  const statusOptions: { value: ProcessStatus; label: string }[] = [
     { value: 'created', label: 'Criado' },
     { value: 'in_analysis', label: 'Em Análise' },
     { value: 'approved', label: 'Aprovado' },
@@ -291,7 +294,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             <div className="space-y-2">
               <Label htmlFor="current_status">Status *</Label>
               <Select 
-                onValueChange={(value) => setValue('current_status', value)}
+                onValueChange={(value) => setValue('current_status', value as ProcessStatus)}
                 defaultValue={watch('current_status')}
               >
                 <SelectTrigger>

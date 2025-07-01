@@ -41,7 +41,7 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/" className="flex items-center space-x-2">
