@@ -1,0 +1,109 @@
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin } from "lucide-react";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { formatCurrency } from "@/utils/processUtils";
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  icon: React.ElementType;
+  color?: string;
+}
+
+function StatCard({ title, value, change, trend, icon: Icon, color = "text-blue-600" }: StatCardProps) {
+  return (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <Icon className={`h-5 w-5 ${color}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {change && (
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3 text-green-500" />}
+            {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3 text-red-500" />}
+            <span className={trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : ''}>
+              {change}
+            </span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function OptimizedStatsCards() {
+  const { data: stats, isLoading, error } = useDashboardStats();
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-8 bg-gray-200 rounded mb-2"></div>
+              <div className="h-6 bg-gray-200 rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Erro ao carregar estatísticas</p>
+      </div>
+    );
+  }
+
+  const statsData = [
+    {
+      title: "Total de Processos",
+      value: stats?.totalProcesses?.toLocaleString('pt-BR') || "0",
+      change: "Dados atualizados em tempo real",
+      trend: 'neutral' as const,
+      icon: FileText,
+      color: "text-blue-600"
+    },
+    {
+      title: "Valor Total Transferido",
+      value: formatCurrency(stats?.totalValue || 0),
+      change: "Investimento em Santa Catarina",
+      trend: 'up' as const,
+      icon: DollarSign,
+      color: "text-green-600"
+    },
+    {
+      title: "Municípios Beneficiados",
+      value: stats?.activeMunicipalities?.toString() || "0",
+      change: "Municípios ativos no programa",
+      trend: 'neutral' as const,
+      icon: Building,
+      color: "text-purple-600"
+    },
+    {
+      title: "Núcleos Regionais",
+      value: stats?.regionalNucleiCount?.toString() || "0",
+      change: "Cobertura estadual completa",
+      trend: 'neutral' as const,
+      icon: MapPin,
+      color: "text-orange-600"
+    }
+  ];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {statsData.map((stat, index) => (
+        <StatCard key={index} {...stat} />
+      ))}
+    </div>
+  );
+}

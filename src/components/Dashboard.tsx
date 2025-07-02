@@ -17,74 +17,31 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency, getStatusColor, getStatusLabel } from "@/utils/processUtils";
+import { SystemNotifications } from "@/components/notifications/SystemNotifications";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import type { Database } from "@/integrations/supabase/types";
 
 type ProcessStatus = Database['public']['Enums']['process_status'];
 
-interface DashboardStats {
-  totalProcesses: number;
-  totalValue: number;
-  activeMunicipalities: number;
-  regionalNuclei: number;
-  processesByStatus: Record<string, number>;
-  recentProcesses: any[];
-}
-
 export function Dashboard() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: async (): Promise<DashboardStats> => {
-      console.log('Fetching dashboard statistics...');
-      
-      // Fetch total processes
-      const { data: processes, error: processError } = await supabase
+  const { data: stats, isLoading } = useDashboardStats();
+
+  const { data: recentProcesses } = useQuery({
+    queryKey: ['recent-processes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('processes')
-        .select('*');
+        .select(`
+          *,
+          municipalities (name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
       
-      if (processError) {
-        console.error('Error fetching processes:', processError);
-        throw processError;
-      }
-
-      // Fetch municipalities
-      const { data: municipalities, error: munError } = await supabase
-        .from('municipalities')
-        .select('*');
-      
-      if (munError) {
-        console.error('Error fetching municipalities:', munError);
-        throw munError;
-      }
-
-      // Fetch regional nuclei
-      const { data: nuclei, error: nucleiError } = await supabase
-        .from('regional_nuclei')
-        .select('*');
-      
-      if (nucleiError) {
-        console.error('Error fetching regional nuclei:', nucleiError);
-        throw nucleiError;
-      }
-
-      // Calculate statistics
-      const totalValue = processes?.reduce((sum, p) => sum + (p.total_portaria_value || 0), 0) || 0;
-      
-      const processesByStatus = processes?.reduce((acc, p) => {
-        acc[p.current_status] = (acc[p.current_status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      const recentProcesses = processes?.slice(0, 5) || [];
-
-      return {
-        totalProcesses: processes?.length || 0,
-        totalValue,
-        activeMunicipalities: municipalities?.length || 0,
-        regionalNuclei: nuclei?.length || 0,
-        processesByStatus,
-        recentProcesses
-      };
-    }
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const getStatusIcon = (status: string) => {
@@ -128,9 +85,11 @@ export function Dashboard() {
         </Button>
       </div>
 
+      <SystemNotifications />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -142,7 +101,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -156,7 +115,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -168,12 +127,12 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Núcleos Regionais</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.regionalNuclei || 0}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.regionalNucleiCount || 0}</p>
               </div>
               <MapPin className="h-8 w-8 text-orange-600" />
             </div>
@@ -192,7 +151,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {Object.entries(stats?.processesByStatus || {}).map(([status, count]) => (
+              {Object.entries(stats?.statusDistribution || {}).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(status)}
@@ -221,11 +180,11 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats?.recentProcesses?.map((process) => (
+              {recentProcesses?.map((process) => (
                 <div key={process.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium">{process.process_number}</p>
-                    <p className="text-xs text-gray-600">{process.object}</p>
+                    <p className="text-xs text-gray-600">{process.municipalities?.name}</p>
                   </div>
                   <Badge className={getStatusColor(process.current_status as ProcessStatus)}>
                     {getStatusLabel(process.current_status as ProcessStatus)}
