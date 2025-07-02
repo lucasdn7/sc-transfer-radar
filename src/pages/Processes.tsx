@@ -1,23 +1,26 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 import { getStatusColor, getStatusLabel, formatCurrency } from "@/utils/processUtils";
 import type { Database } from "@/integrations/supabase/types";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ProcessForm } from "@/components/forms/ProcessForm";
 
 type ProcessStatus = Database['public']['Enums']['process_status'];
 
 export default function Processes() {
   const { isAuthenticated } = useTechnicalAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingProcess, setEditingProcess] = useState<any>(null);
 
-  const { data: processes, isLoading, error } = useQuery({
+  const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['processes'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,6 +42,17 @@ export default function Processes() {
     process.object.toLowerCase().includes(searchTerm.toLowerCase()) ||
     process.municipalities?.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingProcess(null);
+    refetch();
+  };
+
+  const handleEdit = (process: any) => {
+    setEditingProcess(process);
+    setIsFormOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -86,10 +100,30 @@ export default function Processes() {
           </p>
         </div>
         {isAuthenticated && (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Processo
-          </Button>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingProcess(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Processo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProcess ? 'Editar Processo' : 'Novo Processo'}
+                </DialogTitle>
+              </DialogHeader>
+              <ProcessForm
+                onSuccess={handleFormSuccess}
+                onCancel={() => {
+                  setIsFormOpen(false);
+                  setEditingProcess(null);
+                }}
+                initialData={editingProcess}
+                isEdit={!!editingProcess}
+              />
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
@@ -124,13 +158,24 @@ export default function Processes() {
                       {getStatusLabel(process.current_status)}
                     </Badge>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">
-                      {formatCurrency(process.total_portaria_value)}
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-600">
+                        {formatCurrency(process.total_portaria_value)}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Valor Total
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Valor Total
-                    </div>
+                    {isAuthenticated && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(process)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>

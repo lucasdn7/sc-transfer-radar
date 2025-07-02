@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,11 +5,16 @@ import { MapPin, Users, Phone, Mail, Plus, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RegionalNucleusForm } from "@/components/forms/RegionalNucleusForm";
 
 export default function RegionalNuclei() {
   const { isAuthenticated } = useTechnicalAuth();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingNucleus, setEditingNucleus] = useState<any>(null);
 
-  const { data: regionalNuclei, isLoading, error } = useQuery({
+  const { data: regionalNuclei, isLoading, error, refetch } = useQuery({
     queryKey: ['regional-nuclei'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,6 +29,17 @@ export default function RegionalNuclei() {
       return data || [];
     },
   });
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingNucleus(null);
+    refetch();
+  };
+
+  const handleEdit = (nucleus: any) => {
+    setEditingNucleus(nucleus);
+    setIsFormOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -72,10 +87,30 @@ export default function RegionalNuclei() {
           </p>
         </div>
         {isAuthenticated && (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Núcleo
-          </Button>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingNucleus(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Núcleo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingNucleus ? 'Editar Núcleo Regional' : 'Novo Núcleo Regional'}
+                </DialogTitle>
+              </DialogHeader>
+              <RegionalNucleusForm
+                onSuccess={handleFormSuccess}
+                onCancel={() => {
+                  setIsFormOpen(false);
+                  setEditingNucleus(null);
+                }}
+                initialData={editingNucleus}
+                isEdit={!!editingNucleus}
+              />
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
@@ -92,7 +127,11 @@ export default function RegionalNuclei() {
                     </Badge>
                   </div>
                   {isAuthenticated && (
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit(nucleus)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
@@ -145,10 +184,23 @@ export default function RegionalNuclei() {
               Não há núcleos regionais cadastrados no sistema.
             </p>
             {isAuthenticated && (
-              <Button className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Primeiro Núcleo
-              </Button>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4" onClick={() => setEditingNucleus(null)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Primeiro Núcleo
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Novo Núcleo Regional</DialogTitle>
+                  </DialogHeader>
+                  <RegionalNucleusForm
+                    onSuccess={handleFormSuccess}
+                    onCancel={() => setIsFormOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             )}
           </div>
         )}

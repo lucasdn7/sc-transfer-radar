@@ -1,19 +1,22 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, Building, MapPin, Users, Phone, Mail } from "lucide-react";
+import { Search, Filter, Plus, Building, MapPin, Users, Phone, Mail, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { MunicipalityForm } from "@/components/forms/MunicipalityForm";
 
 export default function Municipalities() {
   const { isAuthenticated } = useTechnicalAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingMunicipality, setEditingMunicipality] = useState<any>(null);
 
-  const { data: municipalities, isLoading, error } = useQuery({
+  const { data: municipalities, isLoading, error, refetch } = useQuery({
     queryKey: ['municipalities'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,6 +38,17 @@ export default function Municipalities() {
     municipality.region?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     municipality.mayor_name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingMunicipality(null);
+    refetch();
+  };
+
+  const handleEdit = (municipality: any) => {
+    setEditingMunicipality(municipality);
+    setIsFormOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -82,10 +96,30 @@ export default function Municipalities() {
           </p>
         </div>
         {isAuthenticated && (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Município
-          </Button>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingMunicipality(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Município
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingMunicipality ? 'Editar Município' : 'Novo Município'}
+                </DialogTitle>
+              </DialogHeader>
+              <MunicipalityForm
+                onSuccess={handleFormSuccess}
+                onCancel={() => {
+                  setIsFormOpen(false);
+                  setEditingMunicipality(null);
+                }}
+                initialData={editingMunicipality}
+                isEdit={!!editingMunicipality}
+              />
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
@@ -122,6 +156,15 @@ export default function Municipalities() {
                       </Badge>
                     )}
                   </div>
+                  {isAuthenticated && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(municipality)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -193,10 +236,23 @@ export default function Municipalities() {
               }
             </p>
             {isAuthenticated && !searchTerm && (
-              <Button className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Primeiro Município
-              </Button>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4" onClick={() => setEditingMunicipality(null)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Primeiro Município
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Novo Município</DialogTitle>
+                  </DialogHeader>
+                  <MunicipalityForm
+                    onSuccess={handleFormSuccess}
+                    onCancel={() => setIsFormOpen(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             )}
           </div>
         )}
