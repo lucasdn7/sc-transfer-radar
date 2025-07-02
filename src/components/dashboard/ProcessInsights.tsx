@@ -1,151 +1,92 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from "@/utils/processUtils";
-import { Calendar, TrendingUp, AlertCircle } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
-
-type ProcessStatus = Database['public']['Enums']['process_status'];
+import { Progress } from "@/components/ui/progress";
+import { BarChart3, DollarSign, TrendingUp } from "lucide-react";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { formatCurrency } from "@/utils/processUtils";
 
 export function ProcessInsights() {
-  const { data: insights, isLoading } = useQuery({
-    queryKey: ['process-insights'],
-    queryFn: async () => {
-      console.log('Fetching process insights...');
-      
-      // Processos recentes
-      const { data: recentProcesses, error: recentError } = await supabase
-        .from('processes')
-        .select(`
-          *,
-          municipalities (name, region)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (recentError) throw recentError;
-
-      // Processos com vigência próxima
-      const { data: expiringProcesses, error: expiringError } = await supabase
-        .from('processes')
-        .select(`
-          *,
-          municipalities (name)
-        `)
-        .gte('vigencia_date', new Date().toISOString().split('T')[0])
-        .lte('vigencia_date', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-        .order('vigencia_date', { ascending: true })
-        .limit(5);
-
-      if (expiringError) throw expiringError;
-
-      return {
-        recent: recentProcesses || [],
-        expiring: expiringProcesses || []
-      };
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
+  const { data: stats, isLoading, error } = useDashboardStats();
 
   if (isLoading) {
     return (
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <Card className="animate-pulse">
-          <CardHeader>
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-pulse">
-          <CardHeader>
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-      {/* Processos Recentes */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2" />
-            Processos Recentes
-          </CardTitle>
+          <CardTitle>Insights dos Processos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {insights?.recent?.map((process) => (
-              <div key={process.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{process.process_number}</p>
-                  <p className="text-xs text-gray-600 truncate">{process.municipalities?.name}</p>
-                  <p className="text-xs text-gray-500">{formatCurrency(process.total_portaria_value)}</p>
-                </div>
-                <Badge className={getStatusColor(process.current_status as ProcessStatus)}>
-                  {getStatusLabel(process.current_status as ProcessStatus)}
-                </Badge>
-              </div>
-            ))}
-            
-            {(!insights?.recent || insights.recent.length === 0) && (
-              <div className="text-center py-4 text-gray-500">
-                Nenhum processo recente encontrado
-              </div>
-            )}
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-6 bg-gray-200 rounded"></div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Processos com Vigência Próxima */}
+  if (error) {
+    return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-orange-500" />
-            Vigências Próximas
-          </CardTitle>
+          <CardTitle>Insights dos Processos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {insights?.expiring?.map((process) => (
-              <div key={process.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{process.process_number}</p>
-                  <p className="text-xs text-gray-600 truncate">{process.municipalities?.name}</p>
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(process.vigencia_date)}
-                  </div>
-                </div>
-                <Badge variant="outline" className="border-orange-300 text-orange-700">
-                  {Math.ceil((new Date(process.vigencia_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias
-                </Badge>
-              </div>
-            ))}
-            
-            {(!insights?.expiring || insights.expiring.length === 0) && (
-              <div className="text-center py-4 text-gray-500">
-                Nenhum processo com vigência próxima
-              </div>
-            )}
+          <p className="text-red-600">Erro ao carregar insights</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const statusDistribution = stats?.statusDistribution || {};
+  const totalProcesses = stats?.totalProcesses || 0;
+  const finishedProcesses = statusDistribution.finished || 0;
+  const inExecutionProcesses = statusDistribution.in_execution || 0;
+  const completionRate = totalProcesses > 0 ? (finishedProcesses / totalProcesses) * 100 : 0;
+  const executionRate = totalProcesses > 0 ? (inExecutionProcesses / totalProcesses) * 100 : 0;
+
+  return (
+    <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base font-medium">Taxa de Conclusão</CardTitle>
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{completionRate.toFixed(1)}%</div>
+          <Progress value={completionRate} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {finishedProcesses} de {totalProcesses} processos concluídos
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base font-medium">Em Execução</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{executionRate.toFixed(1)}%</div>
+          <Progress value={executionRate} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {inExecutionProcesses} processos em execução
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base font-medium">Valor Médio</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formatCurrency(totalProcesses > 0 ? (stats?.totalValue || 0) / totalProcesses : 0)}
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Valor médio por processo
+          </p>
         </CardContent>
       </Card>
     </div>

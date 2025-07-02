@@ -13,32 +13,71 @@ interface DashboardStats {
 
 export function useDashboardStats() {
   return useQuery({
-    queryKey: ['dashboard-stats-cached'],
+    queryKey: ['dashboard-stats'],
     queryFn: async (): Promise<DashboardStats> => {
-      console.log('Fetching cached dashboard statistics...');
+      console.log('Fetching dashboard statistics...');
       
-      const { data: stats, error } = await supabase
-        .from('dashboard_stats')
-        .select('*');
-      
-      if (error) {
-        console.error('Error fetching cached stats:', error);
-        throw error;
+      // Buscar estatísticas em paralelo para melhor performance
+      const [
+        processesResult,
+        municipalitiesResult,
+        regionalNucleiResult
+      ] = await Promise.all([
+        supabase
+          .from('processes')
+          .select('total_portaria_value, current_status, municipality_id'),
+        supabase
+          .from('municipalities')
+          .select('id'),
+        supabase
+          .from('regional_nuclei')
+          .select('id')
+      ]);
+
+      if (processesResult.error) {
+        console.error('Error fetching processes:', processesResult.error);
+        throw processesResult.error;
       }
 
-      // Converter dados cached para formato esperado
-      const statsMap = stats?.reduce((acc, stat) => {
-        acc[stat.stat_key] = stat.stat_value;
+      if (municipalitiesResult.error) {
+        console.error('Error fetching municipalities:', municipalitiesResult.error);
+        throw municipalitiesResult.error;
+      }
+
+      if (regionalNucleiResult.error) {
+        console.error('Error fetching regional nuclei:', regionalNucleiResult.error);
+        throw regionalNucleiResult.error;
+      }
+
+      const processes = processesResult.data || [];
+      const municipalities = municipalitiesResult.data || [];
+      const regionalNuclei = regionalNucleiResult.data || [];
+
+      // Calcular estatísticas
+      const totalProcesses = processes.length;
+      const totalValue = processes.reduce((sum, process) => 
+        sum + (process.total_portaria_value || 0), 0
+      );
+      
+      // Contar municípios únicos que têm processos
+      const uniqueMunicipalities = new Set(
+        processes.map(p => p.municipality_id)
+      ).size;
+      
+      // Distribuição por status
+      const statusDistribution = processes.reduce((acc, process) => {
+        const status = process.current_status || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
-      }, {} as Record<string, any>) || {};
+      }, {} as Record<string, number>);
 
       return {
-        totalProcesses: statsMap.total_processes || 0,
-        totalValue: statsMap.total_value || 0,
-        activeMunicipalities: statsMap.active_municipalities || 0,
-        regionalNucleiCount: statsMap.regional_nuclei_count || 0,
-        statusDistribution: statsMap.status_distribution || {},
-        lastUpdated: stats?.[0]?.last_updated || new Date().toISOString()
+        totalProcesses,
+        totalValue,
+        activeMunicipalities: uniqueMunicipalities,
+        regionalNucleiCount: regionalNuclei.length,
+        statusDistribution,
+        lastUpdated: new Date().toISOString()
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
