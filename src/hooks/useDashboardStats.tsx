@@ -38,17 +38,14 @@ export function useDashboardStats() {
         // Verificar erros
         if (processesResult.error) {
           console.error('Error fetching processes:', processesResult.error);
-          throw processesResult.error;
         }
 
         if (municipalitiesResult.error) {
           console.error('Error fetching municipalities:', municipalitiesResult.error);
-          throw municipalitiesResult.error;
         }
 
         if (regionalNucleiResult.error) {
           console.error('Error fetching regional nuclei:', regionalNucleiResult.error);
-          throw regionalNucleiResult.error;
         }
 
         const processes = processesResult.data || [];
