@@ -29,25 +29,25 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
-            <Route index element={<Index />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="processes" element={<Processes />} />
-            <Route path="process-timeline" element={<ProcessTimeline />} />
-            <Route path="process-calendar" element={<ProcessCalendar />} />
-            <Route path="municipalities" element={<Municipalities />} />
-            <Route path="regional-nuclei" element={<RegionalNuclei />} />
-            <Route path="documents" element={<Documents />} />
-            <Route path="map" element={<Map />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="app-settings" element={<AppSettings />} />
-            <Route path="auth" element={<Auth />} />
-            <Route path="technical-auth" element={<TechnicalAuth />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/processes" element={<Processes />} />
+            <Route path="/process-timeline" element={<ProcessTimeline />} />
+            <Route path="/process-calendar" element={<ProcessCalendar />} />
+            <Route path="/municipalities" element={<Municipalities />} />
+            <Route path="/regional-nuclei" element={<RegionalNuclei />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/map" element={<Map />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/app-settings" element={<AppSettings />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/technical-auth" element={<TechnicalAuth />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
