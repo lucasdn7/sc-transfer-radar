@@ -92,7 +92,7 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
             .from('processes')
             .select(`
               *,
-              municipalities(name, latitude, longitude),
+              municipalities(name),
               status_processos(nome, cor)
             `)
             .not('latitude', 'is', null)
