@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProcessForm } from "@/components/forms/ProcessForm";
 
-type ProcessStatus = Database['public']['Enums']['process_status'];
+type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export default function Processes() {
   const { isAuthenticated } = useTechnicalAuth();
@@ -27,8 +28,9 @@ export default function Processes() {
         .from('processes')
         .select(`
           *,
-          municipalities(name, region),
-          regional_nuclei(name, acronym)
+          municipalities(name, regioes(nome)),
+          regional_nuclei(name, acronym),
+          status_processos(nome, cor)
         `)
         .order('created_at', { ascending: false });
       
@@ -154,8 +156,8 @@ export default function Processes() {
                       <FileText className="h-5 w-5" />
                       {process.process_number}
                     </CardTitle>
-                    <Badge className={getStatusColor(process.current_status)}>
-                      {getStatusLabel(process.current_status)}
+                    <Badge variant="secondary">
+                      {process.status_processos?.nome || 'Não definido'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -189,8 +191,8 @@ export default function Processes() {
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2" />
                     <span>
-                      {process.municipalities?.name} 
-                      {process.municipalities?.region && ` - ${process.municipalities.region}`}
+                      {process.municipalities?.name}
+                      {process.municipalities?.regioes && ` - ${process.municipalities.regioes.nome}`}
                     </span>
                   </div>
 

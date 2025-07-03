@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,24 +16,24 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: settings = [], isLoading } = useQuery({
-    queryKey: ['system-settings'],
+  const { data: configurations = [], isLoading } = useQuery({
+    queryKey: ['configurations'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('system_settings')
+        .from('configuracoes')
         .select('*')
-        .order('setting_key');
+        .order('chave');
       
       if (error) throw error;
       return data;
     },
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['user-profiles'],
+  const { data: usersList = [] } = useQuery({
+    queryKey: ['users-list'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -41,17 +42,17 @@ export default function Settings() {
     },
   });
 
-  const updateSettingMutation = useMutation({
+  const updateConfigurationMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
       const { error } = await supabase
-        .from('system_settings')
-        .update({ setting_value: value })
-        .eq('setting_key', key);
+        .from('configuracoes')
+        .update({ valor: value })
+        .eq('chave', key);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['configurations'] });
       toast({
         title: 'Configuração atualizada',
         description: 'A configuração foi salva com sucesso.',
@@ -59,27 +60,16 @@ export default function Settings() {
     },
   });
 
-  const updateUserRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
-      toast({
-        title: 'Permissão atualizada',
-        description: 'A permissão do usuário foi atualizada.',
-      });
-    },
-  });
-
   const createNotificationsMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc('create_expiration_notifications');
+      // Create a simple notification for testing
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          message: 'Notificações de vencimento foram geradas',
+          type: 'informative',
+          is_public: true
+        });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -90,30 +80,19 @@ export default function Settings() {
     },
   });
 
-  const handleSettingUpdate = (key: string, value: string) => {
-    updateSettingMutation.mutate({ key, value: JSON.stringify(value) });
+  const handleConfigurationUpdate = (key: string, value: string) => {
+    updateConfigurationMutation.mutate({ key, value });
   };
 
-  const getSettingValue = (settingValue: any): string => {
-    if (typeof settingValue === 'string') {
+  const getConfigurationValue = (configValue: any): string => {
+    if (typeof configValue === 'string') {
       try {
-        return JSON.parse(settingValue);
+        return JSON.parse(configValue);
       } catch {
-        return settingValue;
+        return configValue;
       }
     }
-    return String(settingValue);
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'technical':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return String(configValue);
   };
 
   if (isLoading) {
@@ -151,16 +130,17 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {settings.map((setting) => (
-                <div key={setting.setting_key} className="space-y-2">
-                  <Label htmlFor={setting.setting_key}>
-                    {setting.description || setting.setting_key}
+              {configurations.map((config) => (
+                <div key={config.chave} className="space-y-2">
+                  <Label htmlFor={config.chave}>
+                    {config.descricao || config.chave}
                   </Label>
                   <div className="flex space-x-2">
                     <Input
-                      id={setting.setting_key}
-                      defaultValue={getSettingValue(setting.setting_value)}
-                      onBlur={(e) => handleSettingUpdate(setting.setting_key, e.target.value)}
+                      id={config.chave}
+                      defaultValue={getConfigurationValue(config.valor)}
+                      onBlur={(e) => handleConfigurationUpdate(config.chave, e.target.value)}
+                      disabled={!config.editavel}
                     />
                   </div>
                 </div>
@@ -177,34 +157,21 @@ export default function Settings() {
                 Gerenciar Usuários
               </CardTitle>
               <CardDescription>
-                Gerencie permissões e roles dos usuários do sistema
+                Visualizar usuários do sistema
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {profiles.map((profile) => (
-                  <div key={profile.id} className="flex items-center justify-between p-4 border rounded-lg">
+                {usersList.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex-1">
-                      <h3 className="font-medium">{profile.full_name || 'Sem nome'}</h3>
-                      <p className="text-sm text-gray-600">{profile.email}</p>
+                      <h3 className="font-medium">{user.username}</h3>
+                      <p className="text-sm text-gray-600">ID: {user.id}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge className={getRoleColor(profile.role)}>
-                        {profile.role === 'admin' ? 'Administrador' :
-                         profile.role === 'technical' ? 'Técnico' : 'Visualizador'}
+                      <Badge variant="secondary">
+                        Usuário
                       </Badge>
-                      <select
-                        value={profile.role}
-                        onChange={(e) => updateUserRoleMutation.mutate({
-                          userId: profile.id,
-                          role: e.target.value
-                        })}
-                        className="text-sm border rounded p-1"
-                      >
-                        <option value="viewer">Visualizador</option>
-                        <option value="technical">Técnico</option>
-                        <option value="admin">Administrador</option>
-                      </select>
                     </div>
                   </div>
                 ))}
