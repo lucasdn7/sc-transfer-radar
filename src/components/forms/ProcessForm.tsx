@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -9,9 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import type { Database } from '@/integrations/supabase/types';
-
-type ProcessStatus = Database['public']['Enums']['process_status'];
+import type { Database } from "@/integrations/supabase/types";
 
 interface ProcessFormData {
   id?: number;
@@ -24,7 +23,7 @@ interface ProcessFormData {
   total_proponente_value: number;
   licitado_value?: number;
   vigencia_date: string;
-  current_status: ProcessStatus;
+  status_id: number;
   portaria_number?: string;
   latitude?: number;
   longitude?: number;
@@ -43,7 +42,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProcessFormData>({
     defaultValues: initialData || {
-      current_status: 'created' as ProcessStatus,
+      status_id: 1, // Default status
     },
   });
 
@@ -73,14 +72,19 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     },
   });
 
-  const statusOptions: { value: ProcessStatus; label: string }[] = [
-    { value: 'created', label: 'Criado' },
-    { value: 'in_analysis', label: 'Em Análise' },
-    { value: 'approved', label: 'Aprovado' },
-    { value: 'in_execution', label: 'Em Execução' },
-    { value: 'finished', label: 'Finalizado' },
-    { value: 'cancelled', label: 'Cancelado' },
-  ];
+  const { data: statusOptions = [] } = useQuery({
+    queryKey: ['status-processos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('status_processos')
+        .select('id, nome')
+        .eq('ativo', true)
+        .order('ordem');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const onSubmit = async (data: ProcessFormData) => {
     setIsSubmitting(true);
@@ -94,6 +98,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         total_concedente_value: Number(data.total_concedente_value),
         total_proponente_value: Number(data.total_proponente_value),
         licitado_value: data.licitado_value ? Number(data.licitado_value) : null,
+        status_id: Number(data.status_id),
         latitude: data.latitude ? Number(data.latitude) : null,
         longitude: data.longitude ? Number(data.longitude) : null,
       };
@@ -113,7 +118,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       } else {
         const { error } = await supabase
           .from('processes')
-          .insert([processData]);
+          .insert(processData);
 
         if (error) throw error;
         
@@ -292,18 +297,18 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="current_status">Status *</Label>
+              <Label htmlFor="status_id">Status *</Label>
               <Select 
-                onValueChange={(value) => setValue('current_status', value as ProcessStatus)}
-                defaultValue={watch('current_status')}
+                onValueChange={(value) => setValue('status_id', Number(value))}
+                defaultValue={watch('status_id')?.toString()}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
+                    <SelectItem key={status.id} value={status.id.toString()}>
+                      {status.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

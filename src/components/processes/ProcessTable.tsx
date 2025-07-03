@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, MapPin } from "lucide-react";
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from "@/utils/processUtils";
+import { formatCurrency, formatDate } from "@/utils/processUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Process = Database['public']['Tables']['processes']['Row'] & {
-  municipalities: { name: string; region: string | null } | null;
+  municipalities: { name: string } | null;
   regional_nuclei: { name: string; acronym: string } | null;
+  status_processos: { nome: string; cor: string | null } | null;
 };
 
 interface ProcessTableProps {
@@ -51,12 +52,6 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                     <div className="flex items-center space-x-2">
                       <div>
                         <div className="font-medium">{process.municipalities?.name}</div>
-                        {process.municipalities?.region && (
-                          <div className="text-xs text-gray-500 flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {process.municipalities.region}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -69,8 +64,8 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                     {formatCurrency(process.total_portaria_value)}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(process.current_status)}>
-                      {getStatusLabel(process.current_status)}
+                    <Badge variant="secondary">
+                      {process.status_processos?.nome || 'Não definido'}
                     </Badge>
                   </TableCell>
                   <TableCell>

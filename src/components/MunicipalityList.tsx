@@ -21,7 +21,8 @@ export function MunicipalityList() {
         .from('municipalities')
         .select(`
           *,
-          regional_nuclei (name, acronym)
+          regional_nuclei (name, acronym),
+          regioes (nome)
         `)
         .order('name', { ascending: true });
 
@@ -119,7 +120,7 @@ export function MunicipalityList() {
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{municipality.region || 'N/A'}</span>
+                        <span>{municipality.regioes?.nome || 'N/A'}</span>
                       </div>
                     </TableCell>
                     <TableCell>

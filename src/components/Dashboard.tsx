@@ -21,7 +21,7 @@ import { SystemNotifications } from "@/components/notifications/SystemNotificati
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import type { Database } from "@/integrations/supabase/types";
 
-type ProcessStatus = Database['public']['Enums']['process_status'];
+type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export function Dashboard() {
   const { data: stats, isLoading } = useDashboardStats();
@@ -33,7 +33,8 @@ export function Dashboard() {
         .from('processes')
         .select(`
           *,
-          municipalities (name)
+          municipalities (name),
+          status_processos (nome, cor)
         `)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -46,9 +47,9 @@ export function Dashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'finished':
+      case 'Finalizado':
         return <CheckCircle className="h-4 w-4" />;
-      case 'cancelled':
+      case 'Cancelado':
         return <AlertTriangle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -156,11 +157,11 @@ export function Dashboard() {
                   <div className="flex items-center space-x-2">
                     {getStatusIcon(status)}
                     <span className="text-sm font-medium">
-                      {getStatusLabel(status as ProcessStatus)}
+                      {status}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={getStatusColor(status as ProcessStatus)}>
+                    <Badge variant="secondary">
                       {count}
                     </Badge>
                   </div>
@@ -186,8 +187,8 @@ export function Dashboard() {
                     <p className="text-sm font-medium">{process.process_number}</p>
                     <p className="text-xs text-gray-600">{process.municipalities?.name}</p>
                   </div>
-                  <Badge className={getStatusColor(process.current_status as ProcessStatus)}>
-                    {getStatusLabel(process.current_status as ProcessStatus)}
+                  <Badge variant="secondary">
+                    {process.status_processos?.nome || 'Não definido'}
                   </Badge>
                 </div>
               ))}

@@ -8,11 +8,11 @@ import { ProcessTable } from "./processes/ProcessTable";
 import { ProcessListLoading } from "./processes/ProcessListLoading";
 import type { Database } from "@/integrations/supabase/types";
 
-type ProcessStatus = Database['public']['Enums']['process_status'];
+type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export function ProcessList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ProcessStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
 
   const { data: processes, isLoading, error } = useQuery({
     queryKey: ['processes', searchTerm, statusFilter],
@@ -23,18 +23,15 @@ export function ProcessList() {
         .from('processes')
         .select(`
           *,
-          municipalities (name, region),
-          regional_nuclei (name, acronym)
+          municipalities (name),
+          regional_nuclei (name, acronym),
+          status_processos (nome, cor)
         `)
         .order('created_at', { ascending: false })
         .limit(100); // Limitar para melhor performance
 
       if (searchTerm) {
         query = query.or(`process_number.ilike.%${searchTerm}%,object.ilike.%${searchTerm}%`);
-      }
-
-      if (statusFilter !== 'all') {
-        query = query.eq('current_status', statusFilter);
       }
 
       const { data, error } = await query;

@@ -81,15 +81,15 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         file_path: fileName,
         file_size: selectedFile.size,
         file_mime_type: selectedFile.type,
-        document_category_id: data.document_category_id ? Number(data.document_category_id) : null,
+        document_category_id: data.document_category_id ? Number(data.document_category_id) : 1,
         is_public: data.is_public,
         validity_date: data.validity_date || null,
-        uploaded_by_user_id: 1, // Placeholder para área técnica
+        uploaded_by_user_id: null, // Será preenchido quando tiver autenticação
       };
 
       const { error: insertError } = await supabase
         .from('documents')
-        .insert([documentData]);
+        .insert(documentData);
 
       if (insertError) throw insertError;
       

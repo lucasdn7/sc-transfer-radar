@@ -22,17 +22,21 @@ export function useDashboardStats() {
         const [
           processesResult,
           municipalitiesResult,
-          regionalNucleiResult
+          regionalNucleiResult,
+          statusResult
         ] = await Promise.all([
           supabase
             .from('processes')
-            .select('total_portaria_value, current_status, municipality_id'),
+            .select('total_portaria_value, municipality_id, status_id'),
           supabase
             .from('municipalities')
             .select('id'),
           supabase
             .from('regional_nuclei')
-            .select('id')
+            .select('id'),
+          supabase
+            .from('status_processos')
+            .select('id, nome')
         ]);
 
         // Verificar erros
@@ -54,6 +58,7 @@ export function useDashboardStats() {
         const processes = processesResult.data || [];
         const municipalities = municipalitiesResult.data || [];
         const regionalNuclei = regionalNucleiResult.data || [];
+        const statusList = statusResult.data || [];
 
         // Calcular estatísticas
         const totalProcesses = processes.length;
@@ -67,9 +72,14 @@ export function useDashboardStats() {
         ).size;
         
         // Distribuição por status
+        const statusMap = statusList.reduce((acc, status) => {
+          acc[status.id] = status.nome;
+          return acc;
+        }, {} as Record<number, string>);
+
         const statusDistribution = processes.reduce((acc, process) => {
-          const status = process.current_status || 'unknown';
-          acc[status] = (acc[status] || 0) + 1;
+          const statusName = statusMap[process.status_id] || 'Não definido';
+          acc[statusName] = (acc[statusName] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
 
