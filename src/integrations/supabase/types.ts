@@ -16,7 +16,7 @@ export type Database = {
           id: number
           ip_address: string | null
           user_agent: string | null
-          user_id: number | null
+          user_id: string | null
         }
         Insert: {
           action_description: string
@@ -24,7 +24,7 @@ export type Database = {
           id?: number
           ip_address?: string | null
           user_agent?: string | null
-          user_id?: number | null
+          user_id?: string | null
         }
         Update: {
           action_description?: string
@@ -32,12 +32,106 @@ export type Database = {
           id?: number
           ip_address?: string | null
           user_agent?: string | null
-          user_id?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "activity_log_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backups: {
+        Row: {
+          arquivo_path: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          erro_mensagem: string | null
+          id: number
+          nome: string
+          status: Database["public"]["Enums"]["backup_status"]
+          tamanho_bytes: number | null
+          tipo: Database["public"]["Enums"]["backup_type"]
+        }
+        Insert: {
+          arquivo_path: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: number
+          nome: string
+          status: Database["public"]["Enums"]["backup_status"]
+          tamanho_bytes?: number | null
+          tipo: Database["public"]["Enums"]["backup_type"]
+        }
+        Update: {
+          arquivo_path?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          erro_mensagem?: string | null
+          id?: number
+          nome?: string
+          status?: Database["public"]["Enums"]["backup_status"]
+          tamanho_bytes?: number | null
+          tipo?: Database["public"]["Enums"]["backup_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes: {
+        Row: {
+          categoria: string | null
+          chave: string
+          created_at: string
+          descricao: string | null
+          editavel: boolean
+          id: number
+          tipo: Database["public"]["Enums"]["config_type"]
+          updated_at: string
+          updated_by: string | null
+          valor: string
+        }
+        Insert: {
+          categoria?: string | null
+          chave: string
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          id?: number
+          tipo: Database["public"]["Enums"]["config_type"]
+          updated_at?: string
+          updated_by?: string | null
+          valor: string
+        }
+        Update: {
+          categoria?: string | null
+          chave?: string
+          created_at?: string
+          descricao?: string | null
+          editavel?: boolean
+          id?: number
+          tipo?: Database["public"]["Enums"]["config_type"]
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -78,7 +172,7 @@ export type Database = {
           is_public: boolean
           title: string
           updated_at: string
-          uploaded_by_user_id: number | null
+          uploaded_by_user_id: string | null
           validity_date: string | null
           version: number
         }
@@ -94,7 +188,7 @@ export type Database = {
           is_public?: boolean
           title: string
           updated_at?: string
-          uploaded_by_user_id?: number | null
+          uploaded_by_user_id?: string | null
           validity_date?: string | null
           version?: number
         }
@@ -110,7 +204,7 @@ export type Database = {
           is_public?: boolean
           title?: string
           updated_at?: string
-          uploaded_by_user_id?: number | null
+          uploaded_by_user_id?: string | null
           validity_date?: string | null
           version?: number
         }
@@ -184,51 +278,65 @@ export type Database = {
       }
       municipalities: {
         Row: {
-          classification: string | null
           cnpj: string
           created_at: string
           email: string | null
           id: number
           mayor_name: string | null
+          municipality_classification_id: number | null
           name: string
           phone: string | null
           population: number | null
-          region: string | null
+          region_id: number | null
           regional_nucleus_id: number | null
           secretary_name: string | null
           updated_at: string
         }
         Insert: {
-          classification?: string | null
           cnpj: string
           created_at?: string
           email?: string | null
           id?: number
           mayor_name?: string | null
+          municipality_classification_id?: number | null
           name: string
           phone?: string | null
           population?: number | null
-          region?: string | null
+          region_id?: number | null
           regional_nucleus_id?: number | null
           secretary_name?: string | null
           updated_at?: string
         }
         Update: {
-          classification?: string | null
           cnpj?: string
           created_at?: string
           email?: string | null
           id?: number
           mayor_name?: string | null
+          municipality_classification_id?: number | null
           name?: string
           phone?: string | null
           population?: number | null
-          region?: string | null
+          region_id?: number | null
           regional_nucleus_id?: number | null
           secretary_name?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "municipalities_municipality_classification_id_fkey"
+            columns: ["municipality_classification_id"]
+            isOneToOne: false
+            referencedRelation: "municipality_classifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "municipalities_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "municipalities_regional_nucleus_id_fkey"
             columns: ["regional_nucleus_id"]
@@ -237,6 +345,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      municipality_classifications: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       newsletter_subscriptions: {
         Row: {
@@ -272,7 +401,7 @@ export type Database = {
           is_public: boolean
           is_read: boolean
           message: string
-          recipient_user_id: number | null
+          recipient_user_id: string | null
           type: Database["public"]["Enums"]["notification_type"]
         }
         Insert: {
@@ -281,7 +410,7 @@ export type Database = {
           is_public?: boolean
           is_read?: boolean
           message: string
-          recipient_user_id?: number | null
+          recipient_user_id?: string | null
           type: Database["public"]["Enums"]["notification_type"]
         }
         Update: {
@@ -290,7 +419,7 @@ export type Database = {
           is_public?: boolean
           is_read?: boolean
           message?: string
-          recipient_user_id?: number | null
+          recipient_user_id?: string | null
           type?: Database["public"]["Enums"]["notification_type"]
         }
         Relationships: [
@@ -299,6 +428,53 @@ export type Database = {
             columns: ["recipient_user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nuclei: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string | null
+          id: number
+          name: string
+          observations: string | null
+          phone: string | null
+          region_id: number | null
+          responsible: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          name: string
+          observations?: string | null
+          phone?: string | null
+          region_id?: number | null
+          responsible?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          name?: string
+          observations?: string | null
+          phone?: string | null
+          region_id?: number | null
+          responsible?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nuclei_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
             referencedColumns: ["id"]
           },
         ]
@@ -373,7 +549,7 @@ export type Database = {
           id: number
           process_id: number
           updated_at: string
-          user_id: number
+          user_id: string
         }
         Insert: {
           comment: string
@@ -381,7 +557,7 @@ export type Database = {
           id?: number
           process_id: number
           updated_at?: string
-          user_id: number
+          user_id: string
         }
         Update: {
           comment?: string
@@ -389,7 +565,7 @@ export type Database = {
           id?: number
           process_id?: number
           updated_at?: string
-          user_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -414,21 +590,21 @@ export type Database = {
           created_at: string
           id: number
           process_id: number
-          user_id: number | null
+          user_id: string | null
         }
         Insert: {
           change_description: string
           created_at?: string
           id?: number
           process_id: number
-          user_id?: number | null
+          user_id?: string | null
         }
         Update: {
           change_description?: string
           created_at?: string
           id?: number
           process_id?: number
-          user_id?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -487,8 +663,8 @@ export type Database = {
       }
       processes: {
         Row: {
+          address: string | null
           created_at: string
-          current_status: Database["public"]["Enums"]["process_status"]
           id: number
           last_tramitacao: string | null
           latitude: number | null
@@ -499,6 +675,7 @@ export type Database = {
           portaria_number: string | null
           process_number: string
           regional_nucleus_id: number | null
+          status_id: number
           total_concedente_value: number
           total_portaria_value: number
           total_proponente_value: number
@@ -506,8 +683,8 @@ export type Database = {
           vigencia_date: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
-          current_status: Database["public"]["Enums"]["process_status"]
           id?: number
           last_tramitacao?: string | null
           latitude?: number | null
@@ -518,6 +695,7 @@ export type Database = {
           portaria_number?: string | null
           process_number: string
           regional_nucleus_id?: number | null
+          status_id: number
           total_concedente_value: number
           total_portaria_value: number
           total_proponente_value: number
@@ -525,8 +703,8 @@ export type Database = {
           vigencia_date: string
         }
         Update: {
+          address?: string | null
           created_at?: string
-          current_status?: Database["public"]["Enums"]["process_status"]
           id?: number
           last_tramitacao?: string | null
           latitude?: number | null
@@ -537,6 +715,7 @@ export type Database = {
           portaria_number?: string | null
           process_number?: string
           regional_nucleus_id?: number | null
+          status_id?: number
           total_concedente_value?: number
           total_portaria_value?: number
           total_proponente_value?: number
@@ -558,34 +737,14 @@ export type Database = {
             referencedRelation: "regional_nuclei"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processes_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "status_processos"
+            referencedColumns: ["id"]
+          },
         ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          role: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id: string
-          role?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          role?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       public_alerts: {
         Row: {
@@ -625,16 +784,46 @@ export type Database = {
           },
         ]
       }
+      regioes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: number
+          nome: string
+          sigla: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome: string
+          sigla?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome?: string
+          sigla?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       regional_nuclei: {
         Row: {
           acronym: string
           created_at: string
           email: string | null
-          geographic_region: string | null
           id: number
           name: string
           observations: string | null
           phone: string | null
+          region_id: number | null
           technical_responsible_name: string | null
           updated_at: string
         }
@@ -642,11 +831,11 @@ export type Database = {
           acronym: string
           created_at?: string
           email?: string | null
-          geographic_region?: string | null
           id?: number
           name: string
           observations?: string | null
           phone?: string | null
+          region_id?: number | null
           technical_responsible_name?: string | null
           updated_at?: string
         }
@@ -654,13 +843,51 @@ export type Database = {
           acronym?: string
           created_at?: string
           email?: string | null
-          geographic_region?: string | null
           id?: number
           name?: string
           observations?: string | null
           phone?: string | null
+          region_id?: number | null
           technical_responsible_name?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regional_nuclei_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regioes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regions: {
+        Row: {
+          acronym: string | null
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          id: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          acronym?: string | null
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          acronym?: string | null
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -721,72 +948,244 @@ export type Database = {
         }
         Relationships: []
       }
-      system_settings: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: number
-          setting_key: string
-          setting_value: Json
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: number
-          setting_key: string
-          setting_value: Json
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: number
-          setting_key?: string
-          setting_value?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      technical_sessions: {
+      sessoes: {
         Row: {
           created_at: string
           expires_at: string
           id: string
-          is_active: boolean
-          session_token: string
+          ip_address: string | null
+          token: string
+          updated_at: string
+          user_agent: string | null
+          usuario_id: string
         }
         Insert: {
           created_at?: string
-          expires_at?: string
-          id?: string
-          is_active?: boolean
-          session_token: string
+          expires_at: string
+          id: string
+          ip_address?: string | null
+          token: string
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id: string
         }
         Update: {
           created_at?: string
           expires_at?: string
           id?: string
-          is_active?: boolean
-          session_token?: string
+          ip_address?: string | null
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      status_processos: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: number
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome: string
+          ordem: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: number
+          nome?: string
+          ordem?: number
+          updated_at?: string
         }
         Relationships: []
+      }
+      transfer_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          transfer_id: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          transfer_id?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          transfer_id?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_attachments_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfers: {
+        Row: {
+          accumulated: number | null
+          adjudicated_value: number | null
+          authorized_value: number | null
+          balance_to_pay: number | null
+          counterpart_value: number | null
+          created_at: string | null
+          external_link: string | null
+          id: string
+          installments: Json | null
+          is_on_calendar: boolean | null
+          is_on_map: boolean | null
+          last_processing: string | null
+          measurement: number | null
+          municipal_economy: number | null
+          municipality_id: number | null
+          nucleus_id: number | null
+          object: string
+          ordinance: string | null
+          ordinance_value: number | null
+          percentage_to_pay: number | null
+          process_number: string
+          status: string | null
+          total_ordinance_value: number | null
+          transfer_type: string | null
+          updated_at: string | null
+          validity_date: string | null
+          year: number
+        }
+        Insert: {
+          accumulated?: number | null
+          adjudicated_value?: number | null
+          authorized_value?: number | null
+          balance_to_pay?: number | null
+          counterpart_value?: number | null
+          created_at?: string | null
+          external_link?: string | null
+          id?: string
+          installments?: Json | null
+          is_on_calendar?: boolean | null
+          is_on_map?: boolean | null
+          last_processing?: string | null
+          measurement?: number | null
+          municipal_economy?: number | null
+          municipality_id?: number | null
+          nucleus_id?: number | null
+          object: string
+          ordinance?: string | null
+          ordinance_value?: number | null
+          percentage_to_pay?: number | null
+          process_number: string
+          status?: string | null
+          total_ordinance_value?: number | null
+          transfer_type?: string | null
+          updated_at?: string | null
+          validity_date?: string | null
+          year: number
+        }
+        Update: {
+          accumulated?: number | null
+          adjudicated_value?: number | null
+          authorized_value?: number | null
+          balance_to_pay?: number | null
+          counterpart_value?: number | null
+          created_at?: string | null
+          external_link?: string | null
+          id?: string
+          installments?: Json | null
+          is_on_calendar?: boolean | null
+          is_on_map?: boolean | null
+          last_processing?: string | null
+          measurement?: number | null
+          municipal_economy?: number | null
+          municipality_id?: number | null
+          nucleus_id?: number | null
+          object?: string
+          ordinance?: string | null
+          ordinance_value?: number | null
+          percentage_to_pay?: number | null
+          process_number?: string
+          status?: string | null
+          total_ordinance_value?: number | null
+          transfer_type?: string | null
+          updated_at?: string | null
+          validity_date?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfers_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_nucleus_id_fkey"
+            columns: ["nucleus_id"]
+            isOneToOne: false
+            referencedRelation: "regional_nuclei"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
           created_at: string
           role_id: number
-          user_id: number
+          user_id: string
         }
         Insert: {
           created_at?: string
           role_id: number
-          user_id: number
+          user_id: string
         }
         Update: {
           created_at?: string
           role_id?: number
-          user_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -808,21 +1207,21 @@ export type Database = {
       users: {
         Row: {
           created_at: string
-          id: number
+          id: string
           password: string
           updated_at: string
           username: string
         }
         Insert: {
           created_at?: string
-          id?: number
+          id: string
           password: string
           updated_at?: string
           username: string
         }
         Update: {
           created_at?: string
-          id?: number
+          id?: string
           password?: string
           updated_at?: string
           username?: string
@@ -834,47 +1233,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      authenticate_technical_user: {
-        Args: { password_input: string }
-        Returns: boolean
-      }
-      create_expiration_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      create_technical_session: {
-        Args: { password_input: string }
-        Returns: {
-          session_token: string
-          expires_at: string
-        }[]
-      }
-      get_user_role: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      has_role: {
-        Args: { user_id: string; required_role: string }
-        Returns: boolean
-      }
-      invalidate_technical_session: {
-        Args: { token_input: string }
-        Returns: boolean
-      }
-      validate_technical_session: {
-        Args: { token_input: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
+      backup_status: "processando" | "concluido" | "erro"
+      backup_type: "completo" | "incremental" | "manual"
+      config_type: "string" | "number" | "boolean" | "json"
       notification_type: "critical" | "important" | "informative"
-      process_status:
-        | "created"
-        | "in_analysis"
-        | "approved"
-        | "in_execution"
-        | "finished"
-        | "cancelled"
+      transfer_status:
+        | "TEV"
+        | "Em tramitação"
+        | "Concluído"
+        | "Convênio Simplificado"
+        | "Diligência"
+      transfer_type:
+        | "obra"
+        | "evento"
+        | "patrocínio"
+        | "termo de referência"
+        | "convênio simplificado"
+        | "convênio"
+        | "convenio_normal"
+        | "termo_de_fomento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -990,14 +1370,26 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      backup_status: ["processando", "concluido", "erro"],
+      backup_type: ["completo", "incremental", "manual"],
+      config_type: ["string", "number", "boolean", "json"],
       notification_type: ["critical", "important", "informative"],
-      process_status: [
-        "created",
-        "in_analysis",
-        "approved",
-        "in_execution",
-        "finished",
-        "cancelled",
+      transfer_status: [
+        "TEV",
+        "Em tramitação",
+        "Concluído",
+        "Convênio Simplificado",
+        "Diligência",
+      ],
+      transfer_type: [
+        "obra",
+        "evento",
+        "patrocínio",
+        "termo de referência",
+        "convênio simplificado",
+        "convênio",
+        "convenio_normal",
+        "termo_de_fomento",
       ],
     },
   },
