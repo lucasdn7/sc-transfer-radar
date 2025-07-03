@@ -16,8 +16,8 @@ interface ProcessFormData {
   id?: number;
   process_number: string;
   object: string;
-  municipality_id: number;
-  regional_nucleus_id?: number;
+  municipality_name: string;
+  regional_nucleus_name?: string;
   total_portaria_value: number;
   total_concedente_value: number;
   total_proponente_value: number;
@@ -32,7 +32,7 @@ interface ProcessFormData {
 interface ProcessFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: Partial<ProcessFormData>;
+  initialData?: any;
   isEdit?: boolean;
 }
 
@@ -41,34 +41,13 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const { toast } = useToast();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProcessFormData>({
-    defaultValues: initialData || {
-      status_id: 1, // Default status
-    },
-  });
-
-  const { data: municipalities = [] } = useQuery({
-    queryKey: ['municipalities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('municipalities')
-        .select('id, name')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: regionalNuclei = [] } = useQuery({
-    queryKey: ['regional-nuclei'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regional_nuclei')
-        .select('id, name, acronym')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
+    defaultValues: initialData ? {
+      ...initialData,
+      municipality_name: initialData.municipalities?.name || '',
+      regional_nucleus_name: initialData.regional_nuclei?.name || '',
+      status_id: initialData.status_id || 1,
+    } : {
+      status_id: 1,
     },
   });
 
@@ -86,19 +65,87 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     },
   });
 
+  // Função para buscar ou criar município
+  const findOrCreateMunicipality = async (municipalityName: string) => {
+    // Primeiro, tentar encontrar o município existente
+    const { data: existingMunicipality } = await supabase
+      .from('municipalities')
+      .select('id')
+      .ilike('name', municipalityName)
+      .single();
+
+    if (existingMunicipality) {
+      return existingMunicipality.id;
+    }
+
+    // Se não existir, criar novo município
+    const { data: newMunicipality, error } = await supabase
+      .from('municipalities')
+      .insert({
+        name: municipalityName,
+        cnpj: `${Date.now()}` // CNPJ temporário que pode ser editado depois
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newMunicipality.id;
+  };
+
+  // Função para buscar ou criar núcleo regional
+  const findOrCreateRegionalNucleus = async (nucleusName: string) => {
+    if (!nucleusName) return null;
+
+    // Primeiro, tentar encontrar o núcleo existente
+    const { data: existingNucleus } = await supabase
+      .from('regional_nuclei')
+      .select('id')
+      .ilike('name', nucleusName)
+      .single();
+
+    if (existingNucleus) {
+      return existingNucleus.id;
+    }
+
+    // Se não existir, criar novo núcleo regional
+    const acronym = nucleusName.split(' ').map(word => word.charAt(0)).join('').toUpperCase();
+    
+    const { data: newNucleus, error } = await supabase
+      .from('regional_nuclei')
+      .insert({
+        name: nucleusName,
+        acronym: acronym
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newNucleus.id;
+  };
+
   const onSubmit = async (data: ProcessFormData) => {
     setIsSubmitting(true);
     
     try {
+      // Buscar ou criar município
+      const municipalityId = await findOrCreateMunicipality(data.municipality_name);
+      
+      // Buscar ou criar núcleo regional (se fornecido)
+      const regionalNucleusId = data.regional_nucleus_name ? 
+        await findOrCreateRegionalNucleus(data.regional_nucleus_name) : null;
+
       const processData = {
-        ...data,
-        municipality_id: Number(data.municipality_id),
-        regional_nucleus_id: data.regional_nucleus_id ? Number(data.regional_nucleus_id) : null,
+        process_number: data.process_number,
+        object: data.object,
+        municipality_id: municipalityId,
+        regional_nucleus_id: regionalNucleusId,
         total_portaria_value: Number(data.total_portaria_value),
         total_concedente_value: Number(data.total_concedente_value),
         total_proponente_value: Number(data.total_proponente_value),
         licitado_value: data.licitado_value ? Number(data.licitado_value) : null,
+        vigencia_date: data.vigencia_date,
         status_id: Number(data.status_id),
+        portaria_number: data.portaria_number || null,
         latitude: data.latitude ? Number(data.latitude) : null,
         longitude: data.longitude ? Number(data.longitude) : null,
       };
@@ -124,12 +171,13 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         
         toast({
           title: 'Processo criado com sucesso',
-          description: 'O novo processo foi adicionado ao sistema.',
+          description: 'O novo processo foi adicionado ao sistema. Municípios e núcleos foram criados automaticamente quando necessário.',
         });
       }
 
       onSuccess();
     } catch (error: any) {
+      console.error('Error saving process:', error);
       toast({
         title: 'Erro ao salvar processo',
         description: error.message,
@@ -187,35 +235,30 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="municipality_id">Município *</Label>
-              <Select onValueChange={(value) => setValue('municipality_id', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o município" />
-                </SelectTrigger>
-                <SelectContent>
-                  {municipalities.map((municipality) => (
-                    <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                      {municipality.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="municipality_name">Nome do Município *</Label>
+              <Input
+                id="municipality_name"
+                {...register('municipality_name', { required: 'Campo obrigatório' })}
+                placeholder="Digite o nome do município"
+              />
+              <p className="text-xs text-gray-500">
+                Se o município não existir, será criado automaticamente
+              </p>
+              {errors.municipality_name && (
+                <p className="text-sm text-red-600">{errors.municipality_name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="regional_nucleus_id">Núcleo Regional</Label>
-              <Select onValueChange={(value) => setValue('regional_nucleus_id', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o núcleo regional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regionalNuclei.map((nucleus) => (
-                    <SelectItem key={nucleus.id} value={nucleus.id.toString()}>
-                      {nucleus.acronym} - {nucleus.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="regional_nucleus_name">Nome do Núcleo Regional</Label>
+              <Input
+                id="regional_nucleus_name"
+                {...register('regional_nucleus_name')}
+                placeholder="Digite o nome do núcleo regional"
+              />
+              <p className="text-xs text-gray-500">
+                Se o núcleo não existir, será criado automaticamente
+              </p>
             </div>
           </div>
 

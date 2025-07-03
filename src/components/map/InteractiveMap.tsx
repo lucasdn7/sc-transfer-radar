@@ -103,6 +103,8 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
             return;
           }
 
+          console.log('Processos encontrados para o mapa:', processes?.length || 0);
+
           // Adicionar marcadores para cada processo
           processes?.forEach((process) => {
             if (process.latitude && process.longitude) {
@@ -147,11 +149,14 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
           }, {});
 
           // Adicionar linhas conectando processos do mesmo município
-          Object.values(municipalityGroups || {}).forEach((municipalityProcesses: any) => {
+          Object.entries(municipalityGroups || {}).forEach(([municipalityName, municipalityProcesses]: [string, any]) => {
             if (municipalityProcesses.length > 1) {
               const coordinates = municipalityProcesses.map((p: any) => [p.longitude, p.latitude]);
               
-              map.current!.addSource(`municipality-connections-${municipalityProcesses[0].municipalities.name}`, {
+              const sourceId = `municipality-connections-${municipalityName.replace(/\s+/g, '-')}`;
+              const layerId = `municipality-lines-${municipalityName.replace(/\s+/g, '-')}`;
+              
+              map.current!.addSource(sourceId, {
                 type: 'geojson',
                 data: {
                   type: 'Feature',
@@ -164,9 +169,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
               });
 
               map.current!.addLayer({
-                id: `municipality-connections-${municipalityProcesses[0].municipalities.name}`,
+                id: layerId,
                 type: 'line',
-                source: `municipality-connections-${municipalityProcesses[0].municipalities.name}`,
+                source: sourceId,
                 layout: {
                   'line-join': 'round',
                   'line-cap': 'round'
