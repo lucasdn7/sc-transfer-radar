@@ -5,6 +5,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Button } from '@/components/ui/button';
 import { Settings, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/processUtils';
 
 interface InteractiveMapProps {
   token: string;
@@ -79,39 +81,108 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
       map.current.addControl(new mapboxgl.ScaleControl());
 
       // Evento quando o mapa carrega
-      map.current.on('load', () => {
+      map.current.on('load', async () => {
         console.log('Mapa carregado com sucesso');
         setIsLoaded(true);
         setIsInitializing(false);
 
-        // Adicionar dados dos municípios e processos
-        const municipios = [
-          { lng: -48.5482, lat: -27.5954, nome: 'Florianópolis', processos: 5 },
-          { lng: -49.0647, lat: -26.9194, nome: 'Blumenau', processos: 3 },
-          { lng: -49.2712, lat: -25.4284, nome: 'Joinville', processos: 8 },
-          { lng: -49.6408, lat: -26.8412, nome: 'Pomerode', processos: 2 },
-          { lng: -48.8095, lat: -26.6332, nome: 'Itajaí', processos: 4 },
-        ];
+        // Buscar processos da base de dados
+        try {
+          const { data: processes, error } = await supabase
+            .from('processes')
+            .select(`
+              *,
+              municipalities(name, latitude, longitude),
+              status_processos(nome, cor)
+            `)
+            .not('latitude', 'is', null)
+            .not('longitude', 'is', null);
 
-        municipios.forEach((municipio) => {
-          const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div style="padding: 8px;">
-              <h3 style="margin: 0 0 4px 0; font-weight: bold;">${municipio.nome}</h3>
-              <p style="margin: 0; color: #666;">${municipio.processos} processos</p>
-            </div>
-          `);
+          if (error) {
+            console.error('Erro ao buscar processos:', error);
+            return;
+          }
 
-          const markerColor = municipio.processos > 5 ? '#ef4444' : 
-                             municipio.processos > 2 ? '#f59e0b' : '#10b981';
+          // Adicionar marcadores para cada processo
+          processes?.forEach((process) => {
+            if (process.latitude && process.longitude) {
+              const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+                <div style="padding: 12px; max-width: 300px;">
+                  <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 14px;">${process.process_number}</h3>
+                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${process.object}</p>
+                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Município:</strong> ${process.municipalities?.name || 'N/A'}</p>
+                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Valor:</strong> ${formatCurrency(process.total_portaria_value)}</p>
+                  <p style="margin: 0; font-size: 12px;"><strong>Status:</strong> ${process.status_processos?.nome || 'N/A'}</p>
+                </div>
+              `);
 
-          new mapboxgl.Marker({
-            color: markerColor,
-            scale: 0.8
-          })
-            .setLngLat([municipio.lng, municipio.lat])
-            .setPopup(popup)
-            .addTo(map.current!);
-        });
+              // Definir cor do marcador baseado no valor
+              let markerColor = '#10b981'; // Verde para valores menores
+              if (process.total_portaria_value > 1000000) {
+                markerColor = '#ef4444'; // Vermelho para valores altos
+              } else if (process.total_portaria_value > 500000) {
+                markerColor = '#f59e0b'; // Amarelo para valores médios
+              }
+
+              new mapboxgl.Marker({
+                color: markerColor,
+                scale: 0.8
+              })
+                .setLngLat([process.longitude, process.latitude])
+                .setPopup(popup)
+                .addTo(map.current!);
+            }
+          });
+
+          // Conectar processos do mesmo município com linhas
+          const municipalityGroups = processes?.reduce((groups: any, process) => {
+            const municipalityName = process.municipalities?.name;
+            if (municipalityName && process.latitude && process.longitude) {
+              if (!groups[municipalityName]) {
+                groups[municipalityName] = [];
+              }
+              groups[municipalityName].push(process);
+            }
+            return groups;
+          }, {});
+
+          // Adicionar linhas conectando processos do mesmo município
+          Object.values(municipalityGroups || {}).forEach((municipalityProcesses: any) => {
+            if (municipalityProcesses.length > 1) {
+              const coordinates = municipalityProcesses.map((p: any) => [p.longitude, p.latitude]);
+              
+              map.current!.addSource(`municipality-connections-${municipalityProcesses[0].municipalities.name}`, {
+                type: 'geojson',
+                data: {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: coordinates
+                  }
+                }
+              });
+
+              map.current!.addLayer({
+                id: `municipality-connections-${municipalityProcesses[0].municipalities.name}`,
+                type: 'line',
+                source: `municipality-connections-${municipalityProcesses[0].municipalities.name}`,
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': '#3b82f6',
+                  'line-width': 2,
+                  'line-opacity': 0.6
+                }
+              });
+            }
+          });
+
+        } catch (error) {
+          console.error('Erro ao carregar processos no mapa:', error);
+        }
       });
 
       // Tratamento de erros

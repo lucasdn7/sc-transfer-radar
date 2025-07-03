@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Phone, Mail, Plus, Edit } from "lucide-react";
+import { MapPin, Users, Phone, Mail, Plus, Edit, Building } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
@@ -22,7 +22,8 @@ export default function RegionalNuclei() {
         .from('regional_nuclei')
         .select(`
           *,
-          regioes(nome, sigla)
+          regioes(nome, sigla),
+          municipalities(name)
         `)
         .order('name');
       
@@ -164,6 +165,22 @@ export default function RegionalNuclei() {
                   <div className="flex items-center text-sm text-gray-600">
                     <Mail className="h-4 w-4 mr-2" />
                     {nucleus.email}
+                  </div>
+                )}
+
+                {nucleus.municipalities && nucleus.municipalities.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Building className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Municípios:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {[...new Set(nucleus.municipalities.map((m: any) => m.name))].map((municipalityName: string) => (
+                        <Badge key={municipalityName} variant="outline" className="text-xs">
+                          {municipalityName}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 

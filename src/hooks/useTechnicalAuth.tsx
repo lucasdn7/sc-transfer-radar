@@ -31,8 +31,8 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
 
   const signIn = async (password: string) => {
     try {
-      // Simple password check - in production, this should be more secure
-      if (password === 'admin123') {
+      // Updated password check
+      if (password === 'Geinfra.setur2025') {
         const token = Math.random().toString(36).substring(7);
         setSessionToken(token);
         localStorage.setItem('technical_session_token', token);
