@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ export default function RegionalNuclei() {
         .from('regional_nuclei')
         .select(`
           *,
-          municipalities(count)
+          regioes(nome, sigla)
         `)
         .order('name');
       
@@ -138,10 +139,10 @@ export default function RegionalNuclei() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {nucleus.geographic_region && (
+                {nucleus.regioes && (
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2" />
-                    {nucleus.geographic_region}
+                    {nucleus.regioes.nome} ({nucleus.regioes.sigla})
                   </div>
                 )}
 

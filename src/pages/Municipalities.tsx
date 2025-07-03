@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,8 @@ export default function Municipalities() {
         .select(`
           *,
           regional_nuclei(name, acronym),
-          processes(count)
+          regioes(nome, sigla),
+          municipality_classifications(name)
         `)
         .order('name');
       
@@ -35,7 +37,7 @@ export default function Municipalities() {
 
   const filteredMunicipalities = municipalities?.filter(municipality =>
     municipality.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    municipality.region?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    municipality.regioes?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     municipality.mayor_name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
@@ -150,9 +152,9 @@ export default function Municipalities() {
                       <Building className="h-5 w-5" />
                       {municipality.name}
                     </CardTitle>
-                    {municipality.region && (
+                    {municipality.regioes?.nome && (
                       <Badge variant="secondary" className="mt-1">
-                        {municipality.region}
+                        {municipality.regioes.nome}
                       </Badge>
                     )}
                   </div>
@@ -202,9 +204,9 @@ export default function Municipalities() {
                   </div>
                 )}
 
-                {municipality.classification && (
+                {municipality.municipality_classifications && (
                   <div className="text-sm text-gray-600">
-                    <strong>Classificação:</strong> {municipality.classification}
+                    <strong>Classificação:</strong> {municipality.municipality_classifications.name}
                   </div>
                 )}
 

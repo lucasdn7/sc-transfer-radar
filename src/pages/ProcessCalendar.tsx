@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getStatusColor, formatCurrency } from '@/utils/processUtils';
+import { formatCurrency } from '@/utils/processUtils';
 
 export default function ProcessCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,8 +21,9 @@ export default function ProcessCalendar() {
         .from('processes')
         .select(`
           *,
-          municipalities(name, region),
-          regional_nuclei(name, acronym)
+          municipalities(name),
+          regional_nuclei(name, acronym),
+          status_processos(nome, cor)
         `)
         .gte('vigencia_date', startOfMonth.toISOString().split('T')[0])
         .lte('vigencia_date', endOfMonth.toISOString().split('T')[0])
@@ -170,13 +171,13 @@ export default function ProcessCalendar() {
                       <div 
                         key={process.id}
                         className="text-xs p-1 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                        title={`${process.process_number} - ${process.municipalities?.name}`}
+                        title={`${process.process_number} - ${process.municipalities?.name || 'N/A'}`}
                       >
                         <div className="font-medium truncate">
                           {process.process_number}
                         </div>
                         <div className="text-gray-600 truncate">
-                          {process.municipalities?.name}
+                          {process.municipalities?.name || 'N/A'}
                         </div>
                         <div className="text-green-600 font-medium">
                           {formatCurrency(process.total_portaria_value)}
@@ -204,10 +205,10 @@ export default function ProcessCalendar() {
                     <div className="font-medium">{process.process_number}</div>
                     <div className="text-sm text-gray-600 flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      {process.municipalities?.name}
+                      {process.municipalities?.name || 'N/A'}
                     </div>
-                    <Badge className={getStatusColor(process.current_status)}>
-                      {process.current_status}
+                    <Badge variant="secondary">
+                      {process.status_processos?.nome || 'Não definido'}
                     </Badge>
                   </div>
                   <div className="text-right">

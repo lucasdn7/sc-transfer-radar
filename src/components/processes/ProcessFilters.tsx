@@ -5,13 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
-type ProcessStatus = Database['public']['Enums']['process_status'];
+type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 interface ProcessFiltersProps {
   searchTerm: string;
-  statusFilter: ProcessStatus | "all";
+  statusFilter: TransferStatus | "all";
   onSearchChange: (value: string) => void;
-  onStatusChange: (value: ProcessStatus | "all") => void;
+  onStatusChange: (value: TransferStatus | "all") => void;
 }
 
 export function ProcessFilters({ 
@@ -41,12 +41,11 @@ export function ProcessFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="created">Criado</SelectItem>
-              <SelectItem value="in_analysis">Em Análise</SelectItem>
-              <SelectItem value="approved">Aprovado</SelectItem>
-              <SelectItem value="in_execution">Em Execução</SelectItem>
-              <SelectItem value="finished">Finalizado</SelectItem>
-              <SelectItem value="cancelled">Cancelado</SelectItem>
+              <SelectItem value="TEV">TEV</SelectItem>
+              <SelectItem value="Em tramitação">Em tramitação</SelectItem>
+              <SelectItem value="Concluído">Concluído</SelectItem>
+              <SelectItem value="Convênio Simplificado">Convênio Simplificado</SelectItem>
+              <SelectItem value="Diligência">Diligência</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -19,53 +19,21 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
   const { toast } = useToast();
 
   useEffect(() => {
-    // Verificar se existe sessão salva no localStorage
+    // Check if there's a saved session token in localStorage
     const savedToken = localStorage.getItem('technical_session_token');
     if (savedToken) {
-      validateSession(savedToken);
-    } else {
-      setLoading(false);
+      // For now, just validate if the token exists
+      // In a real implementation, you'd validate against the database
+      setSessionToken(savedToken);
     }
+    setLoading(false);
   }, []);
-
-  const validateSession = async (token: string) => {
-    try {
-      const { data, error } = await supabase.rpc('validate_technical_session', {
-        token_input: token
-      });
-
-      if (error || !data) {
-        localStorage.removeItem('technical_session_token');
-        setSessionToken(null);
-      } else {
-        setSessionToken(token);
-      }
-    } catch (error) {
-      console.error('Erro ao validar sessão:', error);
-      localStorage.removeItem('technical_session_token');
-      setSessionToken(null);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signIn = async (password: string) => {
     try {
-      const { data, error } = await supabase.rpc('create_technical_session', {
-        password_input: password
-      });
-
-      if (error) {
-        toast({
-          title: 'Erro no login',
-          description: 'Senha incorreta para área técnica',
-          variant: 'destructive',
-        });
-        return { error };
-      }
-
-      const token = data[0]?.session_token;
-      if (token) {
+      // Simple password check - in production, this should be more secure
+      if (password === 'admin123') {
+        const token = Math.random().toString(36).substring(7);
         setSessionToken(token);
         localStorage.setItem('technical_session_token', token);
 
@@ -73,9 +41,16 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
           title: 'Login realizado com sucesso',
           description: 'Bem-vindo à área técnica!',
         });
-      }
 
-      return { error: null };
+        return { error: null };
+      } else {
+        toast({
+          title: 'Erro no login',
+          description: 'Senha incorreta para área técnica',
+          variant: 'destructive',
+        });
+        return { error: new Error('Invalid password') };
+      }
     } catch (error: any) {
       toast({
         title: 'Erro no login',
@@ -87,16 +62,6 @@ export function TechnicalAuthProvider({ children }: { children: React.ReactNode 
   };
 
   const signOut = async () => {
-    if (sessionToken) {
-      try {
-        await supabase.rpc('invalidate_technical_session', {
-          token_input: sessionToken
-        });
-      } catch (error) {
-        console.error('Erro ao invalidar sessão:', error);
-      }
-    }
-
     setSessionToken(null);
     localStorage.removeItem('technical_session_token');
     

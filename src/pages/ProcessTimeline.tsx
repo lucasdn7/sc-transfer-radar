@@ -4,10 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getStatusColor, getStatusLabel, formatCurrency } from '@/utils/processUtils';
-import type { Database } from '@/integrations/supabase/types';
-
-type ProcessStatus = Database['public']['Enums']['process_status'];
+import { formatCurrency } from '@/utils/processUtils';
 
 export default function ProcessTimeline() {
   const { data: processes, isLoading, error } = useQuery({
@@ -17,8 +14,9 @@ export default function ProcessTimeline() {
         .from('processes')
         .select(`
           *,
-          municipalities(name, region),
-          regional_nuclei(name, acronym)
+          municipalities(name),
+          regional_nuclei(name, acronym),
+          status_processos(nome, cor)
         `)
         .order('vigencia_date', { ascending: true });
       
@@ -105,8 +103,8 @@ export default function ProcessTimeline() {
                         <div className="space-y-2">
                           <CardTitle className="text-lg">{process.process_number}</CardTitle>
                           <div className="flex gap-2">
-                            <Badge className={getStatusColor(process.current_status)}>
-                              {getStatusLabel(process.current_status)}
+                            <Badge variant="secondary">
+                              {process.status_processos?.nome || 'Não definido'}
                             </Badge>
                             <Badge variant={timelineStatus.status === 'expired' ? 'destructive' : 'secondary'}>
                               {timelineStatus.label}
@@ -127,7 +125,7 @@ export default function ProcessTimeline() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2 text-gray-600">
                           <MapPin className="h-4 w-4" />
-                          <span>{process.municipalities?.name}</span>
+                          <span>{process.municipalities?.name || 'N/A'}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-gray-600">
