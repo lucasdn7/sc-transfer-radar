@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { MapboxTokenForm } from "@/components/map/MapboxTokenForm";
 import { InteractiveMap } from "@/components/map/InteractiveMap";
 
 export default function Map() {
-  const { token, isTokenSet, saveToken, clearToken } = useMapboxToken();
+  const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapboxToken();
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +52,27 @@ export default function Map() {
   const handleConfigureToken = () => {
     setShowTokenForm(true);
   };
+
+  // Mostrar loading enquanto verifica token
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 space-y-4">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="lg:col-span-3">
+            <Skeleton className="h-[800px] w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Se não tem token ou está mostrando formulário, mostrar tela de configuração
   if (!isTokenSet || showTokenForm) {
@@ -200,6 +222,18 @@ export default function Map() {
                   </Button>
                 </div>
               </div>
+
+              <Separator />
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleConfigureToken}
+                className="w-full"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Reconfigurar Token
+              </Button>
             </CardContent>
           </Card>
 
@@ -210,19 +244,15 @@ export default function Map() {
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                <span className="text-sm">Processos Finalizados</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                <span className="text-sm">Em Execução</span>
+                <span className="text-sm">1-2 Processos</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-                <span className="text-sm">Em Análise</span>
+                <span className="text-sm">3-5 Processos</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                <span className="text-sm">Cancelados</span>
+                <span className="text-sm">6+ Processos</span>
               </div>
             </CardContent>
           </Card>
@@ -237,7 +267,7 @@ export default function Map() {
                 Mapa de Santa Catarina
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-full">
+            <CardContent className="h-full p-4">
               <InteractiveMap
                 token={token || ''}
                 mapStyle={mapStyle}

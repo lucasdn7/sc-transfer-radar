@@ -4,36 +4,70 @@ import { useState, useEffect } from 'react';
 export function useMapboxToken() {
   const [token, setToken] = useState<string | null>(null);
   const [isTokenSet, setIsTokenSet] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Verificar se já existe um token salvo no localStorage
-    const savedToken = localStorage.getItem('mapbox_public_token');
-    if (savedToken) {
-      setToken(savedToken);
-      setIsTokenSet(true);
+    try {
+      const savedToken = localStorage.getItem('mapbox_public_token');
+      if (savedToken && savedToken.trim() && savedToken.startsWith('pk.')) {
+        setToken(savedToken.trim());
+        setIsTokenSet(true);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar token do localStorage:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const saveToken = (newToken: string) => {
-    if (newToken.trim()) {
-      localStorage.setItem('mapbox_public_token', newToken.trim());
-      setToken(newToken.trim());
+  const saveToken = (newToken: string): boolean => {
+    try {
+      const trimmedToken = newToken.trim();
+      
+      if (!trimmedToken) {
+        console.error('Token vazio');
+        return false;
+      }
+
+      if (!trimmedToken.startsWith('pk.')) {
+        console.error('Token deve começar com "pk."');
+        return false;
+      }
+
+      localStorage.setItem('mapbox_public_token', trimmedToken);
+      setToken(trimmedToken);
       setIsTokenSet(true);
+      console.log('Token salvo com sucesso');
       return true;
+    } catch (error) {
+      console.error('Erro ao salvar token:', error);
+      return false;
     }
-    return false;
   };
 
   const clearToken = () => {
-    localStorage.removeItem('mapbox_public_token');
-    setToken(null);
-    setIsTokenSet(false);
+    try {
+      localStorage.removeItem('mapbox_public_token');
+      setToken(null);
+      setIsTokenSet(false);
+      console.log('Token removido com sucesso');
+    } catch (error) {
+      console.error('Erro ao remover token:', error);
+    }
+  };
+
+  const validateToken = (tokenToValidate: string): boolean => {
+    const trimmed = tokenToValidate.trim();
+    return trimmed.length > 0 && trimmed.startsWith('pk.');
   };
 
   return {
     token,
     isTokenSet,
+    isLoading,
     saveToken,
     clearToken,
+    validateToken,
   };
 }
