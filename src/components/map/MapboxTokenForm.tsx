@@ -28,10 +28,10 @@ export function MapboxTokenForm({ onTokenSave }: MapboxTokenFormProps) {
       return;
     }
 
-    const success = onTokenSave(token);
-    if (success) {
+    try {
+      onTokenSave(token);
       setError('');
-    } else {
+    } catch (error) {
       setError('Erro ao salvar a chave API');
     }
   };
