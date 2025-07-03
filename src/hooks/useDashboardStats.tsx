@@ -38,14 +38,17 @@ export function useDashboardStats() {
         // Verificar erros
         if (processesResult.error) {
           console.error('Error fetching processes:', processesResult.error);
+          throw processesResult.error;
         }
 
         if (municipalitiesResult.error) {
           console.error('Error fetching municipalities:', municipalitiesResult.error);
+          throw municipalitiesResult.error;
         }
 
         if (regionalNucleiResult.error) {
           console.error('Error fetching regional nuclei:', regionalNucleiResult.error);
+          throw regionalNucleiResult.error;
         }
 
         const processes = processesResult.data || [];
@@ -70,7 +73,7 @@ export function useDashboardStats() {
           return acc;
         }, {} as Record<string, number>);
 
-        console.log('Dashboard stats calculated:', {
+        console.log('Dashboard stats calculated successfully:', {
           totalProcesses,
           totalValue,
           activeMunicipalities: uniqueMunicipalities,
@@ -88,7 +91,7 @@ export function useDashboardStats() {
         };
       } catch (error) {
         console.error('Error in useDashboardStats:', error);
-        // Retornar valores padrão em caso de erro
+        // Em caso de erro, retornar valores padrão para não quebrar a UI
         return {
           totalProcesses: 0,
           totalValue: 0,
@@ -101,7 +104,7 @@ export function useDashboardStats() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchInterval: 10 * 60 * 1000, // Atualizar a cada 10 minutos
-    retry: 3,
-    retryDelay: 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

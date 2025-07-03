@@ -8,13 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { MapboxTokenForm } from "@/components/map/MapboxTokenForm";
+import { InteractiveMap } from "@/components/map/InteractiveMap";
 
 export default function Map() {
+  const { token, isTokenSet, saveToken, clearToken } = useMapboxToken();
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [mapStyle, setMapStyle] = useState("satellite");
   const [showLabels, setShowLabels] = useState(true);
+  const [showTokenForm, setShowTokenForm] = useState(false);
 
   const regions = [
     "Grande Florianópolis",
@@ -34,6 +39,23 @@ export default function Map() {
     { value: "finished", label: "Finalizado" },
     { value: "cancelled", label: "Cancelado" }
   ];
+
+  const handleTokenSave = (newToken: string) => {
+    const success = saveToken(newToken);
+    if (success) {
+      setShowTokenForm(false);
+    }
+    return success;
+  };
+
+  const handleConfigureToken = () => {
+    setShowTokenForm(true);
+  };
+
+  // Se não tem token ou está mostrando formulário, mostrar tela de configuração
+  if (!isTokenSet || showTokenForm) {
+    return <MapboxTokenForm onTokenSave={handleTokenSave} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -216,23 +238,12 @@ export default function Map() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-full">
-              <div className="w-full h-full bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <MapPin className="h-16 w-16 text-gray-400 mx-auto" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-600">Mapa Interativo</h3>
-                    <p className="text-gray-500">
-                      O mapa será implementado com integração ao Mapbox
-                    </p>
-                    <p className="text-sm text-gray-400 mt-2">
-                      Configurações aplicadas: {mapStyle} | Filtros: {selectedRegion !== "all" ? selectedRegion : "Todas regiões"}
-                    </p>
-                  </div>
-                  <Button variant="outline">
-                    Configurar Mapbox
-                  </Button>
-                </div>
-              </div>
+              <InteractiveMap
+                token={token || ''}
+                mapStyle={mapStyle}
+                showLabels={showLabels}
+                onConfigureToken={handleConfigureToken}
+              />
             </CardContent>
           </Card>
         </div>
