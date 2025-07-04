@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +10,8 @@ import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MunicipalityForm } from "@/components/forms/MunicipalityForm";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
 
 export default function Municipalities() {
   const { isAuthenticated } = useTechnicalAuth();
@@ -49,8 +50,61 @@ export default function Municipalities() {
     }
   });
 
-  const formatPopulation = (population: number) => {
-    return new Intl.NumberFormat('pt-BR').format(population);
+  // Buscar estatísticas dos processos por município
+  const { data: municipalityStats } = useQuery({
+    queryKey: ['municipality-stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('processes')
+        .select(`
+          municipality_id,
+          total_portaria_value,
+          status_processos (nome)
+        `);
+      
+      if (error) throw error;
+      
+      const stats = data?.reduce((acc: any, process) => {
+        const municipalityId = process.municipality_id;
+        if (!acc[municipalityId]) {
+          acc[municipalityId] = {
+            totalProcesses: 0,
+            totalValue: 0,
+            statuses: {}
+          };
+        }
+        acc[municipalityId].totalProcesses += 1;
+        acc[municipalityId].totalValue += process.total_portaria_value || 0;
+        
+        const status = process.status_processos?.nome || 'Não definido';
+        acc[municipalityId].statuses[status] = (acc[municipalityId].statuses[status] || 0) + 1;
+        
+        return acc;
+      }, {});
+      
+      return stats || {};
+    }
+  });
+
+  const getRegularityIndicator = (stats: any) => {
+    if (!stats || stats.totalProcesses === 0) {
+      return { color: 'bg-gray-400', label: 'Sem dados' };
+    }
+    
+    const finalizados = stats.statuses['Finalizado'] || 0;
+    const total = stats.totalProcesses;
+    const rate = finalizados / total;
+    
+    if (rate >= 0.8) return { color: 'bg-green-500', label: 'Excelente' };
+    if (rate >= 0.6) return { color: 'bg-yellow-500', label: 'Bom' };
+    return { color: 'bg-red-500', label: 'Atenção' };
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
   const handleFormSuccess = () => {
@@ -91,10 +145,26 @@ export default function Municipalities() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Início</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Municípios</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Municípios</h1>
           <p className="text-gray-600">Gerenciar municípios de Santa Catarina ({municipalities?.length || 0} encontrados)</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
+          </p>
         </div>
         {isAuthenticated && (
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -139,120 +209,146 @@ export default function Municipalities() {
         </CardContent>
       </Card>
 
-      {/* Municipalities Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Municípios ({municipalities?.length || 0})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Município</TableHead>
-                  <TableHead>Região</TableHead>
-                  <TableHead>Núcleo Regional</TableHead>
-                  <TableHead>População</TableHead>
-                  <TableHead>Prefeito</TableHead>
-                  <TableHead>Contato</TableHead>
-                  {isAuthenticated && <TableHead>Ações</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {municipalities?.map((municipality) => (
-                  <TableRow key={municipality.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{municipality.name}</div>
-                        <div className="text-xs text-gray-500">
-                          CNPJ: {municipality.cnpj}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>{municipality.regioes?.nome || 'Não informado'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {municipality.regional_nuclei ? (
-                        <Badge variant="outline">
-                          {municipality.regional_nuclei.acronym}
-                        </Badge>
-                      ) : (
-                        <span className="text-gray-400">Não informado</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span>
-                          {municipality.population ? 
-                            formatPopulation(municipality.population) : 
-                            'Não informado'
-                          }
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        {municipality.mayor_name && (
-                          <div className="font-medium">{municipality.mayor_name}</div>
-                        )}
-                        {municipality.secretary_name && (
-                          <div className="text-xs text-gray-500">
-                            Sec.: {municipality.secretary_name}
-                          </div>
-                        )}
-                        {!municipality.mayor_name && !municipality.secretary_name && (
-                          <span className="text-gray-400">Não informado</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {municipality.phone && (
-                          <div className="flex items-center space-x-1 text-xs">
-                            <Phone className="h-3 w-3 text-gray-400" />
-                            <span>{municipality.phone}</span>
-                          </div>
-                        )}
-                        {municipality.email && (
-                          <div className="flex items-center space-x-1 text-xs">
-                            <Mail className="h-3 w-3 text-gray-400" />
-                            <span>{municipality.email}</span>
-                          </div>
-                        )}
-                        {!municipality.phone && !municipality.email && (
-                          <span className="text-gray-400 text-xs">Não informado</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    {isAuthenticated && (
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(municipality)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+      {/* Municipalities Grid com Cards Resumo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {municipalities?.map((municipality) => {
+          const stats = municipalityStats?.[municipality.id];
+          const regularity = getRegularityIndicator(stats);
           
-          {municipalities?.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm ? 'Nenhum município encontrado para a busca.' : 'Nenhum município cadastrado no sistema.'}
-            </div>
+          return (
+            <Card key={municipality.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <CardTitle className="text-lg">{municipality.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${regularity.color}`}></div>
+                      <span className="text-sm text-gray-600">{regularity.label}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to={`/map?municipality=${municipality.id}`}>
+                        <MapPin className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    {isAuthenticated && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(municipality)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Mini Cards de Resumo */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <div className="text-lg font-bold text-blue-600">
+                      {stats?.totalProcesses || 0}
+                    </div>
+                    <div className="text-xs text-blue-600">Processos</div>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded-lg">
+                    <div className="text-sm font-bold text-green-600">
+                      {stats ? formatCurrency(stats.totalValue) : 'R$ 0,00'}
+                    </div>
+                    <div className="text-xs text-green-600">Valor Total</div>
+                  </div>
+                </div>
+
+                {/* Informações do Município */}
+                <div className="space-y-2">
+                  {municipality.regioes && (
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{municipality.regioes.nome}</span>
+                    </div>
+                  )}
+
+                  {municipality.regional_nuclei && (
+                    <div>
+                      <Badge variant="outline">
+                        {municipality.regional_nuclei.acronym}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {municipality.mayor_name && (
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {municipality.mayor_name}
+                      </div>
+                      <div className="text-xs text-gray-500">Prefeito</div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-500">
+                    CNPJ: {municipality.cnpj}
+                  </div>
+                </div>
+
+                {/* Contatos */}
+                <div className="space-y-1">
+                  {municipality.phone && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Phone className="h-3 w-3 text-gray-400" />
+                      <span>{municipality.phone}</span>
+                    </div>
+                  )}
+
+                  {municipality.email && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <Mail className="h-3 w-3 text-gray-400" />
+                      <span>{municipality.email}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Distribuição de Status */}
+                {stats && stats.statuses && Object.keys(stats.statuses).length > 0 && (
+                  <div className="pt-3 border-t">
+                    <div className="text-sm font-medium mb-2">Status dos Processos</div>
+                    <div className="space-y-1">
+                      {Object.entries(stats.statuses).map(([status, count]: [string, any]) => (
+                        <div key={status} className="flex justify-between text-xs">
+                          <span>{status}:</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {municipalities?.length === 0 && (
+        <div className="text-center py-8">
+          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm ? 'Nenhum município encontrado' : 'Nenhum município cadastrado'}
+          </h3>
+          <p className="text-gray-600">
+            {searchTerm 
+              ? 'Tente alterar os termos de busca.' 
+              : 'Não há municípios cadastrados no sistema.'
+            }
+          </p>
+          {isAuthenticated && !searchTerm && (
+            <Button className="mt-4">
+              <Plus className="h-4 w-4 mr-2" />
+              Cadastrar Primeiro Município
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }

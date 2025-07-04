@@ -1,23 +1,26 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Download, FileText, Calendar, Filter } from 'lucide-react';
+import { Search, Plus, Download, FileText, Calendar, Filter, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
 import { DocumentUploadForm } from '@/components/forms/DocumentUploadForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 export default function Documents() {
   const { isAuthenticated } = useTechnicalAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [previewDocument, setPreviewDocument] = useState<any>(null);
 
   const { data: documents, isLoading, error, refetch } = useQuery({
-    queryKey: ['documents', searchTerm],
+    queryKey: ['documents', searchTerm, selectedCategory],
     queryFn: async () => {
       let query = supabase
         .from('documents')
@@ -31,7 +34,23 @@ export default function Documents() {
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
+      if (selectedCategory) {
+        query = query.eq('document_category_id', selectedCategory);
+      }
+
       const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ['document-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('document_categories')
+        .select('*')
+        .order('name');
       if (error) throw error;
       return data || [];
     },
@@ -52,6 +71,14 @@ export default function Documents() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+  };
+
+  const isRecentDocument = (createdAt: string) => {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - created.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
   };
 
   if (isLoading) {
@@ -78,11 +105,27 @@ export default function Documents() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Início</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Documentação</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Documentação</h1>
           <p className="text-muted-foreground">
             Central de documentos e recursos do sistema
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
           </p>
         </div>
         {isAuthenticated && (
@@ -119,6 +162,19 @@ export default function Documents() {
             className="pl-10"
           />
         </div>
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todas as categorias</SelectItem>
+            {categories?.map(category => (
+              <SelectItem key={category.id} value={category.id.toString()}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button variant="outline">
           <Filter className="h-4 w-4 mr-2" />
           Filtros
@@ -135,6 +191,11 @@ export default function Documents() {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FileText className="h-5 w-5" />
                       {document.title}
+                      {isRecentDocument(document.created_at) && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          Novo
+                        </Badge>
+                      )}
                     </CardTitle>
                     {document.document_categories && (
                       <Badge variant="secondary">
@@ -166,14 +227,24 @@ export default function Documents() {
                   )}
                 </div>
 
-                <Button 
-                  onClick={() => handleDownload(document)}
-                  className="w-full"
-                  variant="outline"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setPreviewDocument(document)}
+                    className="flex-1"
+                    variant="outline"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                  <Button 
+                    onClick={() => handleDownload(document)}
+                    className="flex-1"
+                    variant="outline"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))
@@ -192,6 +263,32 @@ export default function Documents() {
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      {previewDocument && (
+        <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>{previewDocument.title}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                {previewDocument.description}
+              </div>
+              <div className="bg-gray-100 p-8 rounded-lg text-center">
+                <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-4">
+                  Preview não disponível para este tipo de arquivo
+                </p>
+                <Button onClick={() => handleDownload(previewDocument)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar Documento
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

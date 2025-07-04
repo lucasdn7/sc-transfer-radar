@@ -4,9 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function ProcessCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,12 +70,10 @@ export default function ProcessCalendar() {
 
     const days = [];
     
-    // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
     
-    // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
     }
@@ -76,12 +88,48 @@ export default function ProcessCalendar() {
     return processes.filter(process => process.vigencia_date === dateStr);
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'finalizado':
+        return 'bg-green-500';
+      case 'em andamento':
+      case 'aprovado':
+        return 'bg-yellow-500';
+      case 'em análise':
+        return 'bg-blue-500';
+      case 'cancelado':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const addToGoogleCalendar = (process: any) => {
+    const startDate = new Date(process.vigencia_date);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1);
+    
+    const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(process.process_number)}&dates=${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(process.object)}&location=${encodeURIComponent(process.municipalities?.name || '')}`;
+    
+    window.open(googleUrl, '_blank');
+  };
+
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
   const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const monthlyStats = processes ? {
+    total: processes.length,
+    totalValue: processes.reduce((sum, p) => sum + (p.total_portaria_value || 0), 0),
+    byStatus: processes.reduce((acc, p) => {
+      const status = p.status_processos?.nome || 'Não definido';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>)
+  } : null;
 
   if (isLoading) {
     return (
@@ -106,125 +154,213 @@ export default function ProcessCalendar() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calendário de Processos</h1>
-          <p className="text-muted-foreground">
-            Visualização das datas de vigência dos processos
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-lg font-semibold min-w-[200px] text-center">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </div>
-          <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Breadcrumb */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Início</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Calendário de Processos</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Calendário Mensal
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {dayNames.map(day => (
-              <div key={day} className="p-2 text-center font-medium text-gray-600 bg-gray-50 rounded">
-                {day}
-              </div>
-            ))}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Calendário de Processos</h1>
+            <p className="text-muted-foreground">
+              Visualização das datas de vigência dos processos
+            </p>
           </div>
           
-          <div className="grid grid-cols-7 gap-1">
-            {getDaysInMonth().map((day, index) => {
-              if (day === null) {
-                return <div key={index} className="h-32 bg-gray-50 rounded opacity-50" />;
-              }
-              
-              const dayProcesses = getProcessesForDay(day);
-              const isToday = new Date().getDate() === day && 
-                            new Date().getMonth() === currentDate.getMonth() && 
-                            new Date().getFullYear() === currentDate.getFullYear();
-              
-              return (
-                <div 
-                  key={day} 
-                  className={`h-32 border rounded p-1 overflow-y-auto ${
-                    isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                    {day}
-                  </div>
-                  
-                  <div className="space-y-1">
-                    {dayProcesses.map(process => (
-                      <div 
-                        key={process.id}
-                        className="text-xs p-1 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                        title={`${process.process_number} - ${process.municipalities?.name || 'N/A'}`}
-                      >
-                        <div className="font-medium truncate">
-                          {process.process_number}
-                        </div>
-                        <div className="text-gray-600 truncate">
-                          {process.municipalities?.name || 'N/A'}
-                        </div>
-                        <div className="text-green-600 font-medium">
-                          {formatCurrency(process.total_portaria_value)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-lg font-semibold min-w-[200px] text-center">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {processes && processes.length > 0 && (
+        {/* Stats do mês */}
+        {monthlyStats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-blue-600">{monthlyStats.total}</div>
+                <div className="text-sm text-gray-600">Processos no Mês</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(monthlyStats.totalValue)}
+                </div>
+                <div className="text-sm text-gray-600">Valor Total</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-1">
+                  {Object.entries(monthlyStats.byStatus).map(([status, count]) => (
+                    <div key={status} className="flex justify-between text-sm">
+                      <span>{status}:</span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <Button size="sm" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Processo
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
-            <CardTitle>Processos do Mês</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Calendário Mensal
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {processes.map(process => (
-                <div key={process.id} className="flex justify-between items-center p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <div className="font-medium">{process.process_number}</div>
-                    <div className="text-sm text-gray-600 flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {process.municipalities?.name || 'N/A'}
-                    </div>
-                    <Badge variant="secondary">
-                      {process.status_processos?.nome || 'Não definido'}
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-green-600">
-                      {formatCurrency(process.total_portaria_value)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
+            <div className="grid grid-cols-7 gap-1 mb-4">
+              {dayNames.map(day => (
+                <div key={day} className="p-2 text-center font-medium text-gray-600 bg-gray-50 rounded">
+                  {day}
                 </div>
               ))}
             </div>
+            
+            <div className="grid grid-cols-7 gap-1">
+              {getDaysInMonth().map((day, index) => {
+                if (day === null) {
+                  return <div key={index} className="h-32 bg-gray-50 rounded opacity-50" />;
+                }
+                
+                const dayProcesses = getProcessesForDay(day);
+                const isToday = new Date().getDate() === day && 
+                              new Date().getMonth() === currentDate.getMonth() && 
+                              new Date().getFullYear() === currentDate.getFullYear();
+                
+                return (
+                  <div 
+                    key={day} 
+                    className={`h-32 border rounded p-1 overflow-y-auto ${
+                      isToday ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                      {day}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      {dayProcesses.map(process => (
+                        <Tooltip key={process.id}>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`text-xs p-1 rounded cursor-pointer transition-colors ${getStatusColor(process.status_processos?.nome || '')} text-white hover:opacity-80`}
+                            >
+                              <div className="font-medium truncate">
+                                {process.process_number}
+                              </div>
+                              <div className="truncate opacity-90">
+                                {process.municipalities?.name || 'N/A'}
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-2">
+                              <div className="font-medium">{process.process_number}</div>
+                              <div className="text-sm">{process.municipalities?.name || 'N/A'}</div>
+                              <div className="text-sm font-medium text-green-600">
+                                {formatCurrency(process.total_portaria_value)}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                Status: {process.status_processos?.nome || 'Não definido'}
+                              </div>
+                              <div className="flex gap-1 mt-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => addToGoogleCalendar(process)}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Agenda
+                                </Button>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
-      )}
-    </div>
+
+        {processes && processes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Processos do Mês</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {processes.map(process => (
+                  <div key={process.id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="space-y-1">
+                      <div className="font-medium">{process.process_number}</div>
+                      <div className="text-sm text-gray-600 flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        {process.municipalities?.name || 'N/A'}
+                      </div>
+                      <Badge 
+                        variant="outline" 
+                        className={`${getStatusColor(process.status_processos?.nome || '')} text-white border-0`}
+                      >
+                        {process.status_processos?.nome || 'Não definido'}
+                      </Badge>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-600">
+                        {formatCurrency(process.total_portaria_value)}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="mt-2"
+                        onClick={() => addToGoogleCalendar(process)}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Google Calendar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

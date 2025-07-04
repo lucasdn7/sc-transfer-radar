@@ -13,11 +13,18 @@ type TransferStatus = Database['public']['Enums']['transfer_status'];
 export function ProcessList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<TransferStatus | "all">("all");
+  const [advancedFilters, setAdvancedFilters] = useState({
+    municipality: "",
+    regionalNucleus: "",
+    minValue: "",
+    maxValue: "",
+    deadline: null as Date | null
+  });
 
   const { data: processes, isLoading, error } = useQuery({
-    queryKey: ['processes', searchTerm, statusFilter],
+    queryKey: ['processes', searchTerm, statusFilter, advancedFilters],
     queryFn: async () => {
-      console.log('Fetching processes with optimized query:', { searchTerm, statusFilter });
+      console.log('Fetching processes with filters:', { searchTerm, statusFilter, advancedFilters });
       
       let query = supabase
         .from('processes')
@@ -28,10 +35,26 @@ export function ProcessList() {
           status_processos (nome, cor)
         `)
         .order('created_at', { ascending: false })
-        .limit(100); // Limitar para melhor performance
+        .limit(100);
 
       if (searchTerm) {
         query = query.or(`process_number.ilike.%${searchTerm}%,object.ilike.%${searchTerm}%`);
+      }
+
+      if (advancedFilters.municipality) {
+        query = query.ilike('municipalities.name', `%${advancedFilters.municipality}%`);
+      }
+
+      if (advancedFilters.minValue) {
+        query = query.gte('total_portaria_value', parseFloat(advancedFilters.minValue));
+      }
+
+      if (advancedFilters.maxValue) {
+        query = query.lte('total_portaria_value', parseFloat(advancedFilters.maxValue));
+      }
+
+      if (advancedFilters.deadline) {
+        query = query.lte('vigencia_date', advancedFilters.deadline.toISOString().split('T')[0]);
       }
 
       const { data, error } = await query;
@@ -43,8 +66,8 @@ export function ProcessList() {
       
       return data || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 5 * 60 * 1000, // Refetch a cada 5 minutos
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   if (isLoading) {
@@ -74,6 +97,8 @@ export function ProcessList() {
         statusFilter={statusFilter}
         onSearchChange={setSearchTerm}
         onStatusChange={setStatusFilter}
+        filters={advancedFilters}
+        onFiltersChange={setAdvancedFilters}
       />
 
       <ProcessTable processes={processes || []} />
