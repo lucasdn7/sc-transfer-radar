@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RegionalNucleusForm } from "@/components/forms/RegionalNucleusForm";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
 
 export default function RegionalNuclei() {
   const { isAuthenticated } = useTechnicalAuth();

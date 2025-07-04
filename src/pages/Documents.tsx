@@ -16,7 +16,7 @@ export default function Documents() {
   const { isAuthenticated } = useTechnicalAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [previewDocument, setPreviewDocument] = useState<any>(null);
 
   const { data: documents, isLoading, error, refetch } = useQuery({
@@ -35,7 +35,7 @@ export default function Documents() {
       }
 
       if (selectedCategory) {
-        query = query.eq('document_category_id', selectedCategory);
+        query = query.eq('document_category_id', parseInt(selectedCategory));
       }
 
       const { data, error } = await query;
