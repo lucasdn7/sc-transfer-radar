@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,20 +140,20 @@ export default function Reports() {
     }
   });
 
-  const handleDownload = (format: 'PDF' | 'XLSX' | 'CSV') => {
+  const handleDownload = (fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
     // Simular download
     const newReport = {
       id: reportHistory.length + 1,
-      name: `Relatório ${format} ${format(new Date(), 'dd/MM/yyyy')}`,
+      name: `Relatório ${fileFormat} ${format(new Date(), 'dd/MM/yyyy')}`,
       date: format(new Date(), 'yyyy-MM-dd'),
-      type: format,
-      size: format === 'PDF' ? '2.3 MB' : format === 'XLSX' ? '1.9 MB' : '1.1 MB'
+      type: fileFormat,
+      size: fileFormat === 'PDF' ? '2.3 MB' : fileFormat === 'XLSX' ? '1.9 MB' : '1.1 MB'
     };
     
     setReportHistory([newReport, ...reportHistory]);
     
     // Aqui você implementaria a lógica real de download
-    console.log(`Downloading report in ${format} format with filters:`, filters);
+    console.log(`Downloading report in ${fileFormat} format with filters:`, filters);
   };
 
   const chartConfig = {
