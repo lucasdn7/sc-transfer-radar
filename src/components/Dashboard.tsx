@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -228,8 +227,8 @@ export function Dashboard() {
 
       {/* Enhanced Stats Cards */}
       <EnhancedStatsCards stats={{
-        totalProcesses: displayStats?.totalProcesses || stats?.totalProcesses || 0,
-        totalValue: displayStats?.totalValue || stats?.totalValue || 0,
+        totalProcesses: displayStats?.totalProcesses || 0,
+        totalValue: displayStats?.totalValue || 0,
         activeMunicipalities: stats?.activeMunicipalities || 0,
         regionalNucleiCount: stats?.regionalNucleiCount || 0,
         monthlyGrowth: {
@@ -240,8 +239,8 @@ export function Dashboard() {
 
       {/* Enhanced Charts */}
       <EnhancedCharts
-        statusData={displayStats?.statusData || []}
-        regionalData={displayStats?.regionalData || []}
+        statusData={displayStats?.statusData || stats?.statusData || []}
+        regionalData={displayStats?.regionalData || stats?.regionalData || []}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

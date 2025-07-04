@@ -8,6 +8,8 @@ interface DashboardStats {
   activeMunicipalities: number;
   regionalNucleiCount: number;
   statusDistribution: Record<string, number>;
+  statusData?: Array<{ status: string; count: number; percentage: number }>;
+  regionalData?: Array<{ region: string; count: number; value: number }>;
   lastUpdated: string;
 }
 
@@ -27,7 +29,14 @@ export function useDashboardStats() {
         ] = await Promise.all([
           supabase
             .from('processes')
-            .select('total_portaria_value, municipality_id, status_id'),
+            .select(`
+              total_portaria_value, 
+              municipality_id, 
+              status_id,
+              municipalities (name),
+              regional_nuclei (name, acronym),
+              status_processos (nome, cor)
+            `),
           supabase
             .from('municipalities')
             .select('id'),
@@ -83,6 +92,29 @@ export function useDashboardStats() {
           return acc;
         }, {} as Record<string, number>);
 
+        // Preparar dados para gráficos
+        const statusData = Object.entries(statusDistribution).map(([status, count]) => ({
+          status,
+          count: count as number,
+          percentage: Math.round(((count as number) / totalProcesses) * 100)
+        }));
+
+        const regionalDistribution = processes.reduce((acc: any, process) => {
+          const region = process.regional_nuclei?.name || 'Não definido';
+          if (!acc[region]) {
+            acc[region] = { count: 0, value: 0 };
+          }
+          acc[region].count += 1;
+          acc[region].value += process.total_portaria_value || 0;
+          return acc;
+        }, {});
+
+        const regionalData = Object.entries(regionalDistribution).map(([region, data]: [string, any]) => ({
+          region: region.length > 15 ? region.substring(0, 15) + '...' : region,
+          count: data.count,
+          value: data.value
+        }));
+
         console.log('Dashboard stats calculated successfully:', {
           totalProcesses,
           totalValue,
@@ -97,6 +129,8 @@ export function useDashboardStats() {
           activeMunicipalities: uniqueMunicipalities,
           regionalNucleiCount: regionalNuclei.length,
           statusDistribution,
+          statusData,
+          regionalData,
           lastUpdated: new Date().toISOString()
         };
       } catch (error) {
@@ -108,6 +142,8 @@ export function useDashboardStats() {
           activeMunicipalities: 0,
           regionalNucleiCount: 0,
           statusDistribution: {},
+          statusData: [],
+          regionalData: [],
           lastUpdated: new Date().toISOString()
         };
       }
