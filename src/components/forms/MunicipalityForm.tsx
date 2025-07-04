@@ -1,26 +1,26 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 
 interface MunicipalityFormData {
   id?: number;
   name: string;
   cnpj: string;
-  region?: string;
-  regional_nucleus_id?: number;
   mayor_name?: string;
   secretary_name?: string;
   phone?: string;
   email?: string;
   population?: number;
-  classification?: string;
+  region_name?: string;
+  regional_nucleus_name?: string;
+  municipality_classification_name?: string;
 }
 
 interface MunicipalityFormProps {
@@ -32,33 +32,135 @@ interface MunicipalityFormProps {
 
 export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = false }: MunicipalityFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [regions, setRegions] = useState<any[]>([]);
+  const [regionalNuclei, setRegionalNuclei] = useState<any[]>([]);
+  const [classifications, setClassifications] = useState<any[]>([]);
   const { toast } = useToast();
   
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<MunicipalityFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<MunicipalityFormData>({
     defaultValues: initialData || {},
   });
 
-  const { data: regionalNuclei = [] } = useQuery({
-    queryKey: ['regional-nuclei'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regional_nuclei')
-        .select('id, name, acronym')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [regionsResult, nucleiResult, classificationsResult] = await Promise.all([
+        supabase.from('regioes').select('*').eq('ativo', true).order('nome'),
+        supabase.from('regional_nuclei').select('*').order('name'),
+        supabase.from('municipality_classifications').select('*').order('name')
+      ]);
+
+      setRegions(regionsResult.data || []);
+      setRegionalNuclei(nucleiResult.data || []);
+      setClassifications(classificationsResult.data || []);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+    }
+  };
+
+  const findOrCreateRegion = async (regionName: string) => {
+    if (!regionName) return null;
+
+    const { data: existingRegion } = await supabase
+      .from('regioes')
+      .select('id')
+      .ilike('nome', regionName)
+      .single();
+
+    if (existingRegion) {
+      return existingRegion.id;
+    }
+
+    const { data: newRegion, error } = await supabase
+      .from('regioes')
+      .insert([{
+        nome: regionName,
+        sigla: regionName.substring(0, 3).toUpperCase(),
+        ativo: true
+      }])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newRegion.id;
+  };
+
+  const findOrCreateRegionalNucleus = async (nucleusName: string) => {
+    if (!nucleusName) return null;
+
+    const { data: existingNucleus } = await supabase
+      .from('regional_nuclei')
+      .select('id')
+      .ilike('name', nucleusName)
+      .single();
+
+    if (existingNucleus) {
+      return existingNucleus.id;
+    }
+
+    const acronym = nucleusName.substring(0, 5).toUpperCase().replace(/\s/g, '');
+    const { data: newNucleus, error } = await supabase
+      .from('regional_nuclei')
+      .insert([{
+        name: nucleusName,
+        acronym: acronym,
+      }])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newNucleus.id;
+  };
+
+  const findOrCreateClassification = async (classificationName: string) => {
+    if (!classificationName) return null;
+
+    const { data: existingClassification } = await supabase
+      .from('municipality_classifications')
+      .select('id')
+      .ilike('name', classificationName)
+      .single();
+
+    if (existingClassification) {
+      return existingClassification.id;
+    }
+
+    const { data: newClassification, error } = await supabase
+      .from('municipality_classifications')
+      .insert([{
+        name: classificationName,
+      }])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newClassification.id;
+  };
 
   const onSubmit = async (data: MunicipalityFormData) => {
     setIsSubmitting(true);
     
     try {
+      const regionId = data.region_name ? await findOrCreateRegion(data.region_name) : null;
+      const regionalNucleusId = data.regional_nucleus_name ? 
+        await findOrCreateRegionalNucleus(data.regional_nucleus_name) : null;
+      const classificationId = data.municipality_classification_name ? 
+        await findOrCreateClassification(data.municipality_classification_name) : null;
+
       const municipalityData = {
-        ...data,
-        regional_nucleus_id: data.regional_nucleus_id ? Number(data.regional_nucleus_id) : null,
-        population: data.population ? Number(data.population) : null,
+        name: data.name,
+        cnpj: data.cnpj,
+        mayor_name: data.mayor_name || null,
+        secretary_name: data.secretary_name || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        population: data.population || null,
+        region_id: regionId,
+        regional_nucleus_id: regionalNucleusId,
+        municipality_classification_id: classificationId,
       };
 
       if (isEdit && initialData?.id) {
@@ -99,7 +201,7 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>
           {isEdit ? 'Editar Município' : 'Novo Município'}
@@ -109,7 +211,7 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome do Município *</Label>
+              <Label htmlFor="name">Nome *</Label>
               <Input
                 id="name"
                 {...register('name', { required: 'Campo obrigatório' })}
@@ -135,38 +237,11 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="region">Região</Label>
-              <Input
-                id="region"
-                {...register('region')}
-                placeholder="Ex: Grande Florianópolis"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="regional_nucleus_id">Núcleo Regional</Label>
-              <Select onValueChange={(value) => setValue('regional_nucleus_id', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o núcleo regional" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regionalNuclei.map((nucleus) => (
-                    <SelectItem key={nucleus.id} value={nucleus.id.toString()}>
-                      {nucleus.acronym} - {nucleus.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
               <Label htmlFor="mayor_name">Nome do Prefeito</Label>
               <Input
                 id="mayor_name"
                 {...register('mayor_name')}
-                placeholder="Nome completo do prefeito"
+                placeholder="Nome do prefeito"
               />
             </div>
 
@@ -175,7 +250,7 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
               <Input
                 id="secretary_name"
                 {...register('secretary_name')}
-                placeholder="Nome do secretário responsável"
+                placeholder="Nome do secretário"
               />
             </div>
           </div>
@@ -201,26 +276,61 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="population">População</Label>
+            <Input
+              id="population"
+              type="number"
+              {...register('population', { min: 0 })}
+              placeholder="Número de habitantes"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="population">População</Label>
+              <Label htmlFor="region_name">Região</Label>
               <Input
-                id="population"
-                type="number"
-                min="0"
-                {...register('population', { valueAsNumber: true })}
-                placeholder="Número de habitantes"
+                id="region_name"
+                {...register('region_name')}
+                placeholder="Digite o nome da região"
+                list="regions-list"
               />
+              <datalist id="regions-list">
+                {regions.map((region) => (
+                  <option key={region.id} value={region.nome} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="classification">Classificação</Label>
+              <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
               <Input
-                id="classification"
-                {...register('classification')}
-                placeholder="Ex: Pequeno Porte"
+                id="regional_nucleus_name"
+                {...register('regional_nucleus_name')}
+                placeholder="Digite o nome do núcleo regional"
+                list="nuclei-list"
               />
+              <datalist id="nuclei-list">
+                {regionalNuclei.map((nucleus) => (
+                  <option key={nucleus.id} value={nucleus.name} />
+                ))}
+              </datalist>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="municipality_classification_name">Classificação</Label>
+            <Input
+              id="municipality_classification_name"
+              {...register('municipality_classification_name')}
+              placeholder="Digite a classificação do município"
+              list="classifications-list"
+            />
+            <datalist id="classifications-list">
+              {classifications.map((classification) => (
+                <option key={classification.id} value={classification.name} />
+              ))}
+            </datalist>
           </div>
 
           <div className="flex justify-end space-x-4 pt-4">

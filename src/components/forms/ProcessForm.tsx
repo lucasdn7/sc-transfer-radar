@@ -1,30 +1,28 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import type { Database } from "@/integrations/supabase/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ProcessFormData {
-  id?: number;
   process_number: string;
   object: string;
+  portaria_number?: string;
   municipality_name: string;
   regional_nucleus_name?: string;
+  status_name: string;
   total_portaria_value: number;
   total_concedente_value: number;
   total_proponente_value: number;
   licitado_value?: number;
   vigencia_date: string;
-  status_id: number;
-  portaria_number?: string;
+  address?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -38,36 +36,52 @@ interface ProcessFormProps {
 
 export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }: ProcessFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [municipalities, setMunicipalities] = useState<any[]>([]);
+  const [regionalNuclei, setRegionalNuclei] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<any[]>([]);
   const { toast } = useToast();
   
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProcessFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProcessFormData>({
     defaultValues: initialData ? {
-      ...initialData,
+      process_number: initialData.process_number || '',
+      object: initialData.object || '',
+      portaria_number: initialData.portaria_number || '',
       municipality_name: initialData.municipalities?.name || '',
       regional_nucleus_name: initialData.regional_nuclei?.name || '',
-      status_id: initialData.status_id || 1,
-    } : {
-      status_id: 1,
-    },
+      status_name: initialData.status_processos?.nome || '',
+      total_portaria_value: initialData.total_portaria_value || 0,
+      total_concedente_value: initialData.total_concedente_value || 0,
+      total_proponente_value: initialData.total_proponente_value || 0,
+      licitado_value: initialData.licitado_value || 0,
+      vigencia_date: initialData.vigencia_date || '',
+      address: initialData.address || '',
+      latitude: initialData.latitude || 0,
+      longitude: initialData.longitude || 0,
+    } : {},
   });
 
-  const { data: statusOptions = [] } = useQuery({
-    queryKey: ['status-processos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('status_processos')
-        .select('id, nome')
-        .eq('ativo', true)
-        .order('ordem');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // Função para buscar ou criar município
+  const fetchData = async () => {
+    try {
+      const [municResult, nucleiResult, statusResult] = await Promise.all([
+        supabase.from('municipalities').select('*').order('name'),
+        supabase.from('regional_nuclei').select('*').order('name'),
+        supabase.from('status_processos').select('*').eq('ativo', true).order('ordem')
+      ]);
+
+      setMunicipalities(municResult.data || []);
+      setRegionalNuclei(nucleiResult.data || []);
+      setStatuses(statusResult.data || []);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+    }
+  };
+
   const findOrCreateMunicipality = async (municipalityName: string) => {
-    // Primeiro, tentar encontrar o município existente
+    // Primeiro, tenta encontrar o município existente
     const { data: existingMunicipality } = await supabase
       .from('municipalities')
       .select('id')
@@ -78,13 +92,13 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       return existingMunicipality.id;
     }
 
-    // Se não existir, criar novo município
+    // Se não existe, cria um novo município
     const { data: newMunicipality, error } = await supabase
       .from('municipalities')
-      .insert({
+      .insert([{
         name: municipalityName,
-        cnpj: `${Date.now()}` // CNPJ temporário que pode ser editado depois
-      })
+        cnpj: `TEMP-${Date.now()}`, // CNPJ temporário
+      }])
       .select('id')
       .single();
 
@@ -92,11 +106,10 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     return newMunicipality.id;
   };
 
-  // Função para buscar ou criar núcleo regional
   const findOrCreateRegionalNucleus = async (nucleusName: string) => {
     if (!nucleusName) return null;
 
-    // Primeiro, tentar encontrar o núcleo existente
+    // Primeiro, tenta encontrar o núcleo existente
     const { data: existingNucleus } = await supabase
       .from('regional_nuclei')
       .select('id')
@@ -107,15 +120,14 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       return existingNucleus.id;
     }
 
-    // Se não existir, criar novo núcleo regional
-    const acronym = nucleusName.split(' ').map(word => word.charAt(0)).join('').toUpperCase();
-    
+    // Se não existe, cria um novo núcleo
+    const acronym = nucleusName.substring(0, 5).toUpperCase().replace(/\s/g, '');
     const { data: newNucleus, error } = await supabase
       .from('regional_nuclei')
-      .insert({
+      .insert([{
         name: nucleusName,
-        acronym: acronym
-      })
+        acronym: acronym,
+      }])
       .select('id')
       .single();
 
@@ -123,31 +135,60 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     return newNucleus.id;
   };
 
+  const findOrCreateStatus = async (statusName: string) => {
+    // Primeiro, tenta encontrar o status existente
+    const { data: existingStatus } = await supabase
+      .from('status_processos')
+      .select('id')
+      .ilike('nome', statusName)
+      .single();
+
+    if (existingStatus) {
+      return existingStatus.id;
+    }
+
+    // Se não existe, cria um novo status
+    const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem)) + 1 : 1;
+    const { data: newStatus, error } = await supabase
+      .from('status_processos')
+      .insert([{
+        nome: statusName,
+        descricao: `Status criado automaticamente: ${statusName}`,
+        ordem: nextOrder,
+        ativo: true,
+        cor: '#6b7280'
+      }])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newStatus.id;
+  };
+
   const onSubmit = async (data: ProcessFormData) => {
     setIsSubmitting(true);
     
     try {
-      // Buscar ou criar município
       const municipalityId = await findOrCreateMunicipality(data.municipality_name);
-      
-      // Buscar ou criar núcleo regional (se fornecido)
       const regionalNucleusId = data.regional_nucleus_name ? 
         await findOrCreateRegionalNucleus(data.regional_nucleus_name) : null;
+      const statusId = await findOrCreateStatus(data.status_name);
 
       const processData = {
         process_number: data.process_number,
         object: data.object,
+        portaria_number: data.portaria_number || null,
         municipality_id: municipalityId,
         regional_nucleus_id: regionalNucleusId,
-        total_portaria_value: Number(data.total_portaria_value),
-        total_concedente_value: Number(data.total_concedente_value),
-        total_proponente_value: Number(data.total_proponente_value),
-        licitado_value: data.licitado_value ? Number(data.licitado_value) : null,
+        status_id: statusId,
+        total_portaria_value: data.total_portaria_value,
+        total_concedente_value: data.total_concedente_value,
+        total_proponente_value: data.total_proponente_value,
+        licitado_value: data.licitado_value || null,
         vigencia_date: data.vigencia_date,
-        status_id: Number(data.status_id),
-        portaria_number: data.portaria_number || null,
-        latitude: data.latitude ? Number(data.latitude) : null,
-        longitude: data.longitude ? Number(data.longitude) : null,
+        address: data.address || null,
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
       };
 
       if (isEdit && initialData?.id) {
@@ -165,19 +206,19 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       } else {
         const { error } = await supabase
           .from('processes')
-          .insert(processData);
+          .insert([processData]);
 
         if (error) throw error;
         
         toast({
           title: 'Processo criado com sucesso',
-          description: 'O novo processo foi adicionado ao sistema. Municípios e núcleos foram criados automaticamente quando necessário.',
+          description: 'O novo processo foi adicionado ao sistema.',
         });
       }
 
       onSuccess();
     } catch (error: any) {
-      console.error('Error saving process:', error);
+      console.error('Erro ao salvar processo:', error);
       toast({
         title: 'Erro ao salvar processo',
         description: error.message,
@@ -203,7 +244,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               <Input
                 id="process_number"
                 {...register('process_number', { required: 'Campo obrigatório' })}
-                placeholder="Ex: 2024.0001.00001"
+                placeholder="Ex: 2024/001"
               />
               {errors.process_number && (
                 <p className="text-sm text-red-600">{errors.process_number.message}</p>
@@ -215,7 +256,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               <Input
                 id="portaria_number"
                 {...register('portaria_number')}
-                placeholder="Ex: 001/2024"
+                placeholder="Ex: PRT-001/2024"
               />
             </div>
           </div>
@@ -235,45 +276,66 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="municipality_name">Nome do Município *</Label>
+              <Label htmlFor="municipality_name">Município *</Label>
               <Input
                 id="municipality_name"
                 {...register('municipality_name', { required: 'Campo obrigatório' })}
                 placeholder="Digite o nome do município"
+                list="municipalities-list"
               />
-              <p className="text-xs text-gray-500">
-                Se o município não existir, será criado automaticamente
-              </p>
+              <datalist id="municipalities-list">
+                {municipalities.map((municipality) => (
+                  <option key={municipality.id} value={municipality.name} />
+                ))}
+              </datalist>
               {errors.municipality_name && (
                 <p className="text-sm text-red-600">{errors.municipality_name.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="regional_nucleus_name">Nome do Núcleo Regional</Label>
+              <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
               <Input
                 id="regional_nucleus_name"
                 {...register('regional_nucleus_name')}
                 placeholder="Digite o nome do núcleo regional"
+                list="nuclei-list"
               />
-              <p className="text-xs text-gray-500">
-                Se o núcleo não existir, será criado automaticamente
-              </p>
+              <datalist id="nuclei-list">
+                {regionalNuclei.map((nucleus) => (
+                  <option key={nucleus.id} value={nucleus.name} />
+                ))}
+              </datalist>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="status_name">Status *</Label>
+            <Input
+              id="status_name"
+              {...register('status_name', { required: 'Campo obrigatório' })}
+              placeholder="Digite o status do processo"
+              list="status-list"
+            />
+            <datalist id="status-list">
+              {statuses.map((status) => (
+                <option key={status.id} value={status.nome} />
+              ))}
+            </datalist>
+            {errors.status_name && (
+              <p className="text-sm text-red-600">{errors.status_name.message}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="total_portaria_value">Valor Total da Portaria (R$) *</Label>
+              <Label htmlFor="total_portaria_value">Valor Total Portaria *</Label>
               <Input
                 id="total_portaria_value"
                 type="number"
                 step="0.01"
-                min="0"
-                {...register('total_portaria_value', { 
-                  required: 'Campo obrigatório',
-                  valueAsNumber: true 
-                })}
+                {...register('total_portaria_value', { required: 'Campo obrigatório', min: 0 })}
+                placeholder="0.00"
               />
               {errors.total_portaria_value && (
                 <p className="text-sm text-red-600">{errors.total_portaria_value.message}</p>
@@ -281,16 +343,13 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="total_concedente_value">Valor Concedente (R$) *</Label>
+              <Label htmlFor="total_concedente_value">Valor Concedente *</Label>
               <Input
                 id="total_concedente_value"
                 type="number"
                 step="0.01"
-                min="0"
-                {...register('total_concedente_value', { 
-                  required: 'Campo obrigatório',
-                  valueAsNumber: true 
-                })}
+                {...register('total_concedente_value', { required: 'Campo obrigatório', min: 0 })}
+                placeholder="0.00"
               />
               {errors.total_concedente_value && (
                 <p className="text-sm text-red-600">{errors.total_concedente_value.message}</p>
@@ -298,35 +357,32 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="total_proponente_value">Valor Proponente (R$) *</Label>
+              <Label htmlFor="total_proponente_value">Valor Proponente *</Label>
               <Input
                 id="total_proponente_value"
                 type="number"
                 step="0.01"
-                min="0"
-                {...register('total_proponente_value', { 
-                  required: 'Campo obrigatório',
-                  valueAsNumber: true 
-                })}
+                {...register('total_proponente_value', { required: 'Campo obrigatório', min: 0 })}
+                placeholder="0.00"
               />
               {errors.total_proponente_value && (
                 <p className="text-sm text-red-600">{errors.total_proponente_value.message}</p>
               )}
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="licitado_value">Valor Licitado (R$)</Label>
+              <Label htmlFor="licitado_value">Valor Licitado</Label>
               <Input
                 id="licitado_value"
                 type="number"
                 step="0.01"
-                min="0"
-                {...register('licitado_value', { valueAsNumber: true })}
+                {...register('licitado_value', { min: 0 })}
+                placeholder="0.00"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vigencia_date">Data de Vigência *</Label>
               <Input
@@ -338,25 +394,15 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 <p className="text-sm text-red-600">{errors.vigencia_date.message}</p>
               )}
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status_id">Status *</Label>
-              <Select 
-                onValueChange={(value) => setValue('status_id', Number(value))}
-                defaultValue={watch('status_id')?.toString()}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status.id} value={status.id.toString()}>
-                      {status.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Endereço</Label>
+            <Input
+              id="address"
+              {...register('address')}
+              placeholder="Endereço do projeto"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -366,8 +412,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 id="latitude"
                 type="number"
                 step="any"
-                {...register('latitude', { valueAsNumber: true })}
-                placeholder="Ex: -27.5954"
+                {...register('latitude')}
+                placeholder="-27.5954"
               />
             </div>
 
@@ -377,8 +423,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 id="longitude"
                 type="number"
                 step="any"
-                {...register('longitude', { valueAsNumber: true })}
-                placeholder="Ex: -48.5480"
+                {...register('longitude')}
+                placeholder="-48.5482"
               />
             </div>
           </div>

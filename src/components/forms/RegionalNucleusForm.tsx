@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ interface RegionalNucleusFormData {
   id?: number;
   name: string;
   acronym: string;
-  geographic_region?: string;
+  region_name?: string;
   technical_responsible_name?: string;
   phone?: string;
   email?: string;
@@ -28,20 +29,80 @@ interface RegionalNucleusFormProps {
 
 export function RegionalNucleusForm({ onSuccess, onCancel, initialData, isEdit = false }: RegionalNucleusFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [regions, setRegions] = useState<any[]>([]);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors } } = useForm<RegionalNucleusFormData>({
     defaultValues: initialData || {},
   });
 
+  useEffect(() => {
+    fetchRegions();
+  }, []);
+
+  const fetchRegions = async () => {
+    try {
+      const { data } = await supabase
+        .from('regioes')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome');
+      
+      setRegions(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar regiões:', error);
+    }
+  };
+
+  const findOrCreateRegion = async (regionName: string) => {
+    if (!regionName) return null;
+
+    // Primeiro, tenta encontrar a região existente
+    const { data: existingRegion } = await supabase
+      .from('regioes')
+      .select('id')
+      .ilike('nome', regionName)
+      .single();
+
+    if (existingRegion) {
+      return existingRegion.id;
+    }
+
+    // Se não existe, cria uma nova região
+    const { data: newRegion, error } = await supabase
+      .from('regioes')
+      .insert([{
+        nome: regionName,
+        sigla: regionName.substring(0, 3).toUpperCase(),
+        ativo: true
+      }])
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return newRegion.id;
+  };
+
   const onSubmit = async (data: RegionalNucleusFormData) => {
     setIsSubmitting(true);
     
     try {
+      const regionId = data.region_name ? await findOrCreateRegion(data.region_name) : null;
+
+      const nucleusData = {
+        name: data.name,
+        acronym: data.acronym,
+        region_id: regionId,
+        technical_responsible_name: data.technical_responsible_name || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        observations: data.observations || null,
+      };
+
       if (isEdit && initialData?.id) {
         const { error } = await supabase
           .from('regional_nuclei')
-          .update(data)
+          .update(nucleusData)
           .eq('id', initialData.id);
 
         if (error) throw error;
@@ -53,7 +114,7 @@ export function RegionalNucleusForm({ onSuccess, onCancel, initialData, isEdit =
       } else {
         const { error } = await supabase
           .from('regional_nuclei')
-          .insert([data]);
+          .insert([nucleusData]);
 
         if (error) throw error;
         
@@ -111,12 +172,18 @@ export function RegionalNucleusForm({ onSuccess, onCancel, initialData, isEdit =
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="geographic_region">Região Geográfica</Label>
+            <Label htmlFor="region_name">Região</Label>
             <Input
-              id="geographic_region"
-              {...register('geographic_region')}
-              placeholder="Ex: Grande Florianópolis"
+              id="region_name"
+              {...register('region_name')}
+              placeholder="Digite o nome da região"
+              list="regions-list"
             />
+            <datalist id="regions-list">
+              {regions.map((region) => (
+                <option key={region.id} value={region.nome} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-2">
