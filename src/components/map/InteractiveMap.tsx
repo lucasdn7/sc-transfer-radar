@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -13,9 +12,12 @@ interface InteractiveMapProps {
   mapStyle: string;
   showLabels: boolean;
   onConfigureToken: () => void;
+  statusFilter?: string;
+  regionFilter?: string;
+  searchTerm?: string;
 }
 
-export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }: InteractiveMapProps) {
+export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, statusFilter, regionFilter, searchTerm }: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -38,14 +40,18 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
     try {
       // Verificar se o token é válido
       if (!token.startsWith('pk.')) {
-        throw new Error('Token inválido. Deve começar com "pk."');
+        setError('Token inválido. A chave deve começar com "pk.". Verifique e tente novamente.');
+        setIsInitializing(false);
+        return;
       }
 
       mapboxgl.accessToken = token;
 
       // Verificar suporte ao WebGL
       if (!mapboxgl.supported()) {
-        throw new Error('Seu navegador não suporta WebGL, necessário para o Mapbox');
+        setError('Seu navegador não suporta WebGL, necessário para exibir o mapa. Tente outro navegador.');
+        setIsInitializing(false);
+        return;
       }
 
       // Configurar estilos baseado na seleção
@@ -88,7 +94,7 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
 
         // Buscar processos da base de dados
         try {
-          const { data: processes, error } = await supabase
+          let query: any = supabase
             .from('processes')
             .select(`
               *,
@@ -97,6 +103,19 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
             `)
             .not('latitude', 'is', null)
             .not('longitude', 'is', null);
+          if (statusFilter && statusFilter !== 'all') {
+            query = query.eq('current_status', statusFilter);
+          }
+          if (regionFilter && regionFilter !== 'all') {
+            query = query.ilike('municipalities.region', `%${regionFilter}%`);
+          }
+          if (searchTerm) {
+            query = query.ilike('municipalities.name', `%${searchTerm}%`);
+          }
+          const result = await query as any;
+          const data = result.data;
+          const error = result.error;
+          const processes = (Array.isArray(data) ? data : []) as any[];
 
           if (error) {
             console.error('Erro ao buscar processos:', error);
@@ -112,9 +131,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
                 <div style="padding: 12px; max-width: 300px;">
                   <h3 style="margin: 0 0 8px 0; font-weight: bold; font-size: 14px;">${process.process_number}</h3>
                   <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${process.object}</p>
-                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Município:</strong> ${process.municipalities?.name || 'N/A'}</p>
+                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Município:</strong> ${(process.municipalities && 'name' in process.municipalities) ? process.municipalities.name : 'N/A'}</p>
                   <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Valor:</strong> ${formatCurrency(process.total_portaria_value)}</p>
-                  <p style="margin: 0; font-size: 12px;"><strong>Status:</strong> ${process.status_processos?.nome || 'N/A'}</p>
+                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Status:</strong> ${process.status_processos?.nome || 'N/A'}</p>
                 </div>
               `);
 
@@ -138,7 +157,7 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
 
           // Conectar processos do mesmo município com linhas
           const municipalityGroups = processes?.reduce((groups: any, process) => {
-            const municipalityName = process.municipalities?.name;
+            const municipalityName = (process.municipalities && 'name' in process.municipalities) ? process.municipalities.name : undefined;
             if (municipalityName && process.latitude && process.longitude) {
               if (!groups[municipalityName]) {
                 groups[municipalityName] = [];
@@ -216,10 +235,10 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken }
 
     } catch (error) {
       console.error('Erro ao inicializar o mapa:', error);
-      setError(error instanceof Error ? error.message : 'Erro desconhecido ao inicializar o mapa');
+      setError('Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.');
       setIsInitializing(false);
     }
-  }, [token, mapStyle]);
+  }, [token, mapStyle, statusFilter, regionFilter, searchTerm]);
 
   // Atualizar visibilidade dos rótulos
   useEffect(() => {

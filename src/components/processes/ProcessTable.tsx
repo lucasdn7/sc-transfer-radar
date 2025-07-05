@@ -1,9 +1,8 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Download, Clock, MapPin, Calendar } from "lucide-react";
+import { Eye, Download, Clock, MapPin, Calendar, ExternalLink } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -150,6 +149,13 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {process.link_plataforma_governo && (
+                          <Button variant="ghost" size="sm" asChild title="Acessar Plataforma do Governo">
+                            <a href={process.link_plataforma_governo} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

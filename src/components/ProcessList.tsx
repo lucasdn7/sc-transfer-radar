@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessHeader } from "./processes/ProcessHeader";
@@ -7,8 +6,18 @@ import { ProcessFilters } from "./processes/ProcessFilters";
 import { ProcessTable } from "./processes/ProcessTable";
 import { ProcessListLoading } from "./processes/ProcessListLoading";
 import type { Database } from "@/integrations/supabase/types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
+}
 
 export function ProcessList() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,12 +29,14 @@ export function ProcessList() {
     maxValue: "",
     deadline: null as Date | null
   });
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
 
   const { data: processes, isLoading, error } = useQuery({
-    queryKey: ['processes', searchTerm, statusFilter, advancedFilters],
+    queryKey: ['processes', debouncedSearchTerm, statusFilter, advancedFilters, page],
     queryFn: async () => {
-      console.log('Fetching processes with filters:', { searchTerm, statusFilter, advancedFilters });
-      
       let query = supabase
         .from('processes')
         .select(`
@@ -33,42 +44,36 @@ export function ProcessList() {
           municipalities (name),
           regional_nuclei (name, acronym),
           status_processos (nome, cor)
-        `)
+        `, { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(100);
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
-      if (searchTerm) {
-        query = query.or(`process_number.ilike.%${searchTerm}%,object.ilike.%${searchTerm}%`);
+      if (debouncedSearchTerm) {
+        query = query.or(`process_number.ilike.%${debouncedSearchTerm}%,object.ilike.%${debouncedSearchTerm}%`);
       }
-
       if (advancedFilters.municipality) {
         query = query.ilike('municipalities.name', `%${advancedFilters.municipality}%`);
       }
-
       if (advancedFilters.minValue) {
         query = query.gte('total_portaria_value', parseFloat(advancedFilters.minValue));
       }
-
       if (advancedFilters.maxValue) {
         query = query.lte('total_portaria_value', parseFloat(advancedFilters.maxValue));
       }
-
       if (advancedFilters.deadline) {
         query = query.lte('vigencia_date', advancedFilters.deadline.toISOString().split('T')[0]);
       }
 
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching processes:', error);
-        throw error;
-      }
-      
-      return data || [];
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
     },
     staleTime: 2 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   });
+
+  const total = processes?.count || 0;
+  const totalPages = Math.ceil(total / pageSize);
 
   if (isLoading) {
     return <ProcessListLoading />;
@@ -101,15 +106,31 @@ export function ProcessList() {
         onFiltersChange={setAdvancedFilters}
       />
 
-      <ProcessTable processes={processes || []} />
+      <ProcessTable processes={processes?.data || []} />
       
-      {processes && processes.length >= 100 && (
-        <div className="text-center py-4 text-gray-600">
-          <p className="text-sm">
-            Mostrando os primeiros 100 resultados. Use os filtros para refinar sua busca.
-          </p>
+      <div className="flex justify-between items-center py-4">
+        <span className="text-sm text-gray-600">
+          Página {page} de {totalPages} ({total} processos)
+        </span>
+        <div className="flex gap-2">
+          <button
+            className="p-2 rounded disabled:opacity-50 border"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            className="p-2 rounded disabled:opacity-50 border"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            aria-label="Próxima página"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

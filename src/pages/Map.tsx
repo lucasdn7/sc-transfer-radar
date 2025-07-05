@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -269,10 +268,13 @@ export default function Map() {
             </CardHeader>
             <CardContent className="h-full p-4">
               <InteractiveMap
-                token={token || ''}
+                token={token}
                 mapStyle={mapStyle}
                 showLabels={showLabels}
                 onConfigureToken={handleConfigureToken}
+                statusFilter={selectedStatus}
+                regionFilter={selectedRegion}
+                searchTerm={searchTerm}
               />
             </CardContent>
           </Card>

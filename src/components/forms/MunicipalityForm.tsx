@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -192,10 +191,9 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
     } catch (error: any) {
       toast({
         title: 'Erro ao salvar município',
-        description: error.message,
+        description: 'Ocorreu um erro ao salvar o município. Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -208,140 +206,141 @@ export function MunicipalityForm({ onSuccess, onCancel, initialData, isEdit = fa
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                {...register('name', { required: 'Campo obrigatório' })}
-                placeholder="Nome do município"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
+        <div className="max-h-[70vh] overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  {...register('name', { required: 'Campo obrigatório' })}
+                  placeholder="Nome do município"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cnpj">CNPJ *</Label>
+                <Input
+                  id="cnpj"
+                  {...register('cnpj', { required: 'Campo obrigatório' })}
+                  placeholder="00.000.000/0000-00"
+                />
+                {errors.cnpj && (
+                  <p className="text-sm text-red-600">{errors.cnpj.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="mayor_name">Nome do Prefeito</Label>
+                <Input
+                  id="mayor_name"
+                  {...register('mayor_name')}
+                  placeholder="Nome do prefeito"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="secretary_name">Nome do Secretário</Label>
+                <Input
+                  id="secretary_name"
+                  {...register('secretary_name')}
+                  placeholder="Nome do secretário"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  {...register('phone')}
+                  placeholder="(48) 9999-9999"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="contato@municipio.sc.gov.br"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ *</Label>
+              <Label htmlFor="population">População</Label>
               <Input
-                id="cnpj"
-                {...register('cnpj', { required: 'Campo obrigatório' })}
-                placeholder="00.000.000/0000-00"
-              />
-              {errors.cnpj && (
-                <p className="text-sm text-red-600">{errors.cnpj.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mayor_name">Nome do Prefeito</Label>
-              <Input
-                id="mayor_name"
-                {...register('mayor_name')}
-                placeholder="Nome do prefeito"
+                id="population"
+                type="number"
+                {...register('population', { min: 0 })}
+                placeholder="Número de habitantes"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="secretary_name">Nome do Secretário</Label>
-              <Input
-                id="secretary_name"
-                {...register('secretary_name')}
-                placeholder="Nome do secretário"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="region_name">Região</Label>
+                <Input
+                  id="region_name"
+                  {...register('region_name')}
+                  placeholder="Digite o nome da região"
+                  list="regions-list"
+                />
+                <datalist id="regions-list">
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.nome} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
+                <Input
+                  id="regional_nucleus_name"
+                  {...register('regional_nucleus_name')}
+                  placeholder="Digite o nome do núcleo regional"
+                  list="nuclei-list"
+                />
+                <datalist id="nuclei-list">
+                  {regionalNuclei.map((nucleus) => (
+                    <option key={nucleus.id} value={nucleus.name} />
+                  ))}
+                </datalist>
+              </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                {...register('phone')}
-                placeholder="(48) 9999-9999"
-              />
-            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="municipality_classification_name">Classificação</Label>
               <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="contato@municipio.sc.gov.br"
+                id="municipality_classification_name"
+                {...register('municipality_classification_name')}
+                placeholder="Digite a classificação do município"
+                list="classifications-list"
               />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="population">População</Label>
-            <Input
-              id="population"
-              type="number"
-              {...register('population', { min: 0 })}
-              placeholder="Número de habitantes"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="region_name">Região</Label>
-              <Input
-                id="region_name"
-                {...register('region_name')}
-                placeholder="Digite o nome da região"
-                list="regions-list"
-              />
-              <datalist id="regions-list">
-                {regions.map((region) => (
-                  <option key={region.id} value={region.nome} />
+              <datalist id="classifications-list">
+                {classifications.map((classification) => (
+                  <option key={classification.id} value={classification.name} />
                 ))}
               </datalist>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
-              <Input
-                id="regional_nucleus_name"
-                {...register('regional_nucleus_name')}
-                placeholder="Digite o nome do núcleo regional"
-                list="nuclei-list"
-              />
-              <datalist id="nuclei-list">
-                {regionalNuclei.map((nucleus) => (
-                  <option key={nucleus.id} value={nucleus.name} />
-                ))}
-              </datalist>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="municipality_classification_name">Classificação</Label>
-            <Input
-              id="municipality_classification_name"
-              {...register('municipality_classification_name')}
-              placeholder="Digite a classificação do município"
-              list="classifications-list"
-            />
-            <datalist id="classifications-list">
-              {classifications.map((classification) => (
-                <option key={classification.id} value={classification.name} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="flex justify-end space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Município')}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
+        <div className="sticky bottom-0 left-0 w-full bg-white pt-4 flex justify-end space-x-4 z-10 border-t">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form" disabled={isSubmitting}>
+            {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Município')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

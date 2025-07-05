@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Database } from '@/integrations/supabase/types';
 
 interface ProcessFormData {
   process_number: string;
@@ -25,20 +25,26 @@ interface ProcessFormData {
   address?: string;
   latitude?: number;
   longitude?: number;
+  link_plataforma_governo?: string;
 }
 
 interface ProcessFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: any;
+  initialData?: (Database['public']['Tables']['processes']['Row'] & {
+    municipalities?: { name: string };
+    regional_nuclei?: { name: string };
+    status_processos?: { nome: string };
+    link_plataforma_governo?: string;
+  });
   isEdit?: boolean;
 }
 
 export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }: ProcessFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [municipalities, setMunicipalities] = useState<any[]>([]);
-  const [regionalNuclei, setRegionalNuclei] = useState<any[]>([]);
-  const [statuses, setStatuses] = useState<any[]>([]);
+  const [municipalities, setMunicipalities] = useState<{ id: number; name: string }[]>([]);
+  const [regionalNuclei, setRegionalNuclei] = useState<{ id: number; name: string }[]>([]);
+  const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProcessFormData>({
@@ -57,6 +63,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       address: initialData.address || '',
       latitude: initialData.latitude || 0,
       longitude: initialData.longitude || 0,
+      link_plataforma_governo: initialData.link_plataforma_governo || '',
     } : {},
   });
 
@@ -189,6 +196,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         address: data.address || null,
         latitude: data.latitude || null,
         longitude: data.longitude || null,
+        link_plataforma_governo: data.link_plataforma_governo || null,
       };
 
       if (isEdit && initialData?.id) {
@@ -218,13 +226,11 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erro ao salvar processo:', error);
       toast({
         title: 'Erro ao salvar processo',
-        description: error.message,
+        description: 'Ocorreu um erro ao salvar o processo. Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -237,207 +243,221 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="max-h-[70vh] overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="process_number">Número do Processo *</Label>
+                <Input
+                  id="process_number"
+                  {...register('process_number', { required: 'Campo obrigatório' })}
+                  placeholder="Ex: 2024/001"
+                />
+                {errors.process_number && (
+                  <p className="text-sm text-red-600">{errors.process_number.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="portaria_number">Número da Portaria</Label>
+                <Input
+                  id="portaria_number"
+                  {...register('portaria_number')}
+                  placeholder="Ex: PRT-001/2024"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="process_number">Número do Processo *</Label>
-              <Input
-                id="process_number"
-                {...register('process_number', { required: 'Campo obrigatório' })}
-                placeholder="Ex: 2024/001"
+              <Label htmlFor="object">Objeto *</Label>
+              <Textarea
+                id="object"
+                {...register('object', { required: 'Campo obrigatório' })}
+                placeholder="Descreva o objeto do processo..."
+                rows={3}
               />
-              {errors.process_number && (
-                <p className="text-sm text-red-600">{errors.process_number.message}</p>
+              {errors.object && (
+                <p className="text-sm text-red-600">{errors.object.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="portaria_number">Número da Portaria</Label>
-              <Input
-                id="portaria_number"
-                {...register('portaria_number')}
-                placeholder="Ex: PRT-001/2024"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="municipality_name">Município *</Label>
+                <Input
+                  id="municipality_name"
+                  {...register('municipality_name', { required: 'Campo obrigatório' })}
+                  placeholder="Digite o nome do município"
+                  list="municipalities-list"
+                />
+                <datalist id="municipalities-list">
+                  {municipalities.map((municipality) => (
+                    <option key={municipality.id} value={municipality.name} />
+                  ))}
+                </datalist>
+                {errors.municipality_name && (
+                  <p className="text-sm text-red-600">{errors.municipality_name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
+                <Input
+                  id="regional_nucleus_name"
+                  {...register('regional_nucleus_name')}
+                  placeholder="Digite o nome do núcleo regional"
+                  list="nuclei-list"
+                />
+                <datalist id="nuclei-list">
+                  {regionalNuclei.map((nucleus) => (
+                    <option key={nucleus.id} value={nucleus.name} />
+                  ))}
+                </datalist>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="object">Objeto *</Label>
-            <Textarea
-              id="object"
-              {...register('object', { required: 'Campo obrigatório' })}
-              placeholder="Descreva o objeto do processo..."
-              rows={3}
-            />
-            {errors.object && (
-              <p className="text-sm text-red-600">{errors.object.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="municipality_name">Município *</Label>
+              <Label htmlFor="status_name">Status *</Label>
               <Input
-                id="municipality_name"
-                {...register('municipality_name', { required: 'Campo obrigatório' })}
-                placeholder="Digite o nome do município"
-                list="municipalities-list"
+                id="status_name"
+                {...register('status_name', { required: 'Campo obrigatório' })}
+                placeholder="Digite o status do processo"
+                list="status-list"
               />
-              <datalist id="municipalities-list">
-                {municipalities.map((municipality) => (
-                  <option key={municipality.id} value={municipality.name} />
+              <datalist id="status-list">
+                {statuses.map((status) => (
+                  <option key={status.id} value={status.nome} />
                 ))}
               </datalist>
-              {errors.municipality_name && (
-                <p className="text-sm text-red-600">{errors.municipality_name.message}</p>
+              {errors.status_name && (
+                <p className="text-sm text-red-600">{errors.status_name.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="regional_nucleus_name">Núcleo Regional</Label>
-              <Input
-                id="regional_nucleus_name"
-                {...register('regional_nucleus_name')}
-                placeholder="Digite o nome do núcleo regional"
-                list="nuclei-list"
-              />
-              <datalist id="nuclei-list">
-                {regionalNuclei.map((nucleus) => (
-                  <option key={nucleus.id} value={nucleus.name} />
-                ))}
-              </datalist>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="total_portaria_value">Valor Total Portaria *</Label>
+                <Input
+                  id="total_portaria_value"
+                  type="number"
+                  step="0.01"
+                  {...register('total_portaria_value', { required: 'Campo obrigatório', min: 0 })}
+                  placeholder="0.00"
+                />
+                {errors.total_portaria_value && (
+                  <p className="text-sm text-red-600">{errors.total_portaria_value.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_concedente_value">Valor Concedente *</Label>
+                <Input
+                  id="total_concedente_value"
+                  type="number"
+                  step="0.01"
+                  {...register('total_concedente_value', { required: 'Campo obrigatório', min: 0 })}
+                  placeholder="0.00"
+                />
+                {errors.total_concedente_value && (
+                  <p className="text-sm text-red-600">{errors.total_concedente_value.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_proponente_value">Valor Proponente *</Label>
+                <Input
+                  id="total_proponente_value"
+                  type="number"
+                  step="0.01"
+                  {...register('total_proponente_value', { required: 'Campo obrigatório', min: 0 })}
+                  placeholder="0.00"
+                />
+                {errors.total_proponente_value && (
+                  <p className="text-sm text-red-600">{errors.total_proponente_value.message}</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status_name">Status *</Label>
-            <Input
-              id="status_name"
-              {...register('status_name', { required: 'Campo obrigatório' })}
-              placeholder="Digite o status do processo"
-              list="status-list"
-            />
-            <datalist id="status-list">
-              {statuses.map((status) => (
-                <option key={status.id} value={status.nome} />
-              ))}
-            </datalist>
-            {errors.status_name && (
-              <p className="text-sm text-red-600">{errors.status_name.message}</p>
-            )}
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="licitado_value">Valor Licitado</Label>
+                <Input
+                  id="licitado_value"
+                  type="number"
+                  step="0.01"
+                  {...register('licitado_value', { min: 0 })}
+                  placeholder="0.00"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vigencia_date">Data de Vigência *</Label>
+                <Input
+                  id="vigencia_date"
+                  type="date"
+                  {...register('vigencia_date', { required: 'Campo obrigatório' })}
+                />
+                {errors.vigencia_date && (
+                  <p className="text-sm text-red-600">{errors.vigencia_date.message}</p>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="total_portaria_value">Valor Total Portaria *</Label>
+              <Label htmlFor="address">Endereço</Label>
               <Input
-                id="total_portaria_value"
-                type="number"
-                step="0.01"
-                {...register('total_portaria_value', { required: 'Campo obrigatório', min: 0 })}
-                placeholder="0.00"
+                id="address"
+                {...register('address')}
+                placeholder="Endereço do projeto"
               />
-              {errors.total_portaria_value && (
-                <p className="text-sm text-red-600">{errors.total_portaria_value.message}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  {...register('latitude')}
+                  placeholder="-27.5954"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  {...register('longitude')}
+                  placeholder="-48.5482"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="link_plataforma_governo">Link para Plataforma do Governo</Label>
+              <Input
+                id="link_plataforma_governo"
+                type="url"
+                {...register('link_plataforma_governo')}
+                placeholder="https://plataforma.gov.br/processo/123"
+              />
+              {errors.link_plataforma_governo && (
+                <p className="text-sm text-red-600">{errors.link_plataforma_governo.message}</p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="total_concedente_value">Valor Concedente *</Label>
-              <Input
-                id="total_concedente_value"
-                type="number"
-                step="0.01"
-                {...register('total_concedente_value', { required: 'Campo obrigatório', min: 0 })}
-                placeholder="0.00"
-              />
-              {errors.total_concedente_value && (
-                <p className="text-sm text-red-600">{errors.total_concedente_value.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="total_proponente_value">Valor Proponente *</Label>
-              <Input
-                id="total_proponente_value"
-                type="number"
-                step="0.01"
-                {...register('total_proponente_value', { required: 'Campo obrigatório', min: 0 })}
-                placeholder="0.00"
-              />
-              {errors.total_proponente_value && (
-                <p className="text-sm text-red-600">{errors.total_proponente_value.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="licitado_value">Valor Licitado</Label>
-              <Input
-                id="licitado_value"
-                type="number"
-                step="0.01"
-                {...register('licitado_value', { min: 0 })}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vigencia_date">Data de Vigência *</Label>
-              <Input
-                id="vigencia_date"
-                type="date"
-                {...register('vigencia_date', { required: 'Campo obrigatório' })}
-              />
-              {errors.vigencia_date && (
-                <p className="text-sm text-red-600">{errors.vigencia_date.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Endereço</Label>
-            <Input
-              id="address"
-              {...register('address')}
-              placeholder="Endereço do projeto"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="latitude">Latitude</Label>
-              <Input
-                id="latitude"
-                type="number"
-                step="any"
-                {...register('latitude')}
-                placeholder="-27.5954"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="longitude">Longitude</Label>
-              <Input
-                id="longitude"
-                type="number"
-                step="any"
-                {...register('longitude')}
-                placeholder="-48.5482"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Processo')}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </div>
+        <div className="sticky bottom-0 left-0 w-full bg-white pt-4 flex justify-end space-x-4 z-10 border-t">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form" disabled={isSubmitting}>
+            {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Processo')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

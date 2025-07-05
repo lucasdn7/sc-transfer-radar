@@ -1,10 +1,9 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useRegionalNuclei(searchTerm: string) {
+export function useRegionalNuclei(searchTerm: string, page: number = 1, pageSize: number = 20) {
   return useQuery({
-    queryKey: ['regional-nuclei', searchTerm],
+    queryKey: ['regional-nuclei', searchTerm, page],
     queryFn: async () => {
       console.log('Fetching regional nuclei with search:', searchTerm);
       
@@ -14,14 +13,15 @@ export function useRegionalNuclei(searchTerm: string) {
           *,
           regioes (nome, sigla),
           municipalities (id, name)
-        `)
-        .order('name', { ascending: true });
+        `, { count: 'exact' })
+        .order('name', { ascending: true })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
       if (searchTerm) {
         query = query.ilike('name', `%${searchTerm}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       
       if (error) {
         console.error('Error fetching regional nuclei:', error);
@@ -29,8 +29,8 @@ export function useRegionalNuclei(searchTerm: string) {
       }
       
       console.log('Regional nuclei fetched:', data);
-      return data || [];
-    }
+      return { data: data || [], count: count || 0 };
+    },
   });
 }
 

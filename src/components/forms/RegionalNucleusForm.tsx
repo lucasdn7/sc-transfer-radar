@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -128,10 +127,9 @@ export function RegionalNucleusForm({ onSuccess, onCancel, initialData, isEdit =
     } catch (error: any) {
       toast({
         title: 'Erro ao salvar núcleo regional',
-        description: error.message,
+        description: 'Ocorreu um erro ao salvar o núcleo regional. Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -144,97 +142,98 @@ export function RegionalNucleusForm({ onSuccess, onCancel, initialData, isEdit =
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                {...register('name', { required: 'Campo obrigatório' })}
-                placeholder="Nome do núcleo regional"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
+        <div className="max-h-[70vh] overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  {...register('name', { required: 'Campo obrigatório' })}
+                  placeholder="Nome do núcleo regional"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-600">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="acronym">Sigla *</Label>
+                <Input
+                  id="acronym"
+                  {...register('acronym', { required: 'Campo obrigatório' })}
+                  placeholder="Ex: NR01"
+                />
+                {errors.acronym && (
+                  <p className="text-sm text-red-600">{errors.acronym.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="acronym">Sigla *</Label>
+              <Label htmlFor="region_name">Região</Label>
               <Input
-                id="acronym"
-                {...register('acronym', { required: 'Campo obrigatório' })}
-                placeholder="Ex: NR01"
+                id="region_name"
+                {...register('region_name')}
+                placeholder="Digite o nome da região"
+                list="regions-list"
               />
-              {errors.acronym && (
-                <p className="text-sm text-red-600">{errors.acronym.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="region_name">Região</Label>
-            <Input
-              id="region_name"
-              {...register('region_name')}
-              placeholder="Digite o nome da região"
-              list="regions-list"
-            />
-            <datalist id="regions-list">
-              {regions.map((region) => (
-                <option key={region.id} value={region.nome} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="technical_responsible_name">Responsável Técnico</Label>
-            <Input
-              id="technical_responsible_name"
-              {...register('technical_responsible_name')}
-              placeholder="Nome do responsável técnico"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                {...register('phone')}
-                placeholder="(48) 9999-9999"
-              />
+              <datalist id="regions-list">
+                {regions.map((region) => (
+                  <option key={region.id} value={region.nome} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="technical_responsible_name">Responsável Técnico</Label>
               <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="contato@nucleo.sc.gov.br"
+                id="technical_responsible_name"
+                {...register('technical_responsible_name')}
+                placeholder="Nome do responsável técnico"
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="observations">Observações</Label>
-            <Textarea
-              id="observations"
-              {...register('observations')}
-              placeholder="Observações sobre o núcleo regional..."
-              rows={3}
-            />
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  {...register('phone')}
+                  placeholder="(48) 9999-9999"
+                />
+              </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Núcleo')}
-            </Button>
-          </div>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="contato@nucleo.sc.gov.br"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                {...register('observations')}
+                placeholder="Observações sobre o núcleo regional..."
+                rows={3}
+              />
+            </div>
+          </form>
+        </div>
+        <div className="sticky bottom-0 left-0 w-full bg-white pt-4 flex justify-end space-x-4 z-10 border-t">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form" disabled={isSubmitting}>
+            {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Núcleo')}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

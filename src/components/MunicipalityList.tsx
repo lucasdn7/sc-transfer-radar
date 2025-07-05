@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,39 +6,49 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, MapPin, Phone, Mail, Users } from "lucide-react";
+import { Search, MapPin, Phone, Mail, Users, ChevronLeft, ChevronRight } from "lucide-react";
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
+}
 
 export function MunicipalityList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
 
   const { data: municipalities, isLoading, error } = useQuery({
-    queryKey: ['municipalities', searchTerm],
+    queryKey: ['municipalities', debouncedSearchTerm, page],
     queryFn: async () => {
-      console.log('Fetching municipalities with search:', searchTerm);
-      
       let query = supabase
         .from('municipalities')
         .select(`
           *,
           regional_nuclei (name, acronym),
           regioes (nome)
-        `)
-        .order('name', { ascending: true });
+        `, { count: 'exact' })
+        .order('name', { ascending: true })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
-      if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+      if (debouncedSearchTerm) {
+        query = query.ilike('name', `%${debouncedSearchTerm}%`);
       }
 
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching municipalities:', error);
-        throw error;
-      }
-      
-      return data;
-    }
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { data, count: count || 0 };
+    },
   });
+
+  const total = municipalities?.count || 0;
+  const totalPages = Math.ceil(total / pageSize);
 
   const formatPopulation = (population: number) => {
     return new Intl.NumberFormat('pt-BR').format(population);
@@ -91,7 +100,7 @@ export function MunicipalityList() {
       {/* Municipalities Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Municípios ({municipalities?.length || 0})</CardTitle>
+          <CardTitle>Lista de Municípios ({municipalities?.count || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -107,7 +116,7 @@ export function MunicipalityList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {municipalities?.map((municipality) => (
+                {municipalities?.data?.map((municipality) => (
                   <TableRow key={municipality.id}>
                     <TableCell>
                       <div>
@@ -177,11 +186,34 @@ export function MunicipalityList() {
             </Table>
           </div>
           
-          {municipalities?.length === 0 && (
+          {municipalities?.data?.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               Nenhum município encontrado
             </div>
           )}
+          <div className="flex justify-between items-center py-4">
+            <span className="text-sm text-gray-600">
+              Página {page} de {totalPages} ({total} municípios)
+            </span>
+            <div className="flex gap-2">
+              <button
+                className="p-2 rounded disabled:opacity-50 border"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                className="p-2 rounded disabled:opacity-50 border"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
