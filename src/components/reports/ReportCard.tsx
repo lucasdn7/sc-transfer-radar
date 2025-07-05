@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,9 @@ interface ReportCardProps {
   lastGenerated?: string;
   onGenerate: () => void;
   onView?: () => void;
+  onDownloadPDF?: () => void;
+  onDownloadExcel?: () => void;
+  onDownloadCSV?: () => void;
 }
 
 export function ReportCard({ 
@@ -21,7 +23,10 @@ export function ReportCard({
   status, 
   lastGenerated, 
   onGenerate, 
-  onView 
+  onView, 
+  onDownloadPDF, 
+  onDownloadExcel, 
+  onDownloadCSV
 }: ReportCardProps) {
   const getTypeIcon = () => {
     switch (type) {
@@ -69,7 +74,7 @@ export function ReportCard({
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {onView && status === 'available' && (
             <Button 
               onClick={onView}
@@ -88,6 +93,25 @@ export function ReportCard({
             <Download className="h-4 w-4 mr-2" />
             {status === 'processing' ? 'Processando...' : 'Gerar'}
           </Button>
+          {status === 'available' && (
+            <>
+              {onDownloadPDF && (
+                <Button onClick={onDownloadPDF} variant="outline" className="flex-1">
+                  <Download className="h-4 w-4 mr-2" />PDF
+                </Button>
+              )}
+              {onDownloadExcel && (
+                <Button onClick={onDownloadExcel} variant="outline" className="flex-1">
+                  <Download className="h-4 w-4 mr-2" />Excel
+                </Button>
+              )}
+              {onDownloadCSV && (
+                <Button onClick={onDownloadCSV} variant="outline" className="flex-1">
+                  <Download className="h-4 w-4 mr-2" />CSV
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

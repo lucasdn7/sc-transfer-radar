@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,10 @@ import { ReportCard } from '@/components/reports/ReportCard';
 import { FileText, BarChart3, TrendingUp, Users, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { saveAs } from 'file-saver';
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({});
@@ -16,9 +19,43 @@ export default function Reports() {
   const [nucleus, setNucleus] = useState('');
   const [reportType, setReportType] = useState('');
 
+  const mockData = [
+    { Nome: 'Município A', Valor: 10000, Status: 'Concluído' },
+    { Nome: 'Município B', Valor: 20000, Status: 'Em andamento' },
+    { Nome: 'Município C', Valor: 15000, Status: 'Pendente' },
+  ];
+
+  function exportToExcel(data: any[], fileName: string) {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, `${fileName}.xlsx`);
+  }
+
+  function exportToCSV(data: any[], fileName: string) {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const csv = XLSX.utils.sheet_to_csv(worksheet);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `${fileName}.csv`);
+  }
+
+  function exportToPDF(data: any[], fileName: string) {
+    const doc = new jsPDF();
+    const columns = Object.keys(data[0] || {});
+    const rows = data.map(obj => columns.map(col => obj[col]));
+    // @ts-ignore
+    doc.autoTable({ head: [columns], body: rows });
+    doc.save(`${fileName}.pdf`);
+  }
+
   const handleDownload = (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    console.log(`Gerando relatório: ${reportName} em formato ${fileFormat}`);
-    // Implementar lógica de download aqui
+    // Aqui você pode buscar os dados reais do relatório conforme o tipo
+    const data = mockData; // Substitua por dados reais conforme necessário
+    if (fileFormat === 'PDF') exportToPDF(data, reportName);
+    if (fileFormat === 'XLSX') exportToExcel(data, reportName);
+    if (fileFormat === 'CSV') exportToCSV(data, reportName);
   };
 
   const generateReport = (reportName: string) => {
@@ -198,6 +235,9 @@ export default function Reports() {
             lastGenerated={report.lastGenerated}
             onGenerate={() => generateReport(report.title)}
             onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
+            onDownloadPDF={() => handleDownload(report.title, 'PDF')}
+            onDownloadExcel={() => handleDownload(report.title, 'XLSX')}
+            onDownloadCSV={() => handleDownload(report.title, 'CSV')}
           />
         ))}
       </div>
