@@ -10,12 +10,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { useProcesses } from '@/hooks/useProcesses';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 // Lista de campos importantes para relatório de repasses
 const ALL_FIELDS = [
@@ -44,6 +45,27 @@ const DEFAULT_FIELDS = [
   'total_proponente_value', 'total_concedente_value', 'created_at', 'vigencia_date'
 ];
 
+// Mapeamento de campos padrão para cada tipo de relatório
+const REPORT_FIELDS: Record<string, string[]> = {
+  process: [
+    'process_number', 'object', 'municipalities.name', 'regional_nuclei.name',
+    'status_processos.nome', 'total_portaria_value', 'created_at', 'vigencia_date'
+  ],
+  financial: [
+    'process_number', 'municipalities.name', 'regional_nuclei.name',
+    'total_portaria_value', 'total_concedente_value', 'total_proponente_value',
+    'licitado_value', 'created_at', 'vigencia_date'
+  ],
+  municipality: [
+    'municipalities.name', 'process_number', 'object', 'status_processos.nome',
+    'total_portaria_value', 'created_at', 'vigencia_date'
+  ],
+  dashboard: [
+    'process_number', 'municipalities.name', 'regional_nuclei.name',
+    'status_processos.nome', 'total_portaria_value', 'created_at'
+  ]
+};
+
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({});
   const [municipality, setMunicipality] = useState('all');
@@ -51,6 +73,7 @@ export default function Reports() {
   const [reportType, setReportType] = useState('');
   const [showFieldSelector, setShowFieldSelector] = useState(false);
   const [selectedFields, setSelectedFields] = useState<string[]>(DEFAULT_FIELDS);
+  const { toast } = useToast();
 
   const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
     searchTerm: '',
@@ -60,61 +83,96 @@ export default function Reports() {
     dateTo: dateRange.to,
   });
 
-  // Função para filtrar os campos exportados
+  // Função para filtrar os campos exportados, tratando nulos e aninhados
   function filterFields(data: any[], fields: string[]) {
     return data.map(item => {
       const filtered: Record<string, any> = {};
       fields.forEach(field => {
         // Suporte a campos aninhados
-        const value = field.split('.').reduce((acc, key) => acc?.[key], item);
+        let value = field.split('.').reduce((acc, key) => acc?.[key], item);
+        if (value === null || value === undefined) value = '';
+        if (typeof value === 'object' && value !== null) value = JSON.stringify(value);
         filtered[field] = value;
       });
       return filtered;
     });
   }
 
-  function exportToExcel(data: any[], fileName: string) {
-    const filtered = filterFields(data, selectedFields);
-    const worksheet = XLSX.utils.json_to_sheet(filtered);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-    saveAs(blob, `${fileName}.xlsx`);
+  function exportToExcel(data: any[], fileName: string, fields: string[]) {
+    try {
+      const filtered = filterFields(data, fields);
+      const worksheet = XLSX.utils.json_to_sheet(filtered);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+      saveAs(blob, `${fileName}.xlsx`);
+      toast({ title: 'Download iniciado', description: 'Arquivo Excel gerado com sucesso.' });
+    } catch (e) {
+      throw e;
+    }
   }
 
-  function exportToCSV(data: any[], fileName: string) {
-    const filtered = filterFields(data, selectedFields);
-    const worksheet = XLSX.utils.json_to_sheet(filtered);
-    const csv = XLSX.utils.sheet_to_csv(worksheet);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `${fileName}.csv`);
+  function exportToCSV(data: any[], fileName: string, fields: string[]) {
+    try {
+      const filtered = filterFields(data, fields);
+      const worksheet = XLSX.utils.json_to_sheet(filtered);
+      const csv = XLSX.utils.sheet_to_csv(worksheet);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, `${fileName}.csv`);
+      toast({ title: 'Download iniciado', description: 'Arquivo CSV gerado com sucesso.' });
+    } catch (e) {
+      throw e;
+    }
   }
 
-  function exportToPDF(data: any[], fileName: string) {
-    const filtered = filterFields(data, selectedFields);
-    const columns = selectedFields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
-    const rows = filtered.map(obj => selectedFields.map(col => obj[col]));
-    // @ts-ignore: autoTable é um método do plugin jsPDF-AutoTable
-    const doc = new jsPDF();
-    // @ts-ignore
-    doc.autoTable({ head: [columns], body: rows });
-    doc.save(`${fileName}.pdf`);
+  function exportToPDF(data: any[], fileName: string, fields: string[]) {
+    try {
+      const filtered = filterFields(data, fields);
+      const columns = fields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
+      const rows = filtered.map(obj => fields.map(col => obj[col]));
+      const doc = new jsPDF();
+      autoTable(doc, { head: [columns], body: rows });
+      doc.save(`${fileName}.pdf`);
+      toast({ title: 'Download iniciado', description: 'Arquivo PDF gerado com sucesso.' });
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Função para exportar relatório pré-definido
+  function handlePredefinedDownload(reportType: string, fileFormat: 'PDF' | 'XLSX' | 'CSV', reportName: string) {
+    const data = processesData;
+    const fields = REPORT_FIELDS[reportType] || DEFAULT_FIELDS;
+    if (!data || data.length === 0) {
+      toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
+      return;
+    }
+    try {
+      if (fileFormat === 'PDF') exportToPDF(data, reportName, fields);
+      if (fileFormat === 'XLSX') exportToExcel(data, reportName, fields);
+      if (fileFormat === 'CSV') exportToCSV(data, reportName, fields);
+    } catch (e) {
+      toast({ title: 'Erro ao exportar', description: 'Ocorreu um erro ao gerar o arquivo.', variant: 'destructive' });
+    }
   }
 
   const handleDownload = (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    const data = processesData; // Agora usa dados reais
+    const data = processesData;
     if (!data || data.length === 0) {
-      alert('Nenhum dado encontrado para exportação.');
+      toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
       return;
     }
-    if (fileFormat === 'PDF') exportToPDF(data, reportName);
-    if (fileFormat === 'XLSX') exportToExcel(data, reportName);
-    if (fileFormat === 'CSV') exportToCSV(data, reportName);
+    try {
+      if (fileFormat === 'PDF') exportToPDF(data, reportName, selectedFields);
+      if (fileFormat === 'XLSX') exportToExcel(data, reportName, selectedFields);
+      if (fileFormat === 'CSV') exportToCSV(data, reportName, selectedFields);
+    } catch (e) {
+      toast({ title: 'Erro ao exportar', description: 'Ocorreu um erro ao gerar o arquivo.', variant: 'destructive' });
+    }
   };
 
   const generateReport = (reportName: string) => {
-    console.log(`Gerando relatório: ${reportName}`);
     handleDownload(reportName, 'PDF');
   };
 
@@ -293,9 +351,9 @@ export default function Reports() {
               lastGenerated={report.lastGenerated}
               onGenerate={() => generateReport(report.title)}
               onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
-              onDownloadPDF={() => handleDownload(report.title, 'PDF')}
-              onDownloadExcel={() => handleDownload(report.title, 'XLSX')}
-              onDownloadCSV={() => handleDownload(report.title, 'CSV')}
+              onDownloadPDF={() => handlePredefinedDownload(report.type, 'PDF', report.title)}
+              onDownloadExcel={() => handlePredefinedDownload(report.type, 'XLSX', report.title)}
+              onDownloadCSV={() => handlePredefinedDownload(report.type, 'CSV', report.title)}
             />
           ))}
         </div>

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProcessForm } from "@/components/forms/ProcessForm";
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
@@ -39,10 +39,11 @@ export default function Processes() {
     },
   });
 
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const filteredProcesses = processes?.filter(process =>
-    process.process_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    process.object.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    process.municipalities?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    process.object.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    process.municipalities?.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   ) || [];
 
   const handleFormSuccess = () => {

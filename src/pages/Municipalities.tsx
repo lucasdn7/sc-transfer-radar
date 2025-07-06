@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { MunicipalityForm } from "@/components/forms/MunicipalityForm";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export default function Municipalities() {
   const { isAuthenticated } = useTechnicalAuth();
@@ -19,11 +20,10 @@ export default function Municipalities() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState<any>(null);
 
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const { data: municipalities, isLoading, error, refetch } = useQuery({
-    queryKey: ['municipalities', searchTerm],
+    queryKey: ['municipalities', debouncedSearchTerm],
     queryFn: async () => {
-      console.log('Fetching municipalities with search:', searchTerm);
-      
       let query = supabase
         .from('municipalities')
         .select(`
@@ -34,18 +34,16 @@ export default function Municipalities() {
         `)
         .order('name', { ascending: true });
 
-      if (searchTerm) {
-        query = query.ilike('name', `%${searchTerm}%`);
+      if (debouncedSearchTerm) {
+        query = query.ilike('name', `%${debouncedSearchTerm}%`);
       }
 
       const { data, error } = await query;
       
       if (error) {
-        console.error('Error fetching municipalities:', error);
         throw error;
       }
       
-      console.log('Municipalities fetched:', data);
       return data || [];
     }
   });

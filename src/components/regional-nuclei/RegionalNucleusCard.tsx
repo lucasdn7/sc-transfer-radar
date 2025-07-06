@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,7 +114,9 @@ export function RegionalNucleusCard({ nucleus, stats, isAuthenticated, onEdit }:
               <span className="text-sm font-medium">Municípios ({nucleus.municipalities.length})</span>
             </div>
             <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-              {nucleus.municipalities.map((municipality: any) => (
+              {Array.from(new Map(
+                nucleus.municipalities.map((m: any) => [m.id, m])
+              ).values()).map((municipality: any) => (
                 <Badge key={municipality.id} variant="secondary" className="text-xs">
                   {municipality.name}
                 </Badge>

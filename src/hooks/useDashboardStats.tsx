@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,8 +16,6 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async (): Promise<DashboardStats> => {
-      console.log('Fetching dashboard statistics...');
-      
       try {
         // Buscar estatísticas em paralelo para melhor performance
         const [
@@ -50,17 +47,14 @@ export function useDashboardStats() {
 
         // Verificar erros
         if (processesResult.error) {
-          console.error('Error fetching processes:', processesResult.error);
           throw processesResult.error;
         }
 
         if (municipalitiesResult.error) {
-          console.error('Error fetching municipalities:', municipalitiesResult.error);
           throw municipalitiesResult.error;
         }
 
         if (regionalNucleiResult.error) {
-          console.error('Error fetching regional nuclei:', regionalNucleiResult.error);
           throw regionalNucleiResult.error;
         }
 
@@ -115,14 +109,6 @@ export function useDashboardStats() {
           value: data.value
         }));
 
-        console.log('Dashboard stats calculated successfully:', {
-          totalProcesses,
-          totalValue,
-          activeMunicipalities: uniqueMunicipalities,
-          regionalNucleiCount: regionalNuclei.length,
-          statusDistribution
-        });
-
         return {
           totalProcesses,
           totalValue,
@@ -134,7 +120,6 @@ export function useDashboardStats() {
           lastUpdated: new Date().toISOString()
         };
       } catch (error) {
-        console.error('Error in useDashboardStats:', error);
         // Em caso de erro, retornar valores padrão para não quebrar a UI
         return {
           totalProcesses: 0,

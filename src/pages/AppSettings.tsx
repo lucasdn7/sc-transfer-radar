@@ -366,7 +366,7 @@ export default function AppSettings() {
                 checked={colorBlindMode}
                 onCheckedChange={setColorBlindMode}
               />
-            </div>
+              </div>
             <div className="flex items-center justify-between">
               <LabelWithTooltip htmlFor="reduce-motion" tooltip="Reduz ou aumenta a velocidade das animações para melhorar a experiência de usuário.">Reduzir Animações</LabelWithTooltip>
               <Switch
@@ -442,7 +442,6 @@ export default function AppSettings() {
                   checked={debugVisual}
                   onCheckedChange={setDebugVisual}
                 />
-                <span className="text-xs text-muted-foreground">Ctrl+L</span>
               </div>
               <Separator />
               <div className="flex flex-col gap-2">

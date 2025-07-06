@@ -243,8 +243,16 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="max-h-[70vh] overflow-y-auto pr-2">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="flex justify-end space-x-4 pb-4 border-b mb-4 bg-white sticky top-0 left-0 z-20">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Processo')}
+            </Button>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto pr-2 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="process_number">Número do Processo *</Label>
@@ -448,16 +456,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 <p className="text-sm text-red-600">{errors.link_plataforma_governo.message}</p>
               )}
             </div>
-          </form>
-        </div>
-        <div className="sticky bottom-0 left-0 w-full bg-white pt-4 flex justify-end space-x-4 z-10 border-t">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="form" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Processo')}
-          </Button>
-        </div>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

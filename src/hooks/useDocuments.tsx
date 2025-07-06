@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,8 +5,6 @@ export function useDocuments(searchTerm: string, selectedCategory: string) {
   return useQuery({
     queryKey: ['documents', searchTerm, selectedCategory],
     queryFn: async () => {
-      console.log('Fetching documents with search:', searchTerm, 'category:', selectedCategory);
-      
       let query = supabase
         .from('documents')
         .select(`
@@ -26,11 +23,9 @@ export function useDocuments(searchTerm: string, selectedCategory: string) {
 
       const { data, error } = await query;
       if (error) {
-        console.error('Error fetching documents:', error);
         throw error;
       }
       
-      console.log('Documents fetched:', data);
       return data || [];
     },
   });

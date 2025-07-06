@@ -12,6 +12,7 @@ import { useDocuments, useDocumentCategories } from '@/hooks/useDocuments';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
 import React, { Component, ReactNode } from 'react';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback: (error: Error) => ReactNode }, { error: Error | null }> {
   constructor(props: any) {
@@ -48,7 +49,8 @@ export default function Documents() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewDocument, setPreviewDocument] = useState<any>(null);
 
-  const { data: documents, isLoading, error, refetch } = useDocuments(searchTerm, selectedCategory);
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
+  const { data: documents, isLoading, error, refetch } = useDocuments(debouncedSearchTerm, selectedCategory);
   const { data: categories } = useDocumentCategories();
 
   const handleDownload = async (document: any) => {

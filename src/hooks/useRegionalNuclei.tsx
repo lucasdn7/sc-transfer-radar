@@ -5,8 +5,6 @@ export function useRegionalNuclei(searchTerm: string, page: number = 1, pageSize
   return useQuery({
     queryKey: ['regional-nuclei', searchTerm, page],
     queryFn: async () => {
-      console.log('Fetching regional nuclei with search:', searchTerm);
-      
       let query = supabase
         .from('regional_nuclei')
         .select(`
@@ -24,11 +22,9 @@ export function useRegionalNuclei(searchTerm: string, page: number = 1, pageSize
       const { data, error, count } = await query;
       
       if (error) {
-        console.error('Error fetching regional nuclei:', error);
         throw error;
       }
       
-      console.log('Regional nuclei fetched:', data);
       return { data: data || [], count: count || 0 };
     },
   });
