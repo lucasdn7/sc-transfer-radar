@@ -1,4 +1,3 @@
-
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -30,12 +29,12 @@ export function DocumentFilters({
           className="pl-10"
         />
       </div>
-      <Select value={selectedCategory} onValueChange={onCategoryChange}>
+      <Select value={selectedCategory || 'all'} onValueChange={onCategoryChange}>
         <SelectTrigger className="w-48">
           <SelectValue placeholder="Categoria" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todas as categorias</SelectItem>
+          <SelectItem value="all">Todas as categorias</SelectItem>
           {categories?.map(category => (
             <SelectItem key={category.id} value={category.id.toString()}>
               {category.name}

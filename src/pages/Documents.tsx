@@ -45,7 +45,7 @@ export default function Documents() {
   const { isAuthenticated } = useTechnicalAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewDocument, setPreviewDocument] = useState<any>(null);
 
   const { data: documents, isLoading, error, refetch } = useDocuments(searchTerm, selectedCategory);

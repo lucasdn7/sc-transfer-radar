@@ -12,21 +12,70 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { saveAs } from 'file-saver';
+import { useProcesses } from '@/hooks/useProcesses';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useMemo } from 'react';
+
+// Lista de campos importantes para relatório de repasses
+const ALL_FIELDS = [
+  { key: 'process_number', label: 'Número do Processo' },
+  { key: 'object', label: 'Objeto do Processo' },
+  { key: 'municipalities.name', label: 'Município' },
+  { key: 'municipalities.regioes.nome', label: 'Região' },
+  { key: 'regional_nuclei.name', label: 'Núcleo Regional' },
+  { key: 'status_processos.nome', label: 'Status do Processo' },
+  { key: 'total_portaria_value', label: 'Valor Total da Portaria' },
+  { key: 'total_proponente_value', label: 'Valor Total do Proponente' },
+  { key: 'total_concedente_value', label: 'Valor Total do Concedente' },
+  { key: 'licitado_value', label: 'Valor Licitado' },
+  { key: 'created_at', label: 'Data de Criação' },
+  { key: 'vigencia_date', label: 'Data de Vigência' },
+  { key: 'last_tramitacao', label: 'Última Tramitação' },
+  { key: 'address', label: 'Endereço da Obra/Projeto' },
+  { key: 'latitude', label: 'Latitude' },
+  { key: 'longitude', label: 'Longitude' },
+  { key: 'portaria_number', label: 'Número da Portaria' },
+];
+
+const DEFAULT_FIELDS = [
+  'process_number', 'object', 'municipalities.name', 'municipalities.regioes.nome',
+  'regional_nuclei.name', 'status_processos.nome', 'total_portaria_value',
+  'total_proponente_value', 'total_concedente_value', 'created_at', 'vigencia_date'
+];
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({});
-  const [municipality, setMunicipality] = useState('');
-  const [nucleus, setNucleus] = useState('');
+  const [municipality, setMunicipality] = useState('all');
+  const [nucleus, setNucleus] = useState('all');
   const [reportType, setReportType] = useState('');
+  const [showFieldSelector, setShowFieldSelector] = useState(false);
+  const [selectedFields, setSelectedFields] = useState<string[]>(DEFAULT_FIELDS);
 
-  const mockData = [
-    { Nome: 'Município A', Valor: 10000, Status: 'Concluído' },
-    { Nome: 'Município B', Valor: 20000, Status: 'Em andamento' },
-    { Nome: 'Município C', Valor: 15000, Status: 'Pendente' },
-  ];
+  const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
+    searchTerm: '',
+    municipality,
+    nucleus,
+    dateFrom: dateRange.from,
+    dateTo: dateRange.to,
+  });
+
+  // Função para filtrar os campos exportados
+  function filterFields(data: any[], fields: string[]) {
+    return data.map(item => {
+      const filtered: Record<string, any> = {};
+      fields.forEach(field => {
+        // Suporte a campos aninhados
+        const value = field.split('.').reduce((acc, key) => acc?.[key], item);
+        filtered[field] = value;
+      });
+      return filtered;
+    });
+  }
 
   function exportToExcel(data: any[], fileName: string) {
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const filtered = filterFields(data, selectedFields);
+    const worksheet = XLSX.utils.json_to_sheet(filtered);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -35,24 +84,30 @@ export default function Reports() {
   }
 
   function exportToCSV(data: any[], fileName: string) {
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    const filtered = filterFields(data, selectedFields);
+    const worksheet = XLSX.utils.json_to_sheet(filtered);
     const csv = XLSX.utils.sheet_to_csv(worksheet);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, `${fileName}.csv`);
   }
 
   function exportToPDF(data: any[], fileName: string) {
+    const filtered = filterFields(data, selectedFields);
+    const columns = selectedFields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
+    const rows = filtered.map(obj => selectedFields.map(col => obj[col]));
+    // @ts-ignore: autoTable é um método do plugin jsPDF-AutoTable
     const doc = new jsPDF();
-    const columns = Object.keys(data[0] || {});
-    const rows = data.map(obj => columns.map(col => obj[col]));
     // @ts-ignore
     doc.autoTable({ head: [columns], body: rows });
     doc.save(`${fileName}.pdf`);
   }
 
   const handleDownload = (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    // Aqui você pode buscar os dados reais do relatório conforme o tipo
-    const data = mockData; // Substitua por dados reais conforme necessário
+    const data = processesData; // Agora usa dados reais
+    if (!data || data.length === 0) {
+      alert('Nenhum dado encontrado para exportação.');
+      return;
+    }
     if (fileFormat === 'PDF') exportToPDF(data, reportName);
     if (fileFormat === 'XLSX') exportToExcel(data, reportName);
     if (fileFormat === 'CSV') exportToCSV(data, reportName);
@@ -224,23 +279,27 @@ export default function Reports() {
       </div>
 
       {/* Lista de Relatórios */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {reports.map((report, index) => (
-          <ReportCard
-            key={index}
-            title={report.title}
-            description={report.description}
-            type={report.type}
-            status={report.status}
-            lastGenerated={report.lastGenerated}
-            onGenerate={() => generateReport(report.title)}
-            onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
-            onDownloadPDF={() => handleDownload(report.title, 'PDF')}
-            onDownloadExcel={() => handleDownload(report.title, 'XLSX')}
-            onDownloadCSV={() => handleDownload(report.title, 'CSV')}
-          />
-        ))}
-      </div>
+      {isLoadingProcesses ? (
+        <div className="text-center py-8">Carregando dados dos relatórios...</div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {reports.map((report, index) => (
+            <ReportCard
+              key={index}
+              title={report.title}
+              description={report.description}
+              type={report.type}
+              status={report.status}
+              lastGenerated={report.lastGenerated}
+              onGenerate={() => generateReport(report.title)}
+              onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
+              onDownloadPDF={() => handleDownload(report.title, 'PDF')}
+              onDownloadExcel={() => handleDownload(report.title, 'XLSX')}
+              onDownloadCSV={() => handleDownload(report.title, 'CSV')}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Ações Rápidas */}
       <Card>
@@ -261,6 +320,44 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex justify-end">
+        <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
+          <DialogTrigger asChild>
+            <Button variant="outline" onClick={() => setShowFieldSelector(true)}>
+              Personalizar Campos do Relatório
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Selecione os campos para exportação</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {ALL_FIELDS.map(field => (
+                <div key={field.key} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedFields.includes(field.key)}
+                    onCheckedChange={checked => {
+                      setSelectedFields(prev =>
+                        checked
+                          ? [...prev, field.key]
+                          : prev.filter(f => f !== field.key)
+                      );
+                    }}
+                    id={field.key}
+                  />
+                  <label htmlFor={field.key} className="text-sm cursor-pointer">{field.label}</label>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setShowFieldSelector(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
