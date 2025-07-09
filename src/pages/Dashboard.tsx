@@ -3,8 +3,16 @@ import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards"
 import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { ProcessChart, RegionChart } from "@/components/dashboard/Charts";
+import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 export default function Dashboard() {
+  const { selectedMetrics, setSelectedMetrics, metricsData, isLoading } = useDashboardMetrics();
+
+  const enabledMetrics = selectedMetrics.filter(m => m.enabled);
+
   return (
     <div className="space-y-6">
       <div>
@@ -15,6 +23,87 @@ export default function Dashboard() {
       </div>
 
       <OptimizedStatsCards />
+
+      {/* Seletor de Métricas */}
+      <DashboardMetricsSelector
+        metrics={selectedMetrics}
+        onMetricsChange={setSelectedMetrics}
+      />
+
+      {/* Gráficos Personalizáveis */}
+      {enabledMetrics.length > 0 && (
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          {enabledMetrics.map((metric) => (
+            <Card key={metric.key}>
+              <CardHeader>
+                <CardTitle className="text-base">{metric.label}</CardTitle>
+                <p className="text-sm text-muted-foreground">{metric.description}</p>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="animate-pulse text-muted-foreground">Carregando...</div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={250}>
+                    {metric.key === 'percentual_executado' ? (
+                      <PieChart>
+                        <Pie
+                          data={metricsData[metric.key] || []}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={({ name, value }) => `${name}: ${value}%`}
+                        >
+                          {(metricsData[metric.key] || []).map((entry: any, index: number) => (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"][index % 5]} 
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => [`${value}%`, 'Percentual']} />
+                      </PieChart>
+                    ) : (
+                      <BarChart data={metricsData[metric.key] || []}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis 
+                          tickFormatter={(value) => 
+                            new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            }).format(value)
+                          }
+                        />
+                        <Tooltip 
+                          formatter={(value) => [
+                            new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            }).format(Number(value)),
+                            metric.label
+                          ]}
+                        />
+                        <Bar 
+                          dataKey="value" 
+                          fill="#3b82f6" 
+                          radius={[4, 4, 0, 0]} 
+                          name={metric.label}
+                        />
+                      </BarChart>
+                    )}
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
