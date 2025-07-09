@@ -116,13 +116,13 @@ export function RegionChart({ regionalData = [] }: { regionalData?: Array<{ regi
             </BarChart>
           )}
           {chartType === 'line' && (
-            <LineChart data={chartData} layout="horizontal">
+            <BarChart data={chartData} layout="horizontal">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" dataKey={metric} />
               <YAxis dataKey="name" type="category" width={100} />
               <Tooltip />
-              <Line type="monotone" dataKey={metric} stroke="#3b82f6" />
-            </LineChart>
+              <Bar dataKey={metric} fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            </BarChart>
           )}
           {chartType === 'pie' && (
             <PieChart>
