@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,6 +10,7 @@ interface DashboardStats {
   statusDistribution: Record<string, number>;
   statusData?: Array<{ status: string; count: number; percentage: number }>;
   regionalData?: Array<{ region: string; count: number; value: number }>;
+  processes?: Array<any>; // Adicionando processes ao tipo
   lastUpdated: string;
 }
 
@@ -117,6 +119,7 @@ export function useDashboardStats() {
           statusDistribution,
           statusData,
           regionalData,
+          processes, // Incluindo processes no retorno
           lastUpdated: new Date().toISOString()
         };
       } catch (error) {
@@ -129,6 +132,7 @@ export function useDashboardStats() {
           statusDistribution: {},
           statusData: [],
           regionalData: [],
+          processes: [], // Incluindo processes vazio no fallback
           lastUpdated: new Date().toISOString()
         };
       }

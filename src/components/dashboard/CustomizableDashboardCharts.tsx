@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -183,7 +184,7 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
                   <button
                     className="p-1 rounded hover:bg-muted transition"
                     onClick={async (e) => {
-                      const card = (e.currentTarget.closest(".cursor-move") as HTMLElement)?.querySelector(".card");
+                      const card = (e.currentTarget.closest(".cursor-move") as HTMLElement)?.querySelector(".card") as HTMLElement;
                       if (!card) return;
                       const canvas = await html2canvas(card);
                       const imgData = canvas.toDataURL("image/png");

@@ -77,19 +77,12 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     name: 'parcelas',
   });
 
-  // Preencher latitude/longitude ao selecionar município
+  // Remover busca por latitude/longitude já que não existem na tabela municipalities
   useEffect(() => {
     const subscription = watch(async (value, { name }) => {
       if (name === 'municipality_name' && value.municipality_name) {
-        const { data: mun } = await supabase
-          .from('municipalities')
-          .select('latitude, longitude')
-          .ilike('name', value.municipality_name)
-          .single();
-        if (mun) {
-          setValue('latitude', mun.latitude || 0);
-          setValue('longitude', mun.longitude || 0);
-        }
+        // Removido a busca por latitude/longitude pois não existem na tabela
+        console.log('Município selecionado:', value.municipality_name);
       }
     });
     return () => subscription.unsubscribe();

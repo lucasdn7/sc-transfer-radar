@@ -82,7 +82,7 @@ export function StatusChart() {
   );
 }
 
-export function RegionChart({ regionalData = [] }: { regionalData: Array<{ region: string; count: number; value: number }> }) {
+export function RegionChart({ regionalData = [] }: { regionalData?: Array<{ region: string; count: number; value: number }> }) {
   const [metric, setMetric] = useState<'count' | 'value'>('count');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
 

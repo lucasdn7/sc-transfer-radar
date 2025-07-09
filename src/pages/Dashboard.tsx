@@ -28,7 +28,7 @@ export default function Dashboard() {
       <ProcessInsights />
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <RegionChart />
+        <RegionChart regionalData={[]} />
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Sobre o Sistema</h3>
