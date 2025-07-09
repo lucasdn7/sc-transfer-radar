@@ -16,6 +16,10 @@ import {
   Line,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 // Métricas disponíveis
 const METRICS = [
@@ -37,6 +41,7 @@ interface CustomChart {
   id: string;
   metric: string;
   chartType: string;
+  editing?: boolean; // Adicionado para controlar o estado de edição
 }
 
 // Tipos dos dados recebidos via props
@@ -160,28 +165,83 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
             className="cursor-move"
           >
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between relative">
                 <CardTitle className="text-base">
-                  <select
-                    className="border rounded px-2 py-1 mr-2"
-                    value={chart.metric}
-                    onChange={(e) => updateChart(chart.id, "metric", e.target.value)}
-                  >
-                    {METRICS.map((m) => (
-                      <option key={m.key} value={m.key}>{m.label}</option>
-                    ))}
-                  </select>
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={chart.chartType}
-                    onChange={(e) => updateChart(chart.id, "chartType", e.target.value)}
-                  >
-                    {CHART_TYPES.map((t) => (
-                      <option key={t.key} value={t.key}>{t.label}</option>
-                    ))}
-                  </select>
+                  {METRICS.find((m) => m.key === chart.metric)?.label}
+                  {" - "}
+                  {CHART_TYPES.find((t) => t.key === chart.chartType)?.label}
                 </CardTitle>
-                <Button size="sm" variant="ghost" onClick={() => removeChart(chart.id)} title="Remover">✕</Button>
+                <div className="flex items-center gap-2 absolute top-2 right-2 z-10">
+                  <button
+                    className="p-1 rounded hover:bg-muted transition"
+                    onClick={() => setCharts((prev) => prev.map((c, i) => i === idx ? { ...c, editing: !c.editing } : c))}
+                    title="Editar gráfico"
+                    type="button"
+                  >
+                    <Settings className="h-5 w-5 text-muted-foreground" />
+                  </button>
+                  <button
+                    className="p-1 rounded hover:bg-muted transition"
+                    onClick={async (e) => {
+                      const card = (e.currentTarget.closest(".cursor-move") as HTMLElement)?.querySelector(".card");
+                      if (!card) return;
+                      const canvas = await html2canvas(card);
+                      const imgData = canvas.toDataURL("image/png");
+                      const pdf = new jsPDF({ orientation: "landscape" });
+                      const width = pdf.internal.pageSize.getWidth();
+                      const height = pdf.internal.pageSize.getHeight();
+                      pdf.addImage(imgData, "PNG", 0, 0, width, height);
+                      pdf.save(`grafico-${chart.metric}.pdf`);
+                    }}
+                    title="Exportar PDF"
+                    type="button"
+                  >
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-muted-foreground"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  </button>
+                  <button
+                    className="p-1 rounded hover:bg-muted transition"
+                    onClick={() => {
+                      const data = metricsData[chart.metric as keyof typeof metricsData] || [];
+                      const ws = XLSX.utils.json_to_sheet(data);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, "Dados");
+                      XLSX.writeFile(wb, `grafico-${chart.metric}.xlsx`);
+                    }}
+                    title="Exportar XLS"
+                    type="button"
+                  >
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-muted-foreground"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4h16v16H4z" /></svg>
+                  </button>
+                </div>
+                {chart.editing && (
+                  <div className="absolute right-0 top-8 bg-white border rounded shadow p-2 z-20 flex flex-col gap-2 min-w-[180px]">
+                    <label className="text-xs font-semibold">Métrica</label>
+                    <select
+                      className="border rounded px-2 py-1 mb-2"
+                      value={chart.metric}
+                      onChange={(e) => updateChart(chart.id, "metric", e.target.value)}
+                    >
+                      {METRICS.map((m) => (
+                        <option key={m.key} value={m.key}>{m.label}</option>
+                      ))}
+                    </select>
+                    <label className="text-xs font-semibold">Tipo de Gráfico</label>
+                    <select
+                      className="border rounded px-2 py-1"
+                      value={chart.chartType}
+                      onChange={(e) => updateChart(chart.id, "chartType", e.target.value)}
+                    >
+                      {CHART_TYPES.map((t) => (
+                        <option key={t.key} value={t.key}>{t.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="mt-2 text-xs text-primary underline"
+                      onClick={() => setCharts((prev) => prev.map((c, i) => i === idx ? { ...c, editing: false } : c))}
+                      type="button"
+                    >Fechar</button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <ChartRenderer

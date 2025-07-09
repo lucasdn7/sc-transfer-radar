@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
@@ -81,21 +82,66 @@ export function StatusChart() {
   );
 }
 
-export function RegionChart() {
+export function RegionChart({ regionalData = [] }: { regionalData: Array<{ region: string; count: number; value: number }> }) {
+  const [metric, setMetric] = useState<'count' | 'value'>('count');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
+
+  const chartData = regionalData.map(r => ({ name: r.region, count: r.count, value: r.value }));
+
   return (
     <Card className="col-span-2">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Processos por Região</CardTitle>
+        <div className="flex gap-2 items-center">
+          <select className="border rounded px-2 py-1 text-xs" value={metric} onChange={e => setMetric(e.target.value as any)}>
+            <option value="count">Quantidade</option>
+            <option value="value">Valor Total</option>
+          </select>
+          <select className="border rounded px-2 py-1 text-xs" value={chartType} onChange={e => setChartType(e.target.value as any)}>
+            <option value="bar">Barras</option>
+            <option value="line">Linhas</option>
+            <option value="pie">Pizza</option>
+          </select>
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={regionData} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis dataKey="region" type="category" width={100} />
-            <Tooltip />
-            <Bar dataKey="processos" fill="#10b981" radius={[0, 4, 4, 0]} />
-          </BarChart>
+          {chartType === 'bar' && (
+            <BarChart data={chartData} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" dataKey={metric} />
+              <YAxis dataKey="name" type="category" width={100} />
+              <Tooltip />
+              <Bar dataKey={metric} fill="#10b981" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          )}
+          {chartType === 'line' && (
+            <LineChart data={chartData} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" dataKey={metric} />
+              <YAxis dataKey="name" type="category" width={100} />
+              <Tooltip />
+              <Line type="monotone" dataKey={metric} stroke="#3b82f6" />
+            </LineChart>
+          )}
+          {chartType === 'pie' && (
+            <PieChart>
+              <Pie
+                data={chartData}
+                dataKey={metric}
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {chartData.map((entry, idx) => (
+                  <Cell key={`cell-${idx}`} fill={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"][idx % 5]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          )}
         </ResponsiveContainer>
       </CardContent>
     </Card>

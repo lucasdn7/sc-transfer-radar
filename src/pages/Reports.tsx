@@ -230,6 +230,45 @@ export default function Reports() {
         </p>
       </div>
 
+      {/* Botão Personalizar Campos do Relatório - AGORA MAIS VISÍVEL */}
+      <div className="flex justify-end">
+        <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
+          <DialogTrigger asChild>
+            <Button variant="outline" onClick={() => setShowFieldSelector(true)}>
+              Personalizar Campos do Relatório
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Selecione os campos para exportação</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {ALL_FIELDS.map(field => (
+                <div key={field.key} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedFields.includes(field.key)}
+                    onCheckedChange={checked => {
+                      setSelectedFields(prev =>
+                        checked
+                          ? [...prev, field.key]
+                          : prev.filter(f => f !== field.key)
+                      );
+                    }}
+                    id={field.key}
+                  />
+                  <label htmlFor={field.key} className="text-sm cursor-pointer">{field.label}</label>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setShowFieldSelector(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Filtros */}
       <Card>
         <CardHeader>
@@ -378,44 +417,6 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
-          <DialogTrigger asChild>
-            <Button variant="outline" onClick={() => setShowFieldSelector(true)}>
-              Personalizar Campos do Relatório
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Selecione os campos para exportação</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {ALL_FIELDS.map(field => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedFields.includes(field.key)}
-                    onCheckedChange={checked => {
-                      setSelectedFields(prev =>
-                        checked
-                          ? [...prev, field.key]
-                          : prev.filter(f => f !== field.key)
-                      );
-                    }}
-                    id={field.key}
-                  />
-                  <label htmlFor={field.key} className="text-sm cursor-pointer">{field.label}</label>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowFieldSelector(false)}>
-                Fechar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
     </div>
   );
 }

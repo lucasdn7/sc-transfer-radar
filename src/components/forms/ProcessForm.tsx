@@ -67,6 +67,24 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     } : {},
   });
 
+  // Preencher latitude/longitude ao selecionar município
+  useEffect(() => {
+    const subscription = watch(async (value, { name }) => {
+      if (name === 'municipality_name' && value.municipality_name) {
+        const { data: mun } = await supabase
+          .from('municipalities')
+          .select('latitude, longitude')
+          .ilike('name', value.municipality_name)
+          .single();
+        if (mun) {
+          setValue('latitude', mun.latitude || 0);
+          setValue('longitude', mun.longitude || 0);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, setValue]);
+
   useEffect(() => {
     fetchData();
   }, []);
