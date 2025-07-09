@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 interface Parcel {
   id?: number;
@@ -20,47 +21,157 @@ export function ProcessParcels({ processId }: { processId: number }) {
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [newParcels, setNewParcels] = useState<{ count: number; value: number }>({ count: 1, value: 0 });
   const [loading, setLoading] = useState(false);
+  const [editingParcels, setEditingParcels] = useState<Record<number, boolean>>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchParcels();
-    // eslint-disable-next-line
   }, [processId]);
 
   async function fetchParcels() {
     setLoading(true);
-    const { data } = await supabase
-      .from('process_parcels')
-      .select('*')
-      .eq('process_id', processId)
-      .order('parcel_number');
-    setParcels(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('process_parcels')
+        .select('*')
+        .eq('process_id', processId)
+        .order('parcel_number');
+      
+      if (error) throw error;
+      setParcels(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar parcelas:', error);
+      toast({
+        title: "Erro ao carregar parcelas",
+        description: "Não foi possível carregar as parcelas do processo.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function addParcels() {
+    if (newParcels.value <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "O valor da parcela deve ser maior que zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
-    const inserts = Array.from({ length: newParcels.count }).map((_, i) => ({
-      parcel_number: parcels.length + i + 1,
-      value: newParcels.value,
-      process_id: processId,
-      payment_date: null,
-    }));
-    await supabase.from('process_parcels').insert(inserts);
-    setNewParcels({ count: 1, value: 0 });
-    fetchParcels();
+    try {
+      const inserts = Array.from({ length: newParcels.count }).map((_, i) => ({
+        parcel_number: parcels.length + i + 1,
+        value: newParcels.value,
+        process_id: processId,
+        payment_date: null,
+      }));
+      
+      const { error } = await supabase.from('process_parcels').insert(inserts);
+      if (error) throw error;
+      
+      setNewParcels({ count: 1, value: 0 });
+      await fetchParcels();
+      
+      toast({
+        title: "Parcelas adicionadas",
+        description: `${newParcels.count} parcela(s) adicionada(s) com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar parcelas:', error);
+      toast({
+        title: "Erro ao adicionar parcelas",
+        description: "Não foi possível adicionar as parcelas.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function updateParcel(parcel: Parcel, paid: boolean, date?: string) {
-    const paymentDate = paid ? (date || format(new Date(), 'yyyy-MM-dd')) : null;
-    await supabase.from('process_parcels').update({
-      payment_date: paymentDate,
-    }).eq('id', parcel.id);
-    fetchParcels();
+  async function updateParcelPayment(parcel: Parcel, paid: boolean, date?: string) {
+    try {
+      const paymentDate = paid ? (date || format(new Date(), 'yyyy-MM-dd')) : null;
+      const { error } = await supabase
+        .from('process_parcels')
+        .update({ payment_date: paymentDate })
+        .eq('id', parcel.id);
+      
+      if (error) throw error;
+      await fetchParcels();
+      
+      toast({
+        title: paid ? "Parcela marcada como paga" : "Pagamento removido",
+        description: `Parcela ${parcel.parcel_number} atualizada com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar pagamento:', error);
+      toast({
+        title: "Erro ao atualizar pagamento",
+        description: "Não foi possível atualizar o status de pagamento.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function updateParcelValue(parcelId: number, newValue: number) {
+    if (newValue <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "O valor da parcela deve ser maior que zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('process_parcels')
+        .update({ value: newValue })
+        .eq('id', parcelId);
+      
+      if (error) throw error;
+      await fetchParcels();
+      
+      toast({
+        title: "Valor atualizado",
+        description: "Valor da parcela atualizado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar valor:', error);
+      toast({
+        title: "Erro ao atualizar valor",
+        description: "Não foi possível atualizar o valor da parcela.",
+        variant: "destructive",
+      });
+    }
   }
 
   async function deleteParcel(parcelId: number) {
-    await supabase.from('process_parcels').delete().eq('id', parcelId);
-    fetchParcels();
+    try {
+      const { error } = await supabase
+        .from('process_parcels')
+        .delete()
+        .eq('id', parcelId);
+      
+      if (error) throw error;
+      await fetchParcels();
+      
+      toast({
+        title: "Parcela removida",
+        description: "Parcela removida com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao remover parcela:', error);
+      toast({
+        title: "Erro ao remover parcela",
+        description: "Não foi possível remover a parcela.",
+        variant: "destructive",
+      });
+    }
   }
 
   const totalValue = parcels.reduce((sum, parcel) => sum + parcel.value, 0);
@@ -69,15 +180,25 @@ export function ProcessParcels({ processId }: { processId: number }) {
     .reduce((sum, parcel) => sum + parcel.value, 0);
   const remainingValue = totalValue - paidValue;
 
+  if (loading && parcels.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="animate-pulse text-center">Carregando parcelas...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Parcelas do Processo</span>
           <div className="text-sm font-normal space-x-4">
-            <span className="text-green-600">Pago: R$ {paidValue.toLocaleString('pt-BR')}</span>
-            <span className="text-yellow-600">Restante: R$ {remainingValue.toLocaleString('pt-BR')}</span>
-            <span className="text-blue-600">Total: R$ {totalValue.toLocaleString('pt-BR')}</span>
+            <span className="text-green-600">Pago: R$ {paidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <span className="text-yellow-600">Restante: R$ {remainingValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <span className="text-blue-600">Total: R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
           </div>
         </CardTitle>
       </CardHeader>
@@ -112,7 +233,6 @@ export function ProcessParcels({ processId }: { processId: number }) {
           <Button 
             onClick={addParcels} 
             disabled={loading || newParcels.value <= 0}
-            className="mb-0"
           >
             Adicionar Parcelas
           </Button>
@@ -136,15 +256,46 @@ export function ProcessParcels({ processId }: { processId: number }) {
                 Parcela {parcel.parcel_number}
               </div>
               
-              <div className="w-32 font-mono">
-                R$ {parcel.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              <div className="w-40">
+                {editingParcels[parcel.id!] ? (
+                  <div className="flex gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0.01}
+                      defaultValue={parcel.value}
+                      className="w-32"
+                      onBlur={(e) => {
+                        const newValue = Number(e.target.value);
+                        if (newValue !== parcel.value && newValue > 0) {
+                          updateParcelValue(parcel.id!, newValue);
+                        }
+                        setEditingParcels(prev => ({ ...prev, [parcel.id!]: false }));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <div 
+                    className="font-mono cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                    onClick={() => setEditingParcels(prev => ({ ...prev, [parcel.id!]: true }))}
+                    title="Clique para editar o valor"
+                  >
+                    R$ {parcel.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`paid-${parcel.id}`}
                   checked={!!parcel.payment_date}
-                  onCheckedChange={(checked) => updateParcel(parcel, !!checked)}
+                  onCheckedChange={(checked) => updateParcelPayment(parcel, !!checked)}
                 />
                 <Label htmlFor={`paid-${parcel.id}`} className="text-sm cursor-pointer">
                   Pago
@@ -160,7 +311,7 @@ export function ProcessParcels({ processId }: { processId: number }) {
                     id={`date-${parcel.id}`}
                     type="date"
                     value={parcel.payment_date}
-                    onChange={e => updateParcel(parcel, true, e.target.value)}
+                    onChange={e => updateParcelPayment(parcel, true, e.target.value)}
                     className="w-40"
                   />
                 </div>
@@ -187,6 +338,17 @@ export function ProcessParcels({ processId }: { processId: number }) {
                 <div>Parcelas pagas: {parcels.filter(p => p.payment_date).length}</div>
                 <div>Valor total: R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
                 <div>Valor pago: R$ {paidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                <div className="col-span-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: totalValue > 0 ? `${(paidValue / totalValue) * 100}%` : '0%' }}
+                    ></div>
+                  </div>
+                  <div className="text-center mt-1">
+                    {totalValue > 0 ? Math.round((paidValue / totalValue) * 100) : 0}% pago
+                  </div>
+                </div>
               </div>
             </div>
           </div>

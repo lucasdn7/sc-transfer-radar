@@ -10,7 +10,12 @@ interface DashboardStats {
   statusDistribution: Record<string, number>;
   statusData?: Array<{ status: string; count: number; percentage: number }>;
   regionalData?: Array<{ region: string; count: number; value: number }>;
-  processes?: Array<any>; // Adicionando processes ao tipo
+  executionStats?: {
+    notStarted: number;
+    inProgress: number;
+    completed: number;
+  };
+  processes?: Array<any>;
   lastUpdated: string;
 }
 
@@ -34,7 +39,11 @@ export function useDashboardStats() {
               status_id,
               municipalities (name),
               regional_nuclei (name, acronym),
-              status_processos (nome, cor)
+              status_processos (nome, cor),
+              process_parcels (
+                value,
+                payment_date
+              )
             `),
           supabase
             .from('municipalities')
@@ -111,6 +120,14 @@ export function useDashboardStats() {
           value: data.value
         }));
 
+        // Calcular estatísticas de execução baseadas nos status
+        // Assumindo que alguns status representam diferentes estados de execução
+        const executionStats = {
+          notStarted: statusDistribution['Em Análise'] || 0,
+          inProgress: (statusDistribution['Em Execução'] || 0) + (statusDistribution['Aprovados'] || 0),
+          completed: statusDistribution['Finalizados'] || 0,
+        };
+
         return {
           totalProcesses,
           totalValue,
@@ -119,7 +136,8 @@ export function useDashboardStats() {
           statusDistribution,
           statusData,
           regionalData,
-          processes, // Incluindo processes no retorno
+          executionStats,
+          processes,
           lastUpdated: new Date().toISOString()
         };
       } catch (error) {
@@ -132,7 +150,12 @@ export function useDashboardStats() {
           statusDistribution: {},
           statusData: [],
           regionalData: [],
-          processes: [], // Incluindo processes vazio no fallback
+          executionStats: {
+            notStarted: 0,
+            inProgress: 0,
+            completed: 0,
+          },
+          processes: [],
           lastUpdated: new Date().toISOString()
         };
       }

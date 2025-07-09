@@ -1,20 +1,17 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   FileText, 
   DollarSign, 
   Building, 
   MapPin, 
-  TrendingUp, 
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  XCircle
 } from "lucide-react";
-import { formatCurrency } from "@/utils/processUtils";
 
-interface StatsCardsProps {
+interface EnhancedStatsCardsProps {
   stats: {
     totalProcesses: number;
     totalValue: number;
@@ -24,97 +21,112 @@ interface StatsCardsProps {
       processes: number;
       value: number;
     };
-    statusDistribution?: Record<string, number>;
+    executionStats?: {
+      notStarted: number;
+      inProgress: number;
+      completed: number;
+    };
   };
 }
 
-export function EnhancedStatsCards({ stats }: StatsCardsProps) {
-  const growthData = stats.monthlyGrowth || { processes: 0, value: 0 };
-  
-  const cards = [
-    {
-      title: "Total de Processos Ativos",
-      value: stats.totalProcesses,
-      icon: FileText,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      growth: growthData.processes,
-      subtitle: "processos cadastrados"
-    },
-    {
-      title: "Valor Total Repassado",
-      value: formatCurrency(stats.totalValue),
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      growth: growthData.value,
-      subtitle: "em recursos transferidos"
-    },
-    {
-      title: "Municípios Beneficiados",
-      value: stats.activeMunicipalities,
-      icon: Building,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      subtitle: "municípios atendidos"
-    },
-    {
-      title: "Núcleos Regionais",
-      value: stats.regionalNucleiCount,
-      icon: MapPin,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      subtitle: "núcleos operantes"
-    }
-  ];
-
-  const renderGrowthIndicator = (growth: number) => {
-    if (growth === 0) return null;
-    
-    const isPositive = growth > 0;
-    const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
-    const colorClass = isPositive ? "text-green-600" : "text-red-600";
-    
-    return (
-      <div className={`flex items-center gap-1 ${colorClass}`}>
-        <Icon className="h-3 w-3" />
-        <span className="text-xs font-medium">
-          {Math.abs(growth)}% vs mês anterior
-        </span>
-      </div>
-    );
+export function EnhancedStatsCards({ stats }: EnhancedStatsCardsProps) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
+  const formatPercentage = (value: number) => {
+    return `${value > 0 ? '+' : ''}${value}%`;
+  };
+
+  // Calcular taxa de conclusão
+  const totalExecutionProcesses = (stats.executionStats?.notStarted || 0) + 
+                                 (stats.executionStats?.inProgress || 0) + 
+                                 (stats.executionStats?.completed || 0);
+  
+  const completionRate = totalExecutionProcesses > 0 
+    ? Math.round(((stats.executionStats?.completed || 0) / totalExecutionProcesses) * 100)
+    : 0;
+
+  const inProgressRate = totalExecutionProcesses > 0 
+    ? Math.round(((stats.executionStats?.inProgress || 0) / totalExecutionProcesses) * 100)
+    : 0;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {cards.map((card, index) => (
-        <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {card.title}
-                </p>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">
-                    {typeof card.value === 'number' && card.title !== "Valor Total Repassado" 
-                      ? card.value.toLocaleString('pt-BR')
-                      : card.value
-                    }
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {card.subtitle}
-                  </p>
-                </div>
-                {card.growth !== undefined && renderGrowthIndicator(card.growth)}
-              </div>
-              <div className={`p-3 rounded-full ${card.bgColor}`}>
-                <card.icon className={`h-6 w-6 ${card.color}`} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Total de Processos
+          </CardTitle>
+          <FileText className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.totalProcesses.toLocaleString('pt-BR')}</div>
+          {stats.monthlyGrowth && (
+            <p className="text-xs text-muted-foreground">
+              <span className={stats.monthlyGrowth.processes >= 0 ? "text-green-600" : "text-red-600"}>
+                {formatPercentage(stats.monthlyGrowth.processes)}
+              </span>
+              {" "}em relação ao mês anterior
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Valor Total
+          </CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
+          {stats.monthlyGrowth && (
+            <p className="text-xs text-muted-foreground">
+              <span className={stats.monthlyGrowth.value >= 0 ? "text-green-600" : "text-red-600"}>
+                {formatPercentage(stats.monthlyGrowth.value)}
+              </span>
+              {" "}em relação ao mês anterior
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Taxa de Conclusão
+          </CardTitle>
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{completionRate}%</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.executionStats?.completed || 0} de {totalExecutionProcesses} processos
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Em Execução
+          </CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{inProgressRate}%</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.executionStats?.inProgress || 0} processos em andamento
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -82,7 +82,11 @@ export function Dashboard() {
           *,
           municipalities (name),
           regional_nuclei (name, acronym),
-          status_processos (nome, cor)
+          status_processos (nome, cor),
+          process_parcels (
+            value,
+            payment_date
+          )
         `);
 
       if (filters.year) {
@@ -132,12 +136,21 @@ export function Dashboard() {
         value: data.value
       }));
 
+      // Calcular estatísticas de execução baseadas nos status
+      // Assumindo que alguns status representam diferentes estados de execução
+      const executionStats = {
+        notStarted: statusDistribution?.['Em Análise'] || 0,
+        inProgress: (statusDistribution?.['Em Execução'] || 0) + (statusDistribution?.['Aprovados'] || 0),
+        completed: statusDistribution?.['Finalizados'] || 0,
+      };
+
       return {
         statusData,
         regionalData,
         totalValue: data?.reduce((sum, p) => sum + (p.total_portaria_value || 0), 0) || 0,
         totalProcesses,
-        processes: data || []
+        processes: data || [],
+        executionStats
       };
     },
     enabled: Object.values(filters).some(v => v !== "" && v !== null)
@@ -236,7 +249,8 @@ export function Dashboard() {
         monthlyGrowth: {
           processes: 12,
           value: 8
-        }
+        },
+        executionStats: stats?.executionStats
       }} />
 
       {/* Enhanced Charts */}
@@ -250,6 +264,47 @@ export function Dashboard() {
         processes={displayStats?.processes || []}
         regionalData={displayStats?.regionalData || []}
       />
+
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ProcessChart />
+        </div>
+        <div className="lg:col-span-1">
+          <StatusDistribution />
+        </div>
+      </div>
+
+      <ProcessInsights />
+
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <RegionChart 
+          regionalData={displayStats?.regionalData || stats?.regionalData || []} 
+          processes={displayStats?.processes || stats?.processes || []}
+        />
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Sobre o Sistema</h3>
+            <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold">SC</span>
+            </div>
+          </div>
+          <div className="space-y-3 text-sm text-gray-700">
+            <p>
+              O Transfer Radar é o sistema oficial de monitoramento das transferências 
+              financeiras do Estado de Santa Catarina para os municípios.
+            </p>
+            <p>
+              Desenvolvido pela GEINFRA/SETUR, oferece transparência e controle 
+              sobre os recursos públicos investidos em infraestrutura municipal.
+            </p>
+            <div className="pt-3 border-t border-blue-200">
+              <p className="text-xs text-blue-600 font-medium">
+                Portal desenvolvido pela GEINFRA/SETUR - Governo do Estado de SC
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Processes */}
