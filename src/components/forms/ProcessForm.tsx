@@ -65,8 +65,10 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       latitude: initialData.latitude || 0,
       longitude: initialData.longitude || 0,
       link_plataforma_governo: initialData.link_plataforma_governo || '',
-      parcelas: initialData.parcelas || [{ valor: 0 }],
-    } : {},
+      parcelas: [{ valor: 0 }],
+    } : {
+      parcelas: [{ valor: 0 }],
+    },
   });
 
   // Campos dinâmicos para parcelas
@@ -181,7 +183,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     }
 
     // Se não existe, cria um novo status
-    const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem)) + 1 : 1;
+    const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem || 0)) + 1 : 1;
     const { data: newStatus, error } = await supabase
       .from('status_processos')
       .insert([{
@@ -223,8 +225,9 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         latitude: data.latitude || null,
         longitude: data.longitude || null,
         link_plataforma_governo: data.link_plataforma_governo || null,
-        parcelas: data.parcelas.map(p => ({ valor: p.valor })),
       };
+
+      let processId: number;
 
       if (isEdit && initialData?.id) {
         const { error } = await supabase
@@ -233,31 +236,58 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
           .eq('id', initialData.id);
 
         if (error) throw error;
+        processId = initialData.id;
         
-        toast({
-          title: 'Processo atualizado com sucesso',
-          description: 'As informações do processo foram atualizadas.',
-        });
+        // Primeiro remove todas as parcelas existentes
+        await supabase
+          .from('process_parcels')
+          .delete()
+          .eq('process_id', processId);
       } else {
-        const { error } = await supabase
+        const { data: newProcess, error } = await supabase
           .from('processes')
-          .insert([processData]);
+          .insert([processData])
+          .select('id')
+          .single();
 
         if (error) throw error;
-        
-        toast({
-          title: 'Processo criado com sucesso',
-          description: 'O novo processo foi adicionado ao sistema.',
-        });
+        processId = newProcess.id;
       }
+
+      // Agora insere as novas parcelas
+      if (data.parcelas && data.parcelas.length > 0) {
+        const parcelasToInsert = data.parcelas
+          .filter(p => p.valor > 0)
+          .map((parcela, index) => ({
+            process_id: processId,
+            parcel_number: index + 1,
+            value: parcela.valor,
+            payment_date: null,
+          }));
+
+        if (parcelasToInsert.length > 0) {
+          const { error: parcelError } = await supabase
+            .from('process_parcels')
+            .insert(parcelasToInsert);
+
+          if (parcelError) throw parcelError;
+        }
+      }
+
+      toast({
+        title: isEdit ? 'Processo atualizado com sucesso' : 'Processo criado com sucesso',
+        description: isEdit ? 'As informações do processo foram atualizadas.' : 'O novo processo foi adicionado ao sistema.',
+      });
 
       onSuccess();
     } catch (error: any) {
+      console.error('Erro ao salvar processo:', error);
       toast({
         title: 'Erro ao salvar processo',
         description: 'Ocorreu um erro ao salvar o processo. Tente novamente mais tarde.',
         variant: 'destructive',
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -485,7 +515,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             </div>
 
             <div className="space-y-2">
-              <Label>Parcelas</Label>
+              <Label>Parcelas do Processo</Label>
               <div className="space-y-2">
                 {parcelas.map((item, idx) => (
                   <div key={item.id} className="flex gap-2 items-center">
@@ -493,15 +523,30 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                       type="number"
                       step="0.01"
                       min={0}
-                      {...register(`parcelas.${idx}.valor`, { required: 'Obrigatório', min: 0 })}
-                      placeholder={`Valor da parcela #${idx + 1}`}
-                      className="w-40"
+                      {...register(`parcelas.${idx}.valor`, { required: 'Valor obrigatório', min: 0.01 })}
+                      placeholder={`Valor da parcela ${idx + 1}`}
+                      className="flex-1"
                     />
-                    <Button type="button" variant="ghost" onClick={() => remove(idx)} title="Remover">✕</Button>
+                    {parcelas.length > 1 && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => remove(idx)} 
+                        title="Remover parcela"
+                      >
+                        ✕
+                      </Button>
+                    )}
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={() => append({ valor: 0 })}>
-                  Adicionar Parcela
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => append({ valor: 0 })}
+                  className="w-full"
+                >
+                  + Adicionar Parcela
                 </Button>
               </div>
             </div>
