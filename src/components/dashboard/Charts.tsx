@@ -88,6 +88,55 @@ export function RegionChart({ regionalData = [] }: { regionalData?: Array<{ regi
 
   const chartData = regionalData.map(r => ({ name: r.region, count: r.count, value: r.value }));
 
+  const renderChart = () => {
+    if (chartType === 'bar') {
+      return (
+        <BarChart data={chartData} layout="horizontal">
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" dataKey={metric} />
+          <YAxis dataKey="name" type="category" width={100} />
+          <Tooltip />
+          <Bar dataKey={metric} fill="#10b981" radius={[0, 4, 4, 0]} />
+        </BarChart>
+      );
+    }
+    
+    if (chartType === 'line') {
+      return (
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey={metric} stroke="#3b82f6" strokeWidth={2} />
+        </LineChart>
+      );
+    }
+    
+    if (chartType === 'pie') {
+      return (
+        <PieChart>
+          <Pie
+            data={chartData}
+            dataKey={metric}
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={80}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          >
+            {chartData.map((entry, idx) => (
+              <Cell key={`cell-${idx}`} fill={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"][idx % 5]} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <Card className="col-span-2">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -106,42 +155,7 @@ export function RegionChart({ regionalData = [] }: { regionalData?: Array<{ regi
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>
-          {chartType === 'bar' && (
-            <BarChart data={chartData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey={metric} />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip />
-              <Bar dataKey={metric} fill="#10b981" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          )}
-          {chartType === 'line' && (
-            <BarChart data={chartData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey={metric} />
-              <YAxis dataKey="name" type="category" width={100} />
-              <Tooltip />
-              <Bar dataKey={metric} fill="#3b82f6" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          )}
-          {chartType === 'pie' && (
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey={metric}
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {chartData.map((entry, idx) => (
-                  <Cell key={`cell-${idx}`} fill={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"][idx % 5]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          )}
+          {renderChart()}
         </ResponsiveContainer>
       </CardContent>
     </Card>
