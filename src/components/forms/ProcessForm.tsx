@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +26,7 @@ interface ProcessFormData {
   latitude?: number;
   longitude?: number;
   link_plataforma_governo?: string;
+  parcelas: { valor: number }[];
 }
 
 interface ProcessFormProps {
@@ -47,7 +48,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
   const { toast } = useToast();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<ProcessFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<ProcessFormData>({
     defaultValues: initialData ? {
       process_number: initialData.process_number || '',
       object: initialData.object || '',
@@ -64,7 +65,14 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       latitude: initialData.latitude || 0,
       longitude: initialData.longitude || 0,
       link_plataforma_governo: initialData.link_plataforma_governo || '',
+      parcelas: initialData.parcelas || [{ valor: 0 }],
     } : {},
+  });
+
+  // Campos dinâmicos para parcelas
+  const { fields: parcelas, append, remove } = useFieldArray({
+    control,
+    name: 'parcelas',
   });
 
   // Preencher latitude/longitude ao selecionar município
@@ -215,6 +223,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         latitude: data.latitude || null,
         longitude: data.longitude || null,
         link_plataforma_governo: data.link_plataforma_governo || null,
+        parcelas: data.parcelas.map(p => ({ valor: p.valor })),
       };
 
       if (isEdit && initialData?.id) {
@@ -473,6 +482,28 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               {errors.link_plataforma_governo && (
                 <p className="text-sm text-red-600">{errors.link_plataforma_governo.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parcelas</Label>
+              <div className="space-y-2">
+                {parcelas.map((item, idx) => (
+                  <div key={item.id} className="flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      {...register(`parcelas.${idx}.valor`, { required: 'Obrigatório', min: 0 })}
+                      placeholder={`Valor da parcela #${idx + 1}`}
+                      className="w-40"
+                    />
+                    <Button type="button" variant="ghost" onClick={() => remove(idx)} title="Remover">✕</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" onClick={() => append({ valor: 0 })}>
+                  Adicionar Parcela
+                </Button>
+              </div>
             </div>
           </div>
         </form>
