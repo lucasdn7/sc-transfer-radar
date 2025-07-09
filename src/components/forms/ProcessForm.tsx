@@ -109,94 +109,111 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   };
 
   const findOrCreateMunicipality = async (municipalityName: string) => {
-    // Primeiro, tenta encontrar o município existente
-    const { data: existingMunicipality } = await supabase
-      .from('municipalities')
-      .select('id')
-      .ilike('name', municipalityName)
-      .single();
+    try {
+      // Primeiro, tenta encontrar o município existente
+      const { data: existingMunicipality } = await supabase
+        .from('municipalities')
+        .select('id')
+        .ilike('name', municipalityName)
+        .single();
 
-    if (existingMunicipality) {
-      return existingMunicipality.id;
+      if (existingMunicipality) {
+        return existingMunicipality.id;
+      }
+
+      // Se não existe, cria um novo município
+      const { data: newMunicipality, error } = await supabase
+        .from('municipalities')
+        .insert([{
+          name: municipalityName,
+          cnpj: `TEMP-${Date.now()}`, // CNPJ temporário
+        }])
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return newMunicipality.id;
+    } catch (error) {
+      console.error('Erro ao encontrar/criar município:', error);
+      throw error;
     }
-
-    // Se não existe, cria um novo município
-    const { data: newMunicipality, error } = await supabase
-      .from('municipalities')
-      .insert([{
-        name: municipalityName,
-        cnpj: `TEMP-${Date.now()}`, // CNPJ temporário
-      }])
-      .select('id')
-      .single();
-
-    if (error) throw error;
-    return newMunicipality.id;
   };
 
   const findOrCreateRegionalNucleus = async (nucleusName: string) => {
     if (!nucleusName) return null;
 
-    // Primeiro, tenta encontrar o núcleo existente
-    const { data: existingNucleus } = await supabase
-      .from('regional_nuclei')
-      .select('id')
-      .ilike('name', nucleusName)
-      .single();
+    try {
+      // Primeiro, tenta encontrar o núcleo existente
+      const { data: existingNucleus } = await supabase
+        .from('regional_nuclei')
+        .select('id')
+        .ilike('name', nucleusName)
+        .single();
 
-    if (existingNucleus) {
-      return existingNucleus.id;
+      if (existingNucleus) {
+        return existingNucleus.id;
+      }
+
+      // Se não existe, cria um novo núcleo
+      const acronym = nucleusName.substring(0, 5).toUpperCase().replace(/\s/g, '');
+      const { data: newNucleus, error } = await supabase
+        .from('regional_nuclei')
+        .insert([{
+          name: nucleusName,
+          acronym: acronym,
+        }])
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return newNucleus.id;
+    } catch (error) {
+      console.error('Erro ao encontrar/criar núcleo regional:', error);
+      throw error;
     }
-
-    // Se não existe, cria um novo núcleo
-    const acronym = nucleusName.substring(0, 5).toUpperCase().replace(/\s/g, '');
-    const { data: newNucleus, error } = await supabase
-      .from('regional_nuclei')
-      .insert([{
-        name: nucleusName,
-        acronym: acronym,
-      }])
-      .select('id')
-      .single();
-
-    if (error) throw error;
-    return newNucleus.id;
   };
 
   const findOrCreateStatus = async (statusName: string) => {
-    // Primeiro, tenta encontrar o status existente
-    const { data: existingStatus } = await supabase
-      .from('status_processos')
-      .select('id')
-      .ilike('nome', statusName)
-      .single();
+    try {
+      // Primeiro, tenta encontrar o status existente
+      const { data: existingStatus } = await supabase
+        .from('status_processos')
+        .select('id')
+        .ilike('nome', statusName)
+        .single();
 
-    if (existingStatus) {
-      return existingStatus.id;
+      if (existingStatus) {
+        return existingStatus.id;
+      }
+
+      // Se não existe, cria um novo status
+      const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem || 0)) + 1 : 1;
+      const { data: newStatus, error } = await supabase
+        .from('status_processos')
+        .insert([{
+          nome: statusName,
+          descricao: `Status criado automaticamente: ${statusName}`,
+          ordem: nextOrder,
+          ativo: true,
+          cor: '#6b7280'
+        }])
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return newStatus.id;
+    } catch (error) {
+      console.error('Erro ao encontrar/criar status:', error);
+      throw error;
     }
-
-    // Se não existe, cria um novo status
-    const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem || 0)) + 1 : 1;
-    const { data: newStatus, error } = await supabase
-      .from('status_processos')
-      .insert([{
-        nome: statusName,
-        descricao: `Status criado automaticamente: ${statusName}`,
-        ordem: nextOrder,
-        ativo: true,
-        cor: '#6b7280'
-      }])
-      .select('id')
-      .single();
-
-    if (error) throw error;
-    return newStatus.id;
   };
 
   const onSubmit = async (data: ProcessFormData) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Iniciando salvamento do processo:', data);
+      
       const municipalityId = await findOrCreateMunicipality(data.municipality_name);
       const regionalNucleusId = data.regional_nucleus_name ? 
         await findOrCreateRegionalNucleus(data.regional_nucleus_name) : null;
@@ -220,31 +237,48 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         link_plataforma_governo: data.link_plataforma_governo || null,
       };
 
+      console.log('Dados do processo preparados:', processData);
+
       let processId: number;
 
       if (isEdit && initialData?.id) {
+        console.log('Atualizando processo existente:', initialData.id);
         const { error } = await supabase
           .from('processes')
           .update(processData)
           .eq('id', initialData.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao atualizar processo:', error);
+          throw error;
+        }
         processId = initialData.id;
         
         // Primeiro remove todas as parcelas existentes
-        await supabase
+        console.log('Removendo parcelas existentes do processo:', processId);
+        const { error: deleteError } = await supabase
           .from('process_parcels')
           .delete()
           .eq('process_id', processId);
+
+        if (deleteError) {
+          console.error('Erro ao remover parcelas existentes:', deleteError);
+          throw deleteError;
+        }
       } else {
+        console.log('Criando novo processo');
         const { data: newProcess, error } = await supabase
           .from('processes')
           .insert([processData])
           .select('id')
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao criar processo:', error);
+          throw error;
+        }
         processId = newProcess.id;
+        console.log('Processo criado com ID:', processId);
       }
 
       // Agora insere as novas parcelas
@@ -258,12 +292,18 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
             payment_date: null,
           }));
 
+        console.log('Inserindo parcelas:', parcelasToInsert);
+
         if (parcelasToInsert.length > 0) {
           const { error: parcelError } = await supabase
             .from('process_parcels')
             .insert(parcelasToInsert);
 
-          if (parcelError) throw parcelError;
+          if (parcelError) {
+            console.error('Erro ao inserir parcelas:', parcelError);
+            throw parcelError;
+          }
+          console.log('Parcelas inseridas com sucesso');
         }
       }
 
@@ -277,7 +317,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       console.error('Erro ao salvar processo:', error);
       toast({
         title: 'Erro ao salvar processo',
-        description: 'Ocorreu um erro ao salvar o processo. Tente novamente mais tarde.',
+        description: error.message || 'Ocorreu um erro ao salvar o processo. Tente novamente mais tarde.',
         variant: 'destructive',
       });
     } finally {
