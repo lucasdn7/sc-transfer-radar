@@ -21,6 +21,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { EnhancedStatsCards } from "@/components/dashboard/EnhancedStatsCards";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { EnhancedCharts } from "@/components/dashboard/EnhancedCharts";
+import { CustomizableDashboardCharts } from "@/components/dashboard/CustomizableDashboardCharts";
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -135,7 +136,8 @@ export function Dashboard() {
         statusData,
         regionalData,
         totalValue: data?.reduce((sum, p) => sum + (p.total_portaria_value || 0), 0) || 0,
-        totalProcesses
+        totalProcesses,
+        processes: data || []
       };
     },
     enabled: Object.values(filters).some(v => v !== "" && v !== null)
@@ -241,6 +243,12 @@ export function Dashboard() {
       <EnhancedCharts
         statusData={displayStats?.statusData || stats?.statusData || []}
         regionalData={displayStats?.regionalData || stats?.regionalData || []}
+      />
+
+      {/* Gráficos Personalizáveis */}
+      <CustomizableDashboardCharts
+        processes={displayStats?.processes || []}
+        regionalData={displayStats?.regionalData || []}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
