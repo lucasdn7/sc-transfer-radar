@@ -347,19 +347,20 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               {isSubmitting ? 'Salvando...' : (isEdit ? 'Atualizar' : 'Criar Processo')}
             </Button>
           </div>
-          <div className="max-h-[60vh] overflow-y-auto pr-2 pb-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="process_number">Número do Processo *</Label>
-                <Input
-                  id="process_number"
-                  {...register('process_number', { required: 'Campo obrigatório' })}
-                  placeholder="Ex: 2024/001"
-                />
-                {errors.process_number && (
-                  <p className="text-sm text-red-600">{errors.process_number.message}</p>
-                )}
-              </div>
+          <div className="max-h-[80vh] overflow-y-auto pr-2">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="process_number">Número do Processo *</Label>
+                  <Input
+                    id="process_number"
+                    {...register('process_number', { required: 'Campo obrigatório' })}
+                    placeholder="Ex: 2024/001"
+                  />
+                  {errors.process_number && (
+                    <p className="text-sm text-red-600">{errors.process_number.message}</p>
+                  )}
+                </div>
 
               <div className="space-y-2">
                 <Label htmlFor="portaria_number">Número da Portaria</Label>
@@ -552,17 +553,17 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               )}
             </div>
 
+            {/* Seção de gestão de parcelas */}
+            <div className="mt-6">
+              <ParcelManager
+                processId={initialData?.id}
+                onParcelChange={handleParcelChange}
+                isEdit={isEdit}
+              />
+            </div>
+            </div>
           </div>
         </form>
-        
-        {/* Seção de gestão de parcelas */}
-        <div className="mt-6">
-          <ParcelManager
-            processId={initialData?.id}
-            onParcelChange={handleParcelChange}
-            isEdit={isEdit}
-          />
-        </div>
       </CardContent>
     </Card>
   );

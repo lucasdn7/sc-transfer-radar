@@ -32,6 +32,9 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
   useEffect(() => {
     if (processId && isEdit) {
       loadParcels();
+    } else if (!isEdit && initialParcels.length === 0) {
+      // Se não está editando e não tem parcelas iniciais, criar uma parcela padrão
+      addParcel();
     }
   }, [processId, isEdit]);
 
@@ -210,7 +213,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
         </div>
 
         {/* Lista de Parcelas */}
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-60 overflow-y-auto">
           {parcels.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>Nenhuma parcela cadastrada</p>
@@ -223,69 +226,71 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
               </Button>
             </div>
           ) : (
-            parcels.map((parcel, index) => (
-              <div 
-                key={`parcel-${index}`} 
-                className="flex items-center gap-3 p-3 border rounded-lg bg-white"
-              >
-                {/* Checkbox para marcar como pago */}
-                <div className="flex items-center">
-                  <Checkbox
-                    checked={!!parcel.payment_date}
-                    onCheckedChange={(checked) => updatePaymentStatus(index, !!checked)}
-                    className="mr-2"
-                  />
-                  <Label className="text-sm font-medium">
-                    Parcela {parcel.parcel_number}
-                  </Label>
-                </div>
+            <div className="space-y-3">
+              {parcels.map((parcel, index) => (
+                <div 
+                  key={`parcel-${parcel.id || index}`} 
+                  className="flex items-center gap-3 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {/* Checkbox para marcar como pago - SEMPRE VISÍVEL */}
+                  <div className="flex items-center min-w-[120px]">
+                    <Checkbox
+                      checked={!!parcel.payment_date}
+                      onCheckedChange={(checked) => updatePaymentStatus(index, !!checked)}
+                      className="mr-3"
+                    />
+                    <Label className="text-sm font-medium cursor-pointer">
+                      Parcela {parcel.parcel_number}
+                    </Label>
+                  </div>
 
-                {/* Valor da parcela */}
-                <div className="flex-1">
-                  <Label htmlFor={`value-${index}`} className="sr-only">
-                    Valor da parcela {parcel.parcel_number}
-                  </Label>
-                  <Input
-                    id={`value-${index}`}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={parcel.value}
-                    onChange={(e) => updateParcelValue(index, Number(e.target.value))}
-                    placeholder="Valor da parcela"
-                    className="text-center font-medium"
-                  />
-                </div>
-
-                {/* Campo de data (só aparece quando marcado como pago) */}
-                {parcel.payment_date && (
-                  <div className="w-40">
-                    <Label htmlFor={`date-${index}`} className="sr-only">
-                      Data de pagamento da parcela {parcel.parcel_number}
+                  {/* Valor da parcela */}
+                  <div className="flex-1 min-w-[200px]">
+                    <Label htmlFor={`value-${index}`} className="sr-only">
+                      Valor da parcela {parcel.parcel_number}
                     </Label>
                     <Input
-                      id={`date-${index}`}
-                      type="date"
-                      value={parcel.payment_date}
-                      onChange={(e) => updateParcel(index, 'payment_date', e.target.value)}
-                      className="text-sm"
+                      id={`value-${index}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={parcel.value || ''}
+                      onChange={(e) => updateParcelValue(index, Number(e.target.value) || 0)}
+                      placeholder="Valor da parcela"
+                      className="text-center font-medium"
                     />
                   </div>
-                )}
 
-                {/* Botão de remover */}
-                {parcels.length > 1 && (
+                  {/* Campo de data (só aparece quando marcado como pago) */}
+                  {parcel.payment_date && (
+                    <div className="w-40 flex-shrink-0">
+                      <Label htmlFor={`date-${index}`} className="sr-only">
+                        Data de pagamento da parcela {parcel.parcel_number}
+                      </Label>
+                      <Input
+                        id={`date-${index}`}
+                        type="date"
+                        value={parcel.payment_date}
+                        onChange={(e) => updateParcel(index, 'payment_date', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Botão de remover - sempre visível, mas desabilitado se só há uma parcela */}
                   <Button
                     onClick={() => removeParcel(index)}
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-700"
+                    disabled={parcels.length <= 1}
+                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                    title={parcels.length <= 1 ? "Não é possível remover a única parcela" : "Remover parcela"}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
-              </div>
-            ))
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </CardContent>

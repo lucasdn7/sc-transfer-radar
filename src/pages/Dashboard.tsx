@@ -4,6 +4,7 @@ import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { ProcessChart, RegionChart } from "@/components/dashboard/Charts";
 import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
+import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -23,6 +24,9 @@ export default function Dashboard() {
       </div>
 
       <OptimizedStatsCards />
+
+      {/* Barra de Progressão das Transferências */}
+      <TransferProgressBar />
 
       {/* Seletor de Métricas */}
       <DashboardMetricsSelector
