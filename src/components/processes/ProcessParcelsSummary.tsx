@@ -1,6 +1,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ParcelProgressBar } from "./ParcelProgressBar";
+import { calculateParcelsSummary, formatCurrencyBR } from "@/utils/parcelUtils";
 
 interface ProcessParcelsSummaryProps {
   processId: number;
@@ -34,26 +36,8 @@ export function ProcessParcelsSummary({ processId, className = "" }: ProcessParc
       
       if (error) throw error;
 
-      if (!data || data.length === 0) {
-        setSummary(null);
-        return;
-      }
-
-      const totalValue = data.reduce((sum, parcel) => sum + parcel.value, 0);
-      const paidParcels = data.filter(parcel => parcel.payment_date);
-      const paidValue = paidParcels.reduce((sum, parcel) => sum + parcel.value, 0);
-      const remainingValue = totalValue - paidValue;
-      const progressPercentage = totalValue > 0 ? (paidValue / totalValue) * 100 : 0;
-
-      setSummary({
-        totalValue,
-        paidValue,
-        remainingValue,
-        totalParcels: data.length,
-        paidParcels: paidParcels.length,
-        progressText: `${paidParcels.length}/${data.length}`,
-        progressPercentage
-      });
+      const calculatedSummary = calculateParcelsSummary(data || []);
+      setSummary(calculatedSummary);
     } catch (error) {
       console.error('Erro ao buscar resumo das parcelas:', error);
       setSummary(null);
@@ -84,14 +68,14 @@ export function ProcessParcelsSummary({ processId, className = "" }: ProcessParc
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-600">Saldo a repassar:</span>
         <span className="font-medium text-orange-600">
-          R$ {summary.remainingValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrencyBR(summary.remainingValue)}
         </span>
       </div>
       
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-600">Valor repassado:</span>
         <span className="font-medium text-green-600">
-          R$ {summary.paidValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrencyBR(summary.paidValue)}
         </span>
       </div>
       
@@ -102,17 +86,7 @@ export function ProcessParcelsSummary({ processId, className = "" }: ProcessParc
         </span>
       </div>
 
-      {/* Barra de progresso compacta */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div 
-          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-          style={{ width: `${summary.progressPercentage}%` }}
-        ></div>
-      </div>
-      
-      <div className="text-xs text-gray-500 text-center">
-        {Math.round(summary.progressPercentage)}% concluído
-      </div>
+      <ParcelProgressBar progressPercentage={summary.progressPercentage} />
     </div>
   );
 }
