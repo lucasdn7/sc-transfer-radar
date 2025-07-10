@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
+import { ProcessDetailModal } from '@/components/calendar/ProcessDetailModal';
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -24,6 +25,8 @@ import {
 
 export default function ProcessCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedProcess, setSelectedProcess] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const { data: processes, isLoading, error } = useQuery({
     queryKey: ['process-calendar', currentDate.getFullYear(), currentDate.getMonth()],
@@ -112,6 +115,11 @@ export default function ProcessCalendar() {
     const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(process.process_number)}&dates=${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(process.object)}&location=${encodeURIComponent(process.municipalities?.name || '')}`;
     
     window.open(googleUrl, '_blank');
+  };
+
+  const handleProcessClick = (process: any) => {
+    setSelectedProcess(process);
+    setIsModalOpen(true);
   };
 
   const monthNames = [
@@ -270,42 +278,18 @@ export default function ProcessCalendar() {
                     
                     <div className="space-y-1">
                       {dayProcesses.map(process => (
-                        <Tooltip key={process.id}>
-                          <TooltipTrigger asChild>
-                            <div 
-                              className={`text-xs p-1 rounded cursor-pointer transition-colors ${getStatusColor(process.status_processos?.nome || '')} text-white hover:opacity-80`}
-                            >
-                              <div className="font-medium truncate">
-                                {process.process_number}
-                              </div>
-                              <div className="truncate opacity-90">
-                                {process.municipalities?.name || 'N/A'}
-                              </div>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="space-y-2">
-                              <div className="font-medium">{process.process_number}</div>
-                              <div className="text-sm">{process.municipalities?.name || 'N/A'}</div>
-                              <div className="text-sm font-medium text-green-600">
-                                {formatCurrency(process.total_portaria_value)}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                Status: {process.status_processos?.nome || 'Não definido'}
-                              </div>
-                              <div className="flex gap-1 mt-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => addToGoogleCalendar(process)}
-                                >
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  Agenda
-                                </Button>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
+                        <div 
+                          key={process.id}
+                          className={`text-xs p-1 rounded cursor-pointer transition-colors ${getStatusColor(process.status_processos?.nome || '')} text-white hover:opacity-80`}
+                          onClick={() => handleProcessClick(process)}
+                        >
+                          <div className="font-medium truncate">
+                            {process.process_number}
+                          </div>
+                          <div className="truncate opacity-90">
+                            {process.municipalities?.name || 'N/A'}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -323,7 +307,11 @@ export default function ProcessCalendar() {
             <CardContent>
               <div className="space-y-4">
                 {processes.map(process => (
-                  <div key={process.id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50">
+                  <div 
+                    key={process.id} 
+                    className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleProcessClick(process)}
+                  >
                     <div className="space-y-1">
                       <div className="font-medium">{process.process_number}</div>
                       <div className="text-sm text-gray-600 flex items-center gap-2">
@@ -348,7 +336,10 @@ export default function ProcessCalendar() {
                         size="sm" 
                         variant="outline" 
                         className="mt-2"
-                        onClick={() => addToGoogleCalendar(process)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToGoogleCalendar(process);
+                        }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         Google Calendar
@@ -360,6 +351,12 @@ export default function ProcessCalendar() {
             </CardContent>
           </Card>
         )}
+
+        <ProcessDetailModal 
+          process={selectedProcess}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
       </div>
     </TooltipProvider>
   );

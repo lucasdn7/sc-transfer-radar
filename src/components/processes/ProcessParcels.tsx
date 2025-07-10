@@ -248,7 +248,7 @@ export function ProcessParcels({ processId }: { processId: number }) {
           {parcels.map(parcel => (
             <div 
               key={parcel.id} 
-              className={`flex items-center gap-4 border rounded-lg p-3 transition-colors ${
+              className={`flex items-center gap-4 border rounded-lg p-4 transition-colors ${
                 parcel.payment_date ? 'bg-green-50 border-green-200' : 'bg-white'
               }`}
             >
@@ -303,7 +303,7 @@ export function ProcessParcels({ processId }: { processId: number }) {
               </div>
               
               {parcel.payment_date && (
-                <div className="space-y-1">
+                <div className="flex flex-col space-y-1">
                   <Label htmlFor={`date-${parcel.id}`} className="text-xs text-gray-600">
                     Data de Pagamento
                   </Label>
