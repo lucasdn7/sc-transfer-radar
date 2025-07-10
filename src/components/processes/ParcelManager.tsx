@@ -32,9 +32,14 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
   useEffect(() => {
     if (processId && isEdit) {
       loadParcels();
-    } else if (!isEdit && initialParcels.length === 0) {
-      // Se não está editando e não tem parcelas iniciais, criar uma parcela padrão
-      addParcel();
+    } else if (!isEdit && parcels.length === 0) {
+      // Se não está editando e não tem parcelas, criar uma parcela padrão
+      const defaultParcel: Parcel = {
+        parcel_number: 1,
+        value: 0,
+        payment_date: null,
+      };
+      setParcels([defaultParcel]);
     }
   }, [processId, isEdit]);
 
@@ -57,7 +62,20 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
 
       if (error) throw error;
       
-      setParcels(data || []);
+      const loadedParcels = data || [];
+      
+      // Se não há parcelas carregadas, criar uma parcela padrão
+      if (loadedParcels.length === 0) {
+        const defaultParcel: Parcel = {
+          parcel_number: 1,
+          value: 0,
+          payment_date: null,
+          process_id: processId,
+        };
+        setParcels([defaultParcel]);
+      } else {
+        setParcels(loadedParcels);
+      }
     } catch (error) {
       console.error('Erro ao carregar parcelas:', error);
       toast({
@@ -65,6 +83,14 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
         description: "Não foi possível carregar as parcelas do processo.",
         variant: "destructive",
       });
+      // Em caso de erro, criar uma parcela padrão
+      const defaultParcel: Parcel = {
+        parcel_number: 1,
+        value: 0,
+        payment_date: null,
+        process_id: processId,
+      };
+      setParcels([defaultParcel]);
     } finally {
       setLoading(false);
     }
@@ -82,6 +108,16 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
 
   const removeParcel = (index: number) => {
     setParcels(prev => {
+      // Não permitir remoção se há apenas uma parcela
+      if (prev.length <= 1) {
+        toast({
+          title: "Não é possível remover",
+          description: "É necessário ter pelo menos uma parcela.",
+          variant: "destructive",
+        });
+        return prev;
+      }
+      
       const newParcels = prev.filter((_, i) => i !== index);
       // Reajustar números das parcelas
       return newParcels.map((parcel, i) => ({
@@ -212,8 +248,8 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
           </div>
         </div>
 
-        {/* Lista de Parcelas */}
-        <div className="space-y-3 max-h-60 overflow-y-auto">
+        {/* Lista de Parcelas - SEM altura fixa para permitir scroll completo */}
+        <div className="space-y-3">
           {parcels.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>Nenhuma parcela cadastrada</p>
@@ -230,10 +266,10 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
               {parcels.map((parcel, index) => (
                 <div 
                   key={`parcel-${parcel.id || index}`} 
-                  className="flex items-center gap-3 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* Checkbox para marcar como pago - SEMPRE VISÍVEL */}
-                  <div className="flex items-center min-w-[120px]">
+                  {/* Linha 1: Checkbox e Label */}
+                  <div className="flex items-center min-w-[140px] w-full sm:w-auto">
                     <Checkbox
                       checked={!!parcel.payment_date}
                       onCheckedChange={(checked) => updatePaymentStatus(index, !!checked)}
@@ -244,9 +280,9 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
                     </Label>
                   </div>
 
-                  {/* Valor da parcela */}
-                  <div className="flex-1 min-w-[200px]">
-                    <Label htmlFor={`value-${index}`} className="sr-only">
+                  {/* Linha 2: Valor da parcela */}
+                  <div className="flex-1 w-full sm:min-w-[200px]">
+                    <Label htmlFor={`value-${index}`} className="text-xs text-gray-500 block sm:sr-only mb-1">
                       Valor da parcela {parcel.parcel_number}
                     </Label>
                     <Input
@@ -257,14 +293,14 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
                       value={parcel.value || ''}
                       onChange={(e) => updateParcelValue(index, Number(e.target.value) || 0)}
                       placeholder="Valor da parcela"
-                      className="text-center font-medium"
+                      className="text-center font-medium w-full"
                     />
                   </div>
 
-                  {/* Campo de data (só aparece quando marcado como pago) */}
+                  {/* Linha 3: Campo de data (SEMPRE visível quando marcado como pago) */}
                   {parcel.payment_date && (
-                    <div className="w-40 flex-shrink-0">
-                      <Label htmlFor={`date-${index}`} className="sr-only">
+                    <div className="w-full sm:w-40 flex-shrink-0">
+                      <Label htmlFor={`date-${index}`} className="text-xs text-gray-500 block sm:sr-only mb-1">
                         Data de pagamento da parcela {parcel.parcel_number}
                       </Label>
                       <Input
@@ -272,22 +308,24 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
                         type="date"
                         value={parcel.payment_date}
                         onChange={(e) => updateParcel(index, 'payment_date', e.target.value)}
-                        className="text-sm"
+                        className="text-sm w-full"
                       />
                     </div>
                   )}
 
-                  {/* Botão de remover - sempre visível, mas desabilitado se só há uma parcela */}
-                  <Button
-                    onClick={() => removeParcel(index)}
-                    variant="outline"
-                    size="sm"
-                    disabled={parcels.length <= 1}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                    title={parcels.length <= 1 ? "Não é possível remover a única parcela" : "Remover parcela"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* Linha 4: Botão de remover - sempre visível, mas desabilitado se só há uma parcela */}
+                  <div className="w-full sm:w-auto flex justify-end">
+                    <Button
+                      onClick={() => removeParcel(index)}
+                      variant="outline"
+                      size="sm"
+                      disabled={parcels.length <= 1}
+                      className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={parcels.length <= 1 ? "Não é possível remover a única parcela" : "Remover parcela"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
