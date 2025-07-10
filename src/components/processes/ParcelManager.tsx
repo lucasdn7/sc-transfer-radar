@@ -1,0 +1,294 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/utils/processUtils";
+import { Plus, Trash2 } from "lucide-react";
+
+interface Parcel {
+  id?: number;
+  parcel_number: number;
+  value: number;
+  payment_date: string | null;
+  process_id?: number;
+}
+
+interface ParcelManagerProps {
+  processId?: number;
+  onParcelChange?: (parcels: Parcel[]) => void;
+  initialParcels?: Parcel[];
+  isEdit?: boolean;
+}
+
+export function ParcelManager({ processId, onParcelChange, initialParcels = [], isEdit = false }: ParcelManagerProps) {
+  const [parcels, setParcels] = useState<Parcel[]>(initialParcels);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (processId && isEdit) {
+      loadParcels();
+    }
+  }, [processId, isEdit]);
+
+  useEffect(() => {
+    if (onParcelChange) {
+      onParcelChange(parcels);
+    }
+  }, [parcels, onParcelChange]);
+
+  const loadParcels = async () => {
+    if (!processId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('process_parcels')
+        .select('*')
+        .eq('process_id', processId)
+        .order('parcel_number');
+
+      if (error) throw error;
+      
+      setParcels(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar parcelas:', error);
+      toast({
+        title: "Erro ao carregar parcelas",
+        description: "Não foi possível carregar as parcelas do processo.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addParcel = () => {
+    const newParcel: Parcel = {
+      parcel_number: parcels.length + 1,
+      value: 0,
+      payment_date: null,
+    };
+    
+    setParcels(prev => [...prev, newParcel]);
+  };
+
+  const removeParcel = (index: number) => {
+    setParcels(prev => {
+      const newParcels = prev.filter((_, i) => i !== index);
+      // Reajustar números das parcelas
+      return newParcels.map((parcel, i) => ({
+        ...parcel,
+        parcel_number: i + 1
+      }));
+    });
+  };
+
+  const updateParcel = (index: number, field: keyof Parcel, value: any) => {
+    setParcels(prev => prev.map((parcel, i) => 
+      i === index ? { ...parcel, [field]: value } : parcel
+    ));
+  };
+
+  const updatePaymentStatus = async (index: number, paid: boolean) => {
+    const parcel = parcels[index];
+    const newPaymentDate = paid ? new Date().toISOString().split('T')[0] : null;
+    
+    updateParcel(index, 'payment_date', newPaymentDate);
+
+    // Se estamos editando um processo existente, atualizar no banco
+    if (isEdit && parcel.id && processId) {
+      try {
+        const { error } = await supabase
+          .from('process_parcels')
+          .update({ payment_date: newPaymentDate })
+          .eq('id', parcel.id);
+
+        if (error) throw error;
+
+        toast({
+          title: paid ? "Parcela marcada como paga" : "Pagamento desmarcado",
+          description: paid 
+            ? `Parcela ${parcel.parcel_number} foi marcada como paga.`
+            : `Pagamento da parcela ${parcel.parcel_number} foi desmarcado.`,
+        });
+      } catch (error) {
+        console.error('Erro ao atualizar status de pagamento:', error);
+        toast({
+          title: "Erro ao atualizar pagamento",
+          description: "Não foi possível atualizar o status de pagamento.",
+          variant: "destructive",
+        });
+        // Reverter mudança em caso de erro
+        updateParcel(index, 'payment_date', parcel.payment_date);
+      }
+    }
+  };
+
+  const updateParcelValue = async (index: number, value: number) => {
+    const parcel = parcels[index];
+    updateParcel(index, 'value', value);
+
+    // Se estamos editando um processo existente, atualizar no banco
+    if (isEdit && parcel.id && processId) {
+      try {
+        const { error } = await supabase
+          .from('process_parcels')
+          .update({ value })
+          .eq('id', parcel.id);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao atualizar valor da parcela:', error);
+        toast({
+          title: "Erro ao atualizar valor",
+          description: "Não foi possível atualizar o valor da parcela.",
+          variant: "destructive",
+        });
+        // Reverter mudança em caso de erro
+        updateParcel(index, 'value', parcel.value);
+      }
+    }
+  };
+
+  // Calcular estatísticas
+  const totalParcels = parcels.length;
+  const paidParcels = parcels.filter(p => p.payment_date).length;
+  const totalValue = parcels.reduce((sum, p) => sum + p.value, 0);
+  const paidValue = parcels.filter(p => p.payment_date).reduce((sum, p) => sum + p.value, 0);
+  const remainingValue = totalValue - paidValue;
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">Carregando parcelas...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Gestão de Parcelas</span>
+          <Button 
+            onClick={addParcel} 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Parcela
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Resumo das Parcelas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <div className="text-sm text-gray-500">Progresso</div>
+            <div className="font-medium">{paidParcels}/{totalParcels}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-sm text-gray-500">Valor Total</div>
+            <div className="font-medium">{formatCurrency(totalValue)}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-sm text-gray-500">Valor Repassado</div>
+            <div className="font-medium text-green-600">{formatCurrency(paidValue)}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-sm text-gray-500">Saldo a Repassar</div>
+            <div className="font-medium text-orange-600">{formatCurrency(remainingValue)}</div>
+          </div>
+        </div>
+
+        {/* Lista de Parcelas */}
+        <div className="space-y-3">
+          {parcels.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>Nenhuma parcela cadastrada</p>
+              <Button 
+                onClick={addParcel} 
+                variant="outline" 
+                className="mt-2"
+              >
+                Adicionar primeira parcela
+              </Button>
+            </div>
+          ) : (
+            parcels.map((parcel, index) => (
+              <div 
+                key={`parcel-${index}`} 
+                className="flex items-center gap-3 p-3 border rounded-lg bg-white"
+              >
+                {/* Checkbox para marcar como pago */}
+                <div className="flex items-center">
+                  <Checkbox
+                    checked={!!parcel.payment_date}
+                    onCheckedChange={(checked) => updatePaymentStatus(index, !!checked)}
+                    className="mr-2"
+                  />
+                  <Label className="text-sm font-medium">
+                    Parcela {parcel.parcel_number}
+                  </Label>
+                </div>
+
+                {/* Valor da parcela */}
+                <div className="flex-1">
+                  <Label htmlFor={`value-${index}`} className="sr-only">
+                    Valor da parcela {parcel.parcel_number}
+                  </Label>
+                  <Input
+                    id={`value-${index}`}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={parcel.value}
+                    onChange={(e) => updateParcelValue(index, Number(e.target.value))}
+                    placeholder="Valor da parcela"
+                    className="text-center font-medium"
+                  />
+                </div>
+
+                {/* Campo de data (só aparece quando marcado como pago) */}
+                {parcel.payment_date && (
+                  <div className="w-40">
+                    <Label htmlFor={`date-${index}`} className="sr-only">
+                      Data de pagamento da parcela {parcel.parcel_number}
+                    </Label>
+                    <Input
+                      id={`date-${index}`}
+                      type="date"
+                      value={parcel.payment_date}
+                      onChange={(e) => updateParcel(index, 'payment_date', e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+
+                {/* Botão de remover */}
+                {parcels.length > 1 && (
+                  <Button
+                    onClick={() => removeParcel(index)}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

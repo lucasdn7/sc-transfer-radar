@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ParcelManager } from '@/components/processes/ParcelManager';
 import type { Database } from '@/integrations/supabase/types';
 
 interface ProcessFormData {
@@ -26,7 +27,14 @@ interface ProcessFormData {
   latitude?: number;
   longitude?: number;
   link_plataforma_governo?: string;
-  parcelas: { valor: number }[];
+}
+
+interface Parcel {
+  id?: number;
+  parcel_number: number;
+  value: number;
+  payment_date: string | null;
+  process_id?: number;
 }
 
 interface ProcessFormProps {
@@ -46,6 +54,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [municipalities, setMunicipalities] = useState<{ id: number; name: string }[]>([]);
   const [regionalNuclei, setRegionalNuclei] = useState<{ id: number; name: string }[]>([]);
   const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
+  const [currentParcels, setCurrentParcels] = useState<Parcel[]>([]);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<ProcessFormData>({
@@ -65,17 +74,13 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       latitude: initialData.latitude || 0,
       longitude: initialData.longitude || 0,
       link_plataforma_governo: initialData.link_plataforma_governo || '',
-      parcelas: [{ valor: 0 }],
-    } : {
-      parcelas: [{ valor: 0 }],
-    },
+    } : {},
   });
 
-  // Campos dinâmicos para parcelas
-  const { fields: parcelas, append, remove } = useFieldArray({
-    control,
-    name: 'parcelas',
-  });
+  // Função para lidar com mudanças nas parcelas
+  const handleParcelChange = (parcels: Parcel[]) => {
+    setCurrentParcels(parcels);
+  };
 
   // Remover busca por latitude/longitude já que não existem na tabela municipalities
   useEffect(() => {
@@ -282,14 +287,14 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       }
 
       // Agora insere as novas parcelas
-      if (data.parcelas && data.parcelas.length > 0) {
-        const parcelasToInsert = data.parcelas
-          .filter(p => p.valor > 0)
+      if (currentParcels && currentParcels.length > 0) {
+        const parcelasToInsert = currentParcels
+          .filter(p => p.value > 0)
           .map((parcela, index) => ({
             process_id: processId,
             parcel_number: index + 1,
-            value: parcela.valor,
-            payment_date: null,
+            value: parcela.value,
+            payment_date: parcela.payment_date,
           }));
 
         console.log('Inserindo parcelas:', parcelasToInsert);
@@ -547,44 +552,17 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Parcelas do Processo</Label>
-              <div className="space-y-2">
-                {parcelas.map((item, idx) => (
-                  <div key={item.id} className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      {...register(`parcelas.${idx}.valor`, { required: 'Valor obrigatório', min: 0.01 })}
-                      placeholder={`Valor da parcela ${idx + 1}`}
-                      className="flex-1"
-                    />
-                    {parcelas.length > 1 && (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => remove(idx)} 
-                        title="Remover parcela"
-                      >
-                        ✕
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => append({ valor: 0 })}
-                  className="w-full"
-                >
-                  + Adicionar Parcela
-                </Button>
-              </div>
-            </div>
           </div>
         </form>
+        
+        {/* Seção de gestão de parcelas */}
+        <div className="mt-6">
+          <ParcelManager
+            processId={initialData?.id}
+            onParcelChange={handleParcelChange}
+            isEdit={isEdit}
+          />
+        </div>
       </CardContent>
     </Card>
   );
