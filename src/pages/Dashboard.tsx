@@ -2,7 +2,7 @@
 import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
 import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
-import { ProcessChart, RegionChart } from "@/components/dashboard/Charts";
+import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
@@ -35,93 +35,11 @@ export default function Dashboard() {
       />
 
       {/* Gráficos Personalizáveis */}
-      {enabledMetrics.length > 0 && (
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-          {enabledMetrics.map((metric) => (
-            <Card key={metric.key}>
-              <CardHeader>
-                <CardTitle className="text-base">{metric.label}</CardTitle>
-                <p className="text-sm text-muted-foreground">{metric.description}</p>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="h-64 flex items-center justify-center">
-                    <div className="animate-pulse text-muted-foreground">Carregando...</div>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={250}>
-                    {metric.key === 'percentual_executado' ? (
-                      <PieChart>
-                        <Pie
-                          data={metricsData[metric.key] || []}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          label={({ name, value }) => `${name}: ${value}%`}
-                        >
-                          {(metricsData[metric.key] || []).map((entry: any, index: number) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"][index % 5]} 
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [`${value}%`, 'Percentual']} />
-                      </PieChart>
-                    ) : (
-                      <BarChart data={metricsData[metric.key] || []}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis 
-                          tickFormatter={(value) => 
-                            new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            }).format(value)
-                          }
-                        />
-                        <Tooltip 
-                          formatter={(value) => [
-                            new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL'
-                            }).format(Number(value)),
-                            metric.label
-                          ]}
-                        />
-                        <Bar 
-                          dataKey="value" 
-                          fill="#3b82f6" 
-                          radius={[4, 4, 0, 0]} 
-                          name={metric.label}
-                        />
-                      </BarChart>
-                    )}
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ProcessChart />
-        </div>
-        <div className="lg:col-span-1">
-          <StatusDistribution />
-        </div>
-      </div>
+      <DashboardCharts />
 
       <ProcessInsights />
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <RegionChart regionalData={[]} />
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Sobre o Sistema</h3>
