@@ -158,6 +158,67 @@ export function useDashboardMetrics() {
       };
     }).filter(item => item.value > 0);
 
+    // --- NOVAS MÉTRICAS PARA OS GRÁFICOS DO DASHBOARD ---
+    // Valor Concedente por Município
+    metrics.valor_concedente_por_municipio = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.municipalities?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += p.total_concedente_value || 0;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
+    // Valor Concedente por Núcleo Regional
+    metrics.valor_concedente_por_nucleo = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.regional_nuclei?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += p.total_concedente_value || 0;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
+    // Valor Contrapartida por Município
+    metrics.valor_contrapartida_por_municipio = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.municipalities?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += p.total_proponente_value || 0;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
+    // Valor Contrapartida por Núcleo Regional
+    metrics.valor_contrapartida_por_nucleo = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.regional_nuclei?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += p.total_proponente_value || 0;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
+    // Número de Processos por Município
+    metrics.num_processos_por_municipio = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.municipalities?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += 1;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
+    // Número de Processos por Núcleo Regional
+    metrics.num_processos_por_nucleo = Object.values(
+      processesData.reduce((acc, p) => {
+        const nome = p.regional_nuclei?.name || 'Não definido';
+        acc[nome] = acc[nome] || { name: nome, value: 0 };
+        acc[nome].value += 1;
+        return acc;
+      }, {} as Record<string, { name: string; value: number }>)
+    ).filter(item => item.value > 0);
+
     return metrics;
   };
 
