@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Database } from "@/integrations/supabase/types";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
@@ -207,6 +208,38 @@ export function Dashboard() {
   }
 
   const displayStats = filteredStats || stats;
+  const processes = displayStats?.processes || [];
+
+  // Agrupamentos para os gráficos
+  const municipios = useMemo(() => {
+    const map: Record<string, { concedente: number; contrapartida: number; count: number }> = {};
+    processes.forEach(p => {
+      const nome = p.municipalities?.name || "Não definido";
+      if (!map[nome]) map[nome] = { concedente: 0, contrapartida: 0, count: 0 };
+      map[nome].concedente += p.total_concedente_value || 0;
+      map[nome].contrapartida += p.total_proponente_value || 0;
+      map[nome].count += 1;
+    });
+    return Object.entries(map).map(([name, v]) => ({ name, ...v }));
+  }, [processes]);
+
+  const nucleos = useMemo(() => {
+    const map: Record<string, { concedente: number; count: number }> = {};
+    processes.forEach(p => {
+      const nome = p.regional_nuclei?.name || "Não definido";
+      if (!map[nome]) map[nome] = { concedente: 0, count: 0 };
+      map[nome].concedente += p.total_concedente_value || 0;
+      map[nome].count += 1;
+    });
+    return Object.entries(map).map(([name, v]) => ({ name, ...v }));
+  }, [processes]);
+
+  // Estado para tipo de gráfico
+  const [tipoMunicipio, setTipoMunicipio] = useState('bar');
+  const [tipoContrapartida, setTipoContrapartida] = useState('bar');
+  const [tipoNucleo, setTipoNucleo] = useState('bar');
+  const [tipoNucleoProcessos, setTipoNucleoProcessos] = useState('bar');
+  const [tipoMunicipioProcessos, setTipoMunicipioProcessos] = useState('bar');
 
   return (
     <div className="space-y-6">
@@ -256,17 +289,198 @@ export function Dashboard() {
         executionStats: stats?.executionStats
       }} />
 
-      {/* Enhanced Charts */}
-      <EnhancedCharts
-        statusData={displayStats?.statusData || stats?.statusData || []}
-        regionalData={displayStats?.regionalData || stats?.regionalData || []}
-      />
+      {/* NOVOS GRÁFICOS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Valor concedente por município */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Valor Concedente por Município</CardTitle>
+            <select className="border rounded px-2 py-1 text-xs" value={tipoMunicipio} onChange={e => setTipoMunicipio(e.target.value)}>
+              <option value="bar">Barras</option>
+              <option value="line">Linhas</option>
+              <option value="pie">Pizza</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              {tipoMunicipio === 'bar' ? (
+                <BarChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="concedente" fill="#3b82f6" name="Concedente" />
+                </BarChart>
+              ) : tipoMunicipio === 'line' ? (
+                <LineChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="concedente" stroke="#3b82f6" name="Concedente" />
+                </LineChart>
+              ) : tipoMunicipio === 'pie' ? (
+                <PieChart>
+                  <Pie data={municipios} dataKey="concedente" nameKey="name" cx="50%" cy="50%" outerRadius={90} label />
+                  <Tooltip />
+                </PieChart>
+              ) : null}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Gráficos Personalizáveis */}
-      <CustomizableDashboardCharts
-        processes={displayStats?.processes || []}
-        regionalData={displayStats?.regionalData || []}
-      />
+        {/* Valor de contrapartida por município */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Valor de Contrapartida por Município</CardTitle>
+            <select className="border rounded px-2 py-1 text-xs" value={tipoContrapartida} onChange={e => setTipoContrapartida(e.target.value)}>
+              <option value="bar">Barras</option>
+              <option value="line">Linhas</option>
+              <option value="pie">Pizza</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              {tipoContrapartida === 'bar' ? (
+                <BarChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="contrapartida" fill="#10b981" name="Contrapartida" />
+                </BarChart>
+              ) : tipoContrapartida === 'line' ? (
+                <LineChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="contrapartida" stroke="#10b981" name="Contrapartida" />
+                </LineChart>
+              ) : tipoContrapartida === 'pie' ? (
+                <PieChart>
+                  <Pie data={municipios} dataKey="contrapartida" nameKey="name" cx="50%" cy="50%" outerRadius={90} label />
+                  <Tooltip />
+                </PieChart>
+              ) : null}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Valor concedente por núcleo regional */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Valor Concedente por Núcleo Regional</CardTitle>
+            <select className="border rounded px-2 py-1 text-xs" value={tipoNucleo} onChange={e => setTipoNucleo(e.target.value)}>
+              <option value="bar">Barras</option>
+              <option value="line">Linhas</option>
+              <option value="pie">Pizza</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              {tipoNucleo === 'bar' ? (
+                <BarChart data={nucleos} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="concedente" fill="#6366f1" name="Concedente" />
+                </BarChart>
+              ) : tipoNucleo === 'line' ? (
+                <LineChart data={nucleos} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="concedente" stroke="#6366f1" name="Concedente" />
+                </LineChart>
+              ) : tipoNucleo === 'pie' ? (
+                <PieChart>
+                  <Pie data={nucleos} dataKey="concedente" nameKey="name" cx="50%" cy="50%" outerRadius={90} label />
+                  <Tooltip />
+                </PieChart>
+              ) : null}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Núcleo regional por número de processos */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Núcleo Regional por Nº de Processos</CardTitle>
+            <select className="border rounded px-2 py-1 text-xs" value={tipoNucleoProcessos} onChange={e => setTipoNucleoProcessos(e.target.value)}>
+              <option value="bar">Barras</option>
+              <option value="line">Linhas</option>
+              <option value="pie">Pizza</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              {tipoNucleoProcessos === 'bar' ? (
+                <BarChart data={nucleos} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#f59e0b" name="Nº de Processos" />
+                </BarChart>
+              ) : tipoNucleoProcessos === 'line' ? (
+                <LineChart data={nucleos} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#f59e0b" name="Nº de Processos" />
+                </LineChart>
+              ) : tipoNucleoProcessos === 'pie' ? (
+                <PieChart>
+                  <Pie data={nucleos} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label />
+                  <Tooltip />
+                </PieChart>
+              ) : null}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Município por número de processos */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Município por Nº de Processos</CardTitle>
+            <select className="border rounded px-2 py-1 text-xs" value={tipoMunicipioProcessos} onChange={e => setTipoMunicipioProcessos(e.target.value)}>
+              <option value="bar">Barras</option>
+              <option value="line">Linhas</option>
+              <option value="pie">Pizza</option>
+            </select>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              {tipoMunicipioProcessos === 'bar' ? (
+                <BarChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#f43f5e" name="Nº de Processos" />
+                </BarChart>
+              ) : tipoMunicipioProcessos === 'line' ? (
+                <LineChart data={municipios} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#f43f5e" name="Nº de Processos" />
+                </LineChart>
+              ) : tipoMunicipioProcessos === 'pie' ? (
+                <PieChart>
+                  <Pie data={municipios} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label />
+                  <Tooltip />
+                </PieChart>
+              ) : null}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
