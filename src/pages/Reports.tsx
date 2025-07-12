@@ -17,6 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 // Lista de campos importantes para relatório de repasses
 const ALL_FIELDS = [
@@ -75,6 +78,47 @@ export default function Reports() {
   const [selectedFields, setSelectedFields] = useState<string[]>(DEFAULT_FIELDS);
   const { toast } = useToast();
 
+  // --- NOVOS HOOKS PARA MUNICÍPIOS, NÚCLEOS E REGIÕES ---
+  const { data: allMunicipalities = [] } = useQuery({
+    queryKey: ['all-municipalities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('municipalities')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const { data: allNuclei = [] } = useQuery({
+    queryKey: ['all-nuclei'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('regional_nuclei')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const { data: allRegions = [] } = useQuery({
+    queryKey: ['all-regions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('regioes')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // --- ESTADO PARA FILTROS E ORDENAÇÃO ---
+  const [region, setRegion] = useState('all');
+  const [proponentValue, setProponentValue] = useState('');
+  const [sortField, setSortField] = useState('total_concedente_value');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
     searchTerm: '',
     municipality,
@@ -82,6 +126,30 @@ export default function Reports() {
     dateFrom: dateRange.from,
     dateTo: dateRange.to,
   });
+
+  // --- FILTRAGEM E ORDENAÇÃO DOS DADOS ---
+  const filteredData = useMemo(() => {
+    let data = [...processesData];
+    if (municipality !== 'all') {
+      data = data.filter(p => p.municipality_id === Number(municipality));
+    }
+    if (nucleus !== 'all') {
+      data = data.filter(p => p.regional_nucleus_id === Number(nucleus));
+    }
+    if (region !== 'all') {
+      data = data.filter(p => p.municipalities?.regioes?.nome === region);
+    }
+    if (proponentValue) {
+      data = data.filter(p => (p.total_proponente_value || 0) >= Number(proponentValue));
+    }
+    // Ordenação
+    data = data.sort((a, b) => {
+      const aValue = a[sortField] || 0;
+      const bValue = b[sortField] || 0;
+      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+    return data;
+  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder]);
 
   // Função para filtrar os campos exportados, tratando nulos e aninhados
   function filterFields(data: any[], fields: string[]) {
@@ -157,8 +225,9 @@ export default function Reports() {
     }
   }
 
+  // --- ATUALIZAR EXPORTAÇÃO PARA USAR filteredData ---
   const handleDownload = (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    const data = processesData;
+    const data = filteredData;
     if (!data || data.length === 0) {
       toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
       return;
@@ -309,9 +378,9 @@ export default function Reports() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os municípios</SelectItem>
-                  <SelectItem value="florianopolis">Florianópolis</SelectItem>
-                  <SelectItem value="joinville">Joinville</SelectItem>
-                  <SelectItem value="blumenau">Blumenau</SelectItem>
+                  {allMunicipalities.map((m: any) => (
+                    <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -323,9 +392,58 @@ export default function Reports() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os núcleos</SelectItem>
-                  <SelectItem value="grande-florianopolis">Grande Florianópolis</SelectItem>
-                  <SelectItem value="norte">Norte</SelectItem>
-                  <SelectItem value="vale-do-itajai">Vale do Itajaí</SelectItem>
+                  {allNuclei.map((n: any) => (
+                    <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Região</label>
+              <Select value={region} onValueChange={setRegion}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma região" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as regiões</SelectItem>
+                  {allRegions.map((r: any) => (
+                    <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Valor Proponente (mínimo)</label>
+              <input type="number" className="input input-bordered w-full" value={proponentValue} onChange={e => setProponentValue(e.target.value)} placeholder="Valor mínimo" />
+            </div>
+            {/* Outros filtros relevantes podem ser adicionados aqui */}
+          </div>
+          <div className="flex gap-4 mt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ordenar por</label>
+              <Select value={sortField} onValueChange={setSortField}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Campo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="total_concedente_value">Valor do Concedente</SelectItem>
+                  <SelectItem value="total_proponente_value">Valor do Proponente</SelectItem>
+                  <SelectItem value="total_portaria_value">Valor Total da Portaria</SelectItem>
+                  <SelectItem value="saldo_repassar">Saldo a Repassar</SelectItem>
+                  <SelectItem value="valor_repassado">Valor Repassado</SelectItem>
+                  <SelectItem value="num_processos">Número de Processos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ordem</label>
+              <Select value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ordem" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Maior para menor</SelectItem>
+                  <SelectItem value="asc">Menor para maior</SelectItem>
                 </SelectContent>
               </Select>
             </div>
