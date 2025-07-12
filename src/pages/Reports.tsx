@@ -231,7 +231,7 @@ export default function Reports() {
       </div>
 
       {/* Botão Personalizar Campos do Relatório - AGORA MAIS VISÍVEL */}
-      <div className="flex justify-end">
+      <div className="flex justify-end mb-4">
         <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
           <DialogTrigger asChild>
             <Button variant="outline" onClick={() => setShowFieldSelector(true)}>
@@ -248,22 +248,28 @@ export default function Reports() {
                   <Checkbox
                     checked={selectedFields.includes(field.key)}
                     onCheckedChange={checked => {
-                      setSelectedFields(prev =>
-                        checked
-                          ? [...prev, field.key]
-                          : prev.filter(f => f !== field.key)
-                      );
+                      if (checked) setSelectedFields([...selectedFields, field.key]);
+                      else setSelectedFields(selectedFields.filter(f => f !== field.key));
                     }}
-                    id={field.key}
                   />
-                  <label htmlFor={field.key} className="text-sm cursor-pointer">{field.label}</label>
+                  <span>{field.label}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-end pt-4">
-              <Button onClick={() => setShowFieldSelector(false)}>
-                Fechar
-              </Button>
+            {/* Indicação clara de download */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded flex flex-col gap-2">
+              <span className="font-medium text-blue-700">Após personalizar os campos, baixe o relatório no formato desejado:</span>
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" onClick={() => handleDownload('Relatório Personalizado', 'PDF')}>
+                  Baixar PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'XLSX')}>
+                  Baixar XLS
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'CSV')}>
+                  Baixar CSV
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

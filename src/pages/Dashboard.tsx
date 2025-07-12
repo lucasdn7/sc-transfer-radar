@@ -29,10 +29,7 @@ export default function Dashboard() {
       <TransferProgressBar />
 
       {/* Seletor de Métricas */}
-      <DashboardMetricsSelector
-        metrics={selectedMetrics}
-        onMetricsChange={setSelectedMetrics}
-      />
+      {/* (removido conforme solicitado) */}
 
       {/* Gráficos Personalizáveis */}
       <DashboardCharts />
