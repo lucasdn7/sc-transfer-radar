@@ -38,12 +38,13 @@ export function ProcessInsights() {
     );
   }
 
-  const statusDistribution = stats?.statusDistribution || {};
   const totalProcesses = stats?.totalProcesses || 0;
-  const finishedProcesses = statusDistribution.finished || 0;
-  const inExecutionProcesses = statusDistribution.in_execution || 0;
-  const completionRate = totalProcesses > 0 ? (finishedProcesses / totalProcesses) * 100 : 0;
-  const executionRate = totalProcesses > 0 ? (inExecutionProcesses / totalProcesses) * 100 : 0;
+  const completed = stats?.executionStats?.completed || 0;
+  const inProgress = stats?.executionStats?.inProgress || 0;
+  const notStarted = stats?.executionStats?.notStarted || 0;
+  const completionRate = totalProcesses > 0 ? (completed / totalProcesses) * 100 : 0;
+  const executionRate = totalProcesses > 0 ? (inProgress / totalProcesses) * 100 : 0;
+  const notStartedRate = totalProcesses > 0 ? (notStarted / totalProcesses) * 100 : 0;
 
   return (
     <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
@@ -56,7 +57,8 @@ export function ProcessInsights() {
           <div className="text-2xl font-bold">{completionRate.toFixed(1)}%</div>
           <Progress value={completionRate} className="mt-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {finishedProcesses} de {totalProcesses} processos concluídos
+            {completed} de {totalProcesses} processos finalizados<br/>
+            <span className="italic">processos que já foram totalmente finalizados e possuem o status "Processo Finalizado".</span>
           </p>
         </CardContent>
       </Card>
@@ -70,7 +72,22 @@ export function ProcessInsights() {
           <div className="text-2xl font-bold">{executionRate.toFixed(1)}%</div>
           <Progress value={executionRate} className="mt-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {inExecutionProcesses} processos em execução
+            {inProgress} processos em andamento<br/>
+            <span className="italic">processos em andamento, que estão com contrato assinado, em pagamento, com termo de aditivo ou em fase de prestação de contas.</span>
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-base font-medium">A Iniciar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{notStartedRate.toFixed(1)}%</div>
+          <Progress value={notStartedRate} className="mt-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {notStarted} processos a iniciar<br/>
+            <span className="italic">processos que ainda não iniciaram formalmente nenhuma etapa executiva.</span>
           </p>
         </CardContent>
       </Card>

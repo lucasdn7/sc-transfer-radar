@@ -120,12 +120,36 @@ export function useDashboardStats() {
           value: data.value
         }));
 
-        // Calcular estatísticas de execução baseadas nos status
-        // Assumindo que alguns status representam diferentes estados de execução
+        // Nova lógica para indicadores de status
+        const statusNomes = {
+          concluido: "Processo Finalizado",
+          execucao: [
+            "Contrato assinado",
+            "Em pagamento",
+            "Termo de aditivo",
+            "Prestação de contas"
+          ]
+        };
+
+        let completed = 0;
+        let inProgress = 0;
+        let notStarted = 0;
+
+        processes.forEach((process: any) => {
+          const nomeStatus = process.status_processos?.nome || statusMap[process.status_id] || 'Não definido';
+          if (nomeStatus === statusNomes.concluido) {
+            completed++;
+          } else if (statusNomes.execucao.includes(nomeStatus)) {
+            inProgress++;
+          } else {
+            notStarted++;
+          }
+        });
+
         const executionStats = {
-          notStarted: statusDistribution['Em Análise'] || 0,
-          inProgress: (statusDistribution['Em Execução'] || 0) + (statusDistribution['Aprovados'] || 0),
-          completed: statusDistribution['Finalizados'] || 0,
+          notStarted,
+          inProgress,
+          completed
         };
 
         return {
