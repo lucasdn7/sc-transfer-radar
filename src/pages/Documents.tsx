@@ -163,7 +163,7 @@ export default function Documents() {
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
             <TabsList>
               <TabsTrigger value="all">Todos</TabsTrigger>
-              {categories && categories.map((cat: any) => (
+              {categories && categories.length > 0 && categories.map((cat: any) => (
                 <TabsTrigger key={cat.id} value={cat.id.toString()}>{cat.name}</TabsTrigger>
               ))}
             </TabsList>
@@ -181,16 +181,13 @@ export default function Documents() {
                 />
               ))
             ) : (
-              <div className="col-span-full text-center py-12">
-                <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <div className="col-span-full text-center py-12 flex flex-col items-center justify-center">
+                <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchTerm ? 'Nenhum documento encontrado' : 'Nenhum documento disponível'}
+                  Nenhum documento disponível ainda
                 </h3>
-                <p className="text-gray-600">
-                  {searchTerm 
-                    ? 'Tente alterar os termos de busca.' 
-                    : 'Não há documentos disponíveis no momento.'
-                  }
+                <p className="text-gray-600 max-w-md">
+                  Quando houver documentos cadastrados pela área técnica, eles aparecerão aqui para leitura e download público. Utilize o botão acima para inserir um novo documento (apenas área técnica).
                 </p>
               </div>
             )}

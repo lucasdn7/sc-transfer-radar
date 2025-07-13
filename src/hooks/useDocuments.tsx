@@ -17,7 +17,8 @@ export function useDocuments(searchTerm: string, selectedCategory: string) {
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
-      if (selectedCategory) {
+      // Só aplica filtro se selectedCategory for número válido
+      if (selectedCategory && selectedCategory !== 'all' && !isNaN(Number(selectedCategory))) {
         query = query.eq('document_category_id', parseInt(selectedCategory));
       }
 
