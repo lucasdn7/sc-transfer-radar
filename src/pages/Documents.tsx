@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, Component, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
@@ -6,12 +6,10 @@ import { DocumentUploadForm } from '@/components/forms/DocumentUploadForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { DocumentCard } from '@/components/documents/DocumentCard';
-import { DocumentFilters } from '@/components/documents/DocumentFilters';
 import { DocumentPreviewModal } from '@/components/documents/DocumentPreviewModal';
 import { useDocuments, useDocumentCategories } from '@/hooks/useDocuments';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
-import React, { Component, ReactNode } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
