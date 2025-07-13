@@ -45,7 +45,20 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
     },
   });
 
-  const { data: categories = [] } = useQuery({
+  const CATEGORIAS_FIXAS = [
+    'Ofícios',
+    'Pareceres Técnicos',
+    'Pareceres Judiciais',
+    'Leis',
+    'Decretos',
+    'Modelos',
+    'Normas',
+    'Notas Oficiais',
+    'Informativos',
+    'Anexos',
+  ];
+
+  const { data: categoriesDb = [] } = useQuery({
     queryKey: ['document-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,6 +69,13 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       return data;
     },
   });
+  // Garante que as categorias fixas sempre aparecem, sem duplicar
+  const categories = [
+    ...CATEGORIAS_FIXAS.filter(
+      (fixa) => !categoriesDb.some((cat: any) => cat.name.toLowerCase() === fixa.toLowerCase())
+    ).map((name) => ({ id: `fixa-${name}`, name })),
+    ...categoriesDb,
+  ];
 
   const onSubmit = async (data: DocumentUploadFormData) => {
     if (!selectedFile) {
@@ -66,23 +86,52 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       });
       return;
     }
+    if (categoryMode === 'custom' && !customCategory.trim()) {
+      toast({
+        title: 'Categoria obrigatória',
+        description: 'Digite o nome da nova categoria.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setIsUploading(true);
     try {
+      let categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
+      // Se for nova categoria, cria e pega o id
+      if (categoryMode === 'custom' && customCategory.trim()) {
+        // Verifica se já existe (case insensitive)
+        const existing = categoriesDb.find(
+          (cat: any) => cat.name.toLowerCase() === customCategory.trim().toLowerCase()
+        );
+        if (existing) {
+          categoryId = existing.id;
+        } else {
+          const { data: newCat, error: catError } = await supabase
+            .from('document_categories')
+            .insert({ name: customCategory.trim() })
+            .select('id')
+            .single();
+          if (catError) throw catError;
+          categoryId = newCat.id;
+        }
+      } else if (selectedCategoryId && String(selectedCategoryId).startsWith('fixa-')) {
+        // Se for categoria fixa ainda não cadastrada, cria
+        const fixaName = categories.find((c) => String(c.id) === String(selectedCategoryId))?.name;
+        const { data: newCat, error: catError } = await supabase
+          .from('document_categories')
+          .insert({ name: fixaName })
+          .select('id')
+          .single();
+        if (catError) throw catError;
+        categoryId = newCat.id;
+      }
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(fileName, selectedFile);
       if (uploadError) throw uploadError;
-      // Nome do documento
       const finalTitle = keepFileName ? selectedFile.name : customTitle || selectedFile.name;
-      // Categoria
-      let categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
-      let categoryName = '';
-      if (categoryMode === 'custom' && customCategory.trim()) {
-        categoryName = customCategory.trim();
-      }
-      // Inserir registro no banco
       const documentData: any = {
         title: finalTitle,
         description: data.description,
@@ -93,16 +142,13 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         is_public: isPublic,
         uploaded_by_user_id: null,
       };
-      if (categoryName) {
-        documentData.category_name = categoryName;
-      } else if (categoryId) {
+      if (categoryId) {
         documentData.document_category_id = categoryId;
       }
       const { error: insertError } = await supabase
         .from('documents')
         .insert(documentData);
       if (insertError) throw insertError;
-      // Notificação global
       await supabase.from('notifications').insert({
         message: `Novo documento disponível: "${finalTitle}" para download na área pública de Documentação!`,
         type: 'informative',
