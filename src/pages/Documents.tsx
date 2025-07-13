@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
 import React, { Component, ReactNode } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback: (error: Error) => ReactNode }, { error: Error | null }> {
   constructor(props: any) {
@@ -142,14 +143,33 @@ export default function Documents() {
             )}
           </div>
 
-          <DocumentFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            categories={categories || []}
-          />
+          {/* Barra de busca textual */}
+          <div className="flex gap-4 mb-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Buscar documentos..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border rounded w-full"
+              />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/></svg>
+              </span>
+            </div>
+          </div>
 
+          {/* Abas de categoria */}
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+            <TabsList>
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              {categories && categories.map((cat: any) => (
+                <TabsTrigger key={cat.id} value={cat.id.toString()}>{cat.name}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          {/* Listagem de documentos */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {documents && documents.length > 0 ? (
               documents.map((document) => (

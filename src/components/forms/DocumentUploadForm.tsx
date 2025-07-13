@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Upload, X } from 'lucide-react';
+import { useRef } from 'react';
 
 interface DocumentUploadFormData {
   title: string;
@@ -28,7 +29,13 @@ interface DocumentUploadFormProps {
 export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [keepFileName, setKeepFileName] = useState(true);
+  const [customTitle, setCustomTitle] = useState('');
+  const [categoryMode, setCategoryMode] = useState<'select' | 'custom'>('select');
+  const [customCategory, setCustomCategory] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const { toast } = useToast();
+  const customCategoryInputRef = useRef<HTMLInputElement>(null);
   
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<DocumentUploadFormData>({
     defaultValues: {
@@ -43,7 +50,6 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         .from('document_categories')
         .select('id, name')
         .order('name');
-      
       if (error) throw error;
       return data;
     },
@@ -58,45 +64,55 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       });
       return;
     }
-
     setIsUploading(true);
-    
     try {
-      // Upload do arquivo
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(fileName, selectedFile);
-
       if (uploadError) throw uploadError;
-
+      // Nome do documento
+      const finalTitle = keepFileName ? selectedFile.name : customTitle || selectedFile.name;
+      // Categoria
+      let categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
+      let categoryName = '';
+      if (categoryMode === 'custom' && customCategory.trim()) {
+        categoryName = customCategory.trim();
+      }
       // Inserir registro no banco
-      const documentData = {
-        title: data.title,
+      const documentData: any = {
+        title: finalTitle,
         description: data.description,
         file_name: selectedFile.name,
         file_path: fileName,
         file_size: selectedFile.size,
         file_mime_type: selectedFile.type,
-        document_category_id: data.document_category_id ? Number(data.document_category_id) : 1,
         is_public: data.is_public,
         validity_date: data.validity_date || null,
-        uploaded_by_user_id: null, // Será preenchido quando tiver autenticação
+        uploaded_by_user_id: null,
       };
-
+      if (categoryName) {
+        documentData.category_name = categoryName;
+      } else if (categoryId) {
+        documentData.document_category_id = categoryId;
+      }
       const { error: insertError } = await supabase
         .from('documents')
         .insert(documentData);
-
       if (insertError) throw insertError;
-      
+      // Notificação global
+      await supabase.from('notifications').insert({
+        message: `Novo documento disponível: "${finalTitle}" para download na área pública de Documentação!`,
+        type: 'informative',
+        is_public: true,
+        created_at: new Date().toISOString(),
+        is_read: false
+      });
       toast({
         title: 'Documento enviado com sucesso',
         description: 'O documento foi adicionado à biblioteca.',
       });
-
       onSuccess();
     } catch (error: any) {
       toast({
@@ -112,6 +128,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setSelectedFile(file || null);
+    if (file && keepFileName) setCustomTitle('');
   };
 
   return (
@@ -127,18 +144,32 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
             </Button>
           </div>
           <div className="max-h-[60vh] overflow-y-auto pr-2 pb-4">
+            {/* Nome do documento */}
             <div className="space-y-2">
-              <Label htmlFor="title">Título do Documento *</Label>
-              <Input
-                id="title"
-                {...register('title', { required: 'Campo obrigatório' })}
-                placeholder="Ex: Manual do Usuário v2.0"
-              />
-              {errors.title && (
-                <p className="text-sm text-red-600">{errors.title.message}</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="keepFileName"
+                  checked={keepFileName}
+                  onChange={e => setKeepFileName(e.target.checked)}
+                  className="rounded"
+                />
+                <Label htmlFor="keepFileName">Manter o nome do arquivo</Label>
+              </div>
+              {!keepFileName && (
+                <div className="space-y-2">
+                  <Label htmlFor="customTitle">Nome personalizado *</Label>
+                  <Input
+                    id="customTitle"
+                    value={customTitle}
+                    onChange={e => setCustomTitle(e.target.value)}
+                    placeholder="Digite o nome que será exibido ao público"
+                    required={!keepFileName}
+                  />
+                </div>
               )}
             </div>
-
+            {/* Descrição */}
             <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
               <Textarea
@@ -148,23 +179,60 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                 rows={3}
               />
             </div>
-
+            {/* Categoria */}
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
-              <Select onValueChange={(value) => setValue('document_category_id', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Categoria</Label>
+              <div className="flex gap-2 items-center">
+                <Select
+                  value={categoryMode === 'select' ? selectedCategoryId : ''}
+                  onValueChange={val => {
+                    setCategoryMode('select');
+                    setSelectedCategoryId(val);
+                    setValue('document_category_id', Number(val));
+                  }}
+                  disabled={categoryMode === 'custom'}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant={categoryMode === 'custom' ? 'default' : 'outline'}
+                  onClick={() => {
+                    setCategoryMode('custom');
+                    setTimeout(() => customCategoryInputRef.current?.focus(), 100);
+                  }}
+                >
+                  Nova Categoria
+                </Button>
+              </div>
+              {categoryMode === 'custom' && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    ref={customCategoryInputRef}
+                    value={customCategory}
+                    onChange={e => setCustomCategory(e.target.value)}
+                    placeholder="Digite a nova categoria"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCategoryMode('select')}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </div>
-
+            {/* Data de validade */}
             <div className="space-y-2">
               <Label htmlFor="validity_date">Data de Validade</Label>
               <Input
@@ -173,7 +241,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                 {...register('validity_date')}
               />
             </div>
-
+            {/* Upload do arquivo */}
             <div className="space-y-2">
               <Label htmlFor="file">Arquivo *</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -211,7 +279,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                 />
               </div>
             </div>
-
+            {/* Público */}
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
