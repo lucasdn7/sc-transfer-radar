@@ -34,9 +34,11 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
   const [categoryMode, setCategoryMode] = useState<'select' | 'custom'>('select');
   const [customCategory, setCustomCategory] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [isPublic, setIsPublic] = useState(true);
   const { toast } = useToast();
   const customCategoryInputRef = useRef<HTMLInputElement>(null);
-  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<DocumentUploadFormData>({
     defaultValues: {
       is_public: true,
@@ -88,8 +90,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         file_path: fileName,
         file_size: selectedFile.size,
         file_mime_type: selectedFile.type,
-        is_public: data.is_public,
-        validity_date: data.validity_date || null,
+        is_public: isPublic,
         uploaded_by_user_id: null,
       };
       if (categoryName) {
@@ -158,7 +159,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
               </div>
               {!keepFileName && (
                 <div className="space-y-2">
-                  <Label htmlFor="customTitle">Nome personalizado *</Label>
+                  <Label htmlFor="customTitle">Nome personalizado do arquivo *</Label>
                   <Input
                     id="customTitle"
                     value={customTitle}
@@ -232,23 +233,13 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                 </div>
               )}
             </div>
-            {/* Data de validade */}
-            <div className="space-y-2">
-              <Label htmlFor="validity_date">Data de Validade</Label>
-              <Input
-                id="validity_date"
-                type="date"
-                {...register('validity_date')}
-              />
-            </div>
             {/* Upload do arquivo */}
             <div className="space-y-2">
               <Label htmlFor="file">Arquivo *</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative">
                 {selectedFile ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Upload className="h-5 w-5 text-green-600" />
                       <span className="text-sm">{selectedFile.name}</span>
                       <span className="text-xs text-gray-500">
                         ({(selectedFile.size / 1024).toFixed(1)} KB)
@@ -260,34 +251,38 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                       size="sm"
                       onClick={() => setSelectedFile(null)}
                     >
-                      <X className="h-4 w-4" />
+                      Remover
                     </Button>
                   </div>
                 ) : (
-                  <div>
-                    <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600">
-                      Clique para selecionar um arquivo
-                    </p>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex flex-col items-center justify-center py-8"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <span className="text-gray-400 mb-2">Clique para selecionar um arquivo</span>
+                  </Button>
                 )}
                 <Input
+                  ref={fileInputRef}
                   type="file"
                   onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="hidden"
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
                 />
               </div>
             </div>
-            {/* Público */}
-            <div className="flex items-center space-x-2">
+            {/* Público ou restrito */}
+            <div className="flex items-center space-x-2 mt-4">
               <input
                 type="checkbox"
                 id="is_public"
-                {...register('is_public')}
+                checked={isPublic}
+                onChange={e => setIsPublic(e.target.checked)}
                 className="rounded"
               />
-              <Label htmlFor="is_public">Documento público (visível para todos)</Label>
+              <Label htmlFor="is_public">Documento público (visível para todos). Desmarque para restringir à área técnica.</Label>
             </div>
           </div>
         </form>
