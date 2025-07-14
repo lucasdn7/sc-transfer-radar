@@ -16,10 +16,23 @@ export default function TechnicalAuth() {
 
   React.useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Redireciona se já estiver autenticado
+  // Remover redirecionamento automático
+  // if (isAuthenticated) {
+  //   window.location.href = '/';
+  //   return null;
+  // }
+
   if (isAuthenticated) {
-    window.location.href = '/';
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-md text-center">
+          <Shield className="h-12 w-12 mx-auto text-blue-600 mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Você já está autenticado!</h1>
+          <p className="text-gray-600 mb-4">Você já está logado na área técnica. Se quiser acessar outra conta, faça logout primeiro.</p>
+          <Button className="w-full" onClick={() => window.location.href = '/'}>Ir para o Dashboard</Button>
+        </div>
+      </div>
+    );
   }
 
   const handleLogin = async (e: React.FormEvent) => {
