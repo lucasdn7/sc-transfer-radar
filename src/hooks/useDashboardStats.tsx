@@ -39,6 +39,7 @@ export function useDashboardStats() {
             .from('processes')
             .select(`
               total_portaria_value, 
+              total_concedente_value,
               municipality_id, 
               status_id,
               municipalities (name),
@@ -161,24 +162,19 @@ export function useDashboardStats() {
         // Card 2: Municípios com 1ª Parcela Paga (valor_repassado > 0 && saldo_a_repassar > 0)
         const municipiosRepasseStats = processes.reduce((acc: any, process: any) => {
           const municipioNome = process.municipalities?.name || 'Não definido';
-          
           if (!acc[municipioNome]) {
             acc[municipioNome] = {
               valorConcedente: 0,
               valorRepassado: 0
             };
           }
-
-          // Calcular valor concedente
+          // Somar valor concedente de todos os processos do município
           acc[municipioNome].valorConcedente += process.total_concedente_value || 0;
-
-          // Calcular valor repassado (parcelas com payment_date preenchido)
+          // Somar valor repassado de todas as parcelas pagas de todos os processos do município
           const valorRepassado = (process.process_parcels || [])
             .filter((parcel: any) => parcel.payment_date)
             .reduce((sum: number, parcel: any) => sum + (parcel.value || 0), 0);
-          
           acc[municipioNome].valorRepassado += valorRepassado;
-
           return acc;
         }, {});
 
@@ -188,12 +184,10 @@ export function useDashboardStats() {
         Object.values(municipiosRepasseStats).forEach((municipio: any) => {
           const { valorConcedente, valorRepassado } = municipio;
           const saldoARepassar = valorConcedente - valorRepassado;
-
           // Card 1: Repasse Concluído (valor_repassado === valor_concedente)
           if (valorRepassado === valorConcedente && valorConcedente > 0) {
             municipiosRepasseConcluido++;
           }
-
           // Card 2: 1ª Parcela Paga (valor_repassado > 0 && saldo_a_repassar > 0)
           if (valorRepassado > 0 && saldoARepassar > 0) {
             municipiosPrimeiraParcela++;
