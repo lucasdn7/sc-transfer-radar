@@ -15,6 +15,10 @@ interface DashboardStats {
     inProgress: number;
     completed: number;
   };
+  repasseStats?: {
+    municipiosRepasseConcluido: number;
+    municipiosPrimeiraParcela: number;
+  };
   processes?: Array<any>;
   lastUpdated: string;
 }
@@ -120,9 +124,9 @@ export function useDashboardStats() {
           value: data.value
         }));
 
-        // Nova lógica para indicadores de status
+        // Nova lógica para indicadores de status - ATUALIZADA para usar "Executado" ou "Finalizado"
         const statusNomes = {
-          concluido: "Processo Finalizado",
+          concluido: ["Executado", "Finalizado"],
           execucao: [
             "Contrato assinado",
             "Em pagamento",
@@ -137,7 +141,7 @@ export function useDashboardStats() {
 
         processes.forEach((process: any) => {
           const nomeStatus = process.status_processos?.nome || statusMap[process.status_id] || 'Não definido';
-          if (nomeStatus === statusNomes.concluido) {
+          if (statusNomes.concluido.includes(nomeStatus)) {
             completed++;
           } else if (statusNomes.execucao.includes(nomeStatus)) {
             inProgress++;
@@ -152,6 +156,55 @@ export function useDashboardStats() {
           completed
         };
 
+        // Cálculo dos novos cards solicitados
+        // Card 1: Municípios com Repasse Concluído (valor_repassado === valor_concedente)
+        // Card 2: Municípios com 1ª Parcela Paga (valor_repassado > 0 && saldo_a_repassar > 0)
+        const municipiosRepasseStats = processes.reduce((acc: any, process: any) => {
+          const municipioNome = process.municipalities?.name || 'Não definido';
+          
+          if (!acc[municipioNome]) {
+            acc[municipioNome] = {
+              valorConcedente: 0,
+              valorRepassado: 0
+            };
+          }
+
+          // Calcular valor concedente
+          acc[municipioNome].valorConcedente += process.total_concedente_value || 0;
+
+          // Calcular valor repassado (parcelas com payment_date preenchido)
+          const valorRepassado = (process.process_parcels || [])
+            .filter((parcel: any) => parcel.payment_date)
+            .reduce((sum: number, parcel: any) => sum + (parcel.value || 0), 0);
+          
+          acc[municipioNome].valorRepassado += valorRepassado;
+
+          return acc;
+        }, {});
+
+        let municipiosRepasseConcluido = 0;
+        let municipiosPrimeiraParcela = 0;
+
+        Object.values(municipiosRepasseStats).forEach((municipio: any) => {
+          const { valorConcedente, valorRepassado } = municipio;
+          const saldoARepassar = valorConcedente - valorRepassado;
+
+          // Card 1: Repasse Concluído (valor_repassado === valor_concedente)
+          if (valorRepassado === valorConcedente && valorConcedente > 0) {
+            municipiosRepasseConcluido++;
+          }
+
+          // Card 2: 1ª Parcela Paga (valor_repassado > 0 && saldo_a_repassar > 0)
+          if (valorRepassado > 0 && saldoARepassar > 0) {
+            municipiosPrimeiraParcela++;
+          }
+        });
+
+        const repasseStats = {
+          municipiosRepasseConcluido,
+          municipiosPrimeiraParcela
+        };
+
         return {
           totalProcesses,
           totalValue,
@@ -161,6 +214,7 @@ export function useDashboardStats() {
           statusData,
           regionalData,
           executionStats,
+          repasseStats,
           processes,
           lastUpdated: new Date().toISOString()
         };
@@ -178,6 +232,10 @@ export function useDashboardStats() {
             notStarted: 0,
             inProgress: 0,
             completed: 0,
+          },
+          repasseStats: {
+            municipiosRepasseConcluido: 0,
+            municipiosPrimeiraParcela: 0,
           },
           processes: [],
           lastUpdated: new Date().toISOString()

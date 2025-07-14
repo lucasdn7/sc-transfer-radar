@@ -286,7 +286,8 @@ export function Dashboard() {
           processes: 12,
           value: 8
         },
-        executionStats: stats?.executionStats
+        executionStats: stats?.executionStats,
+        repasseStats: stats?.repasseStats
       }} />
 
       {/* NOVOS GRÁFICOS */}
