@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/useTheme';
-import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Settings, Monitor, Palette, Type, Layout, LogOut, Info } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +43,7 @@ const ONBOARDING_KEY = 'onboardingSeen';
 
 export default function AppSettings() {
   const { theme, layoutPosition, fontSize, setTheme, setLayoutPosition, setFontSize } = useTheme();
-  const { isAuthenticated, signOut } = useTechnicalAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const [highContrast, setHighContrast] = useState(() => localStorage.getItem('highContrast') === 'true');
   const [colorBlindMode, setColorBlindMode] = useState(() => localStorage.getItem('colorBlindMode') === 'true');
   const [compactLayout, setCompactLayout] = useState(() => localStorage.getItem('compactLayout') === 'true');

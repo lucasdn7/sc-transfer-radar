@@ -1,7 +1,7 @@
 import React, { useState, Component, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { DocumentUploadForm } from '@/components/forms/DocumentUploadForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
@@ -42,7 +42,7 @@ function ErrorFallback(error: Error) {
 }
 
 export default function Documents() {
-  const { isAuthenticated } = useTechnicalAuth();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

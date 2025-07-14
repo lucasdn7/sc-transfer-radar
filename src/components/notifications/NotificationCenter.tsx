@@ -4,13 +4,13 @@ import { Bell, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated } = useTechnicalAuth();
+  const { isAuthenticated } = useAuth();
 
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['notifications'],

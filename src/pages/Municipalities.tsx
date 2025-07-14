@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, MapPin, Phone, Mail, Users, Plus, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MunicipalityForm } from "@/components/forms/MunicipalityForm";
@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 export default function Municipalities() {
-  const { isAuthenticated } = useTechnicalAuth();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState<any>(null);

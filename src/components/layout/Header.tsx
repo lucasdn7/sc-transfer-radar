@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User, Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
-  const { isAuthenticated, signOut } = useTechnicalAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleAuthAction = () => {

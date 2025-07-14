@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Users, ChevronLeft, ChevronRight } from "lucide-react";
-import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { RegionalNucleusForm } from "@/components/forms/RegionalNucleusForm";
@@ -20,7 +20,7 @@ function useDebouncedValue<T>(value: T, delay: number) {
 }
 
 export default function RegionalNuclei() {
-  const { isAuthenticated } = useTechnicalAuth();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNucleus, setEditingNucleus] = useState<any>(null);

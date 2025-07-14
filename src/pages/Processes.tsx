@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { getStatusColor, getStatusLabel, formatCurrency } from "@/utils/processUtils";
 import type { Database } from "@/integrations/supabase/types";
 import { useState, useEffect } from "react";
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export default function Processes() {
-  const { isAuthenticated } = useTechnicalAuth();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProcess, setEditingProcess] = useState<any>(null);
