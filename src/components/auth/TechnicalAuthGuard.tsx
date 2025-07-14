@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { useTechnicalAuth } from '@/hooks/useTechnicalAuth';
 
 interface TechnicalAuthGuardProps {
@@ -18,7 +19,14 @@ export function TechnicalAuthGuard({ children, fallback }: TechnicalAuthGuardPro
   }
 
   if (!isAuthenticated) {
-    return fallback ? <>{fallback}</> : null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso restrito</h1>
+          <p className="text-gray-600">Esta área é exclusiva para a equipe técnica. Se você não faz parte da equipe autorizada, não poderá acessar este conteúdo.</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
