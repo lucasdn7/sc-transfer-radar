@@ -22,33 +22,48 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEffect } from 'react';
 
 export default function ProcessCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProcess, setSelectedProcess] = useState<any>(null);
+  const [selectedParcel, setSelectedParcel] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isParcelModalOpen, setIsParcelModalOpen] = useState(false);
   
-  const { data: processes, isLoading, error } = useQuery({
+  // Buscar processos
+  const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['process-calendar', currentDate.getFullYear(), currentDate.getMonth()],
     queryFn: async () => {
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
       const { data, error } = await supabase
         .from('processes')
-        .select(`
-          *,
-          municipalities(name),
-          regional_nuclei(name, acronym),
-          status_processos(nome, cor)
-        `)
+        .select(`*, municipalities(name), regional_nuclei(name, acronym), status_processos(nome, cor)`)
         .gte('vigencia_date', startOfMonth.toISOString().split('T')[0])
         .lte('vigencia_date', endOfMonth.toISOString().split('T')[0])
         .order('vigencia_date');
-      
       if (error) throw error;
       return data || [];
     },
+    refetchInterval: 10000, // Atualização automática a cada 10s
+  });
+
+  // Buscar parcelas pagas do mês
+  const { data: paidParcels = [] } = useQuery({
+    queryKey: ['calendar-parcels', currentDate.getFullYear(), currentDate.getMonth()],
+    queryFn: async () => {
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const { data, error } = await supabase
+        .from('process_parcels')
+        .select('*, process_id, payment_date, value, number, processes(*, municipalities(name), regional_nuclei(name, acronym))')
+        .gte('payment_date', startOfMonth.toISOString().split('T')[0])
+        .lte('payment_date', endOfMonth.toISOString().split('T')[0]);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
   });
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -89,6 +104,14 @@ export default function ProcessCalendar() {
     const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
       .toISOString().split('T')[0];
     return processes.filter(process => process.vigencia_date === dateStr);
+  };
+
+  // Função para obter parcelas pagas de um dia
+  const getParcelsForDay = (day: number) => {
+    if (!paidParcels) return [];
+    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+      .toISOString().split('T')[0];
+    return paidParcels.filter(parcel => parcel.payment_date === dateStr);
   };
 
   const getStatusColor = (status: string) => {
@@ -238,6 +261,13 @@ export default function ProcessCalendar() {
           </div>
         )}
 
+        {/* Legenda */}
+        <div className="flex gap-4 items-center mb-2">
+          <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-blue-500"></span> Processos Vigentes</div>
+          <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-green-500"></span> Parcelas Repassadas</div>
+          <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-red-500"></span> Processos Vencidos</div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -261,6 +291,7 @@ export default function ProcessCalendar() {
                 }
                 
                 const dayProcesses = getProcessesForDay(day);
+                const dayParcels = getParcelsForDay(day);
                 const isToday = new Date().getDate() === day && 
                               new Date().getMonth() === currentDate.getMonth() && 
                               new Date().getFullYear() === currentDate.getFullYear();
@@ -277,18 +308,29 @@ export default function ProcessCalendar() {
                     </div>
                     
                     <div className="space-y-1">
-                      {dayProcesses.map(process => (
-                        <div 
-                          key={process.id}
-                          className={`text-xs p-1 rounded cursor-pointer transition-colors ${getStatusColor(process.status_processos?.nome || '')} text-white hover:opacity-80`}
-                          onClick={() => handleProcessClick(process)}
+                      {/* Processos Vigentes */}
+                      {dayProcesses.map(process => {
+                        const isVencido = new Date(process.vigencia_date) < new Date();
+                        return (
+                          <div
+                            key={process.id}
+                            className={`text-xs p-1 rounded cursor-pointer transition-colors ${isVencido ? 'bg-red-500' : 'bg-blue-500'} text-white hover:opacity-80`}
+                            onClick={() => handleProcessClick(process)}
+                          >
+                            <div className="font-medium truncate">{process.process_number}</div>
+                            <div className="truncate opacity-90">{process.municipalities?.name || 'N/A'}</div>
+                          </div>
+                        );
+                      })}
+                      {/* Parcelas Repassadas */}
+                      {dayParcels.map(parcel => (
+                        <div
+                          key={parcel.id}
+                          className="text-xs p-1 rounded cursor-pointer transition-colors bg-green-500 text-white hover:opacity-80 border border-green-700"
+                          onClick={() => { setSelectedParcel(parcel); setIsParcelModalOpen(true); }}
                         >
-                          <div className="font-medium truncate">
-                            {process.process_number}
-                          </div>
-                          <div className="truncate opacity-90">
-                            {process.municipalities?.name || 'N/A'}
-                          </div>
+                          <div className="font-medium truncate">Parcela {parcel.number}</div>
+                          <div className="truncate opacity-90">R$ {formatCurrency(parcel.value)}</div>
                         </div>
                       ))}
                     </div>
@@ -357,6 +399,34 @@ export default function ProcessCalendar() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
         />
+        {/* Modal de parcela repassada */}
+        {selectedParcel && (
+          <Card className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md shadow-2xl">
+            <CardHeader>
+              <CardTitle>Detalhes da Parcela Repassada</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div><b>Valor repassado:</b> {formatCurrency(selectedParcel.value)}</div>
+              <div><b>Data do repasse:</b> {new Date(selectedParcel.payment_date).toLocaleDateString('pt-BR')}</div>
+              <div><b>Número da parcela:</b> {selectedParcel.number}</div>
+              <div><b>Município:</b> {selectedParcel.processes?.municipalities?.name || 'N/A'}</div>
+              <div><b>Núcleo Regional:</b> {selectedParcel.processes?.regional_nuclei?.name || 'N/A'}</div>
+              <div><b>Processo relacionado:</b> {selectedParcel.processes?.process_number || 'N/A'}</div>
+              {/* Relação do que já foi repassado e do que falta */}
+              <div>
+                <b>Já repassado para o município:</b> {/* Soma das parcelas pagas desse processo */}
+                {formatCurrency((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0))}
+              </div>
+              <div>
+                <b>Saldo a repassar:</b> {/* Valor concedente - já repassado */}
+                {formatCurrency((selectedParcel.processes?.total_concedente_value || 0) - ((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0)))}
+              </div>
+            </CardContent>
+            <div className="flex justify-end p-4 pt-0">
+              <Button onClick={() => setIsParcelModalOpen(false)}>Fechar</Button>
+            </div>
+          </Card>
+        )}
       </div>
     </TooltipProvider>
   );
