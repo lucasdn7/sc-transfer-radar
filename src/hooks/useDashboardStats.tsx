@@ -125,9 +125,9 @@ export function useDashboardStats() {
           value: data.value
         }));
 
-        // Nova lógica para indicadores de status - ATUALIZADA para usar "Executado" ou "Finalizado"
+        // Nova lógica para indicadores de status - ATUALIZADA para usar apenas "Executado/Finalizado"
         const statusNomes = {
-          concluido: ["Executado", "Finalizado"],
+          concluido: ["Executado/Finalizado"],
           execucao: [
             "Contrato assinado",
             "Em pagamento",
