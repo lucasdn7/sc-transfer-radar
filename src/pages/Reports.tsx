@@ -523,20 +523,20 @@ export default function Reports() {
       )}
 
       {/* Ações Rápidas */}
-      <Card>
+      <Card className="mt-8">
         <CardHeader>
           <CardTitle>Ações Rápidas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => generateReport('Relatório Completo')}>
+            <Button onClick={() => handleDownload('Relatório Completo', 'PDF')}>
               Relatório Completo (PDF)
             </Button>
-            <Button variant="outline" onClick={() => generateReport('Dados Exportação')}>
+            <Button variant="outline" onClick={() => handleDownload('Dados Exportação', 'XLSX')}>
               Exportar Dados (XLSX)
             </Button>
-            <Button variant="outline" onClick={() => generateReport('Resumo Executivo')}>
-              Resumo Executivo
+            <Button variant="outline" onClick={() => handleDownload('Resumo Executivo', 'CSV')}>
+              Resumo Executivo (CSV)
             </Button>
           </div>
         </CardContent>
