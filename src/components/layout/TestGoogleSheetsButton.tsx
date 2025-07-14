@@ -9,12 +9,19 @@ export function TestGoogleSheetsButton() {
     setLoading(true);
     try {
       const response = await fetch("/api/sheets/test");
-      const data = await response.json();
-      toast({
-        title: "Resultado do Teste Google Sheets",
-        description: <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(data, null, 2)}</pre>,
-        duration: 8000,
-      });
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+        toast({
+          title: "Resultado do Teste Google Sheets",
+          description: <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(data, null, 2)}</pre>,
+          duration: 8000,
+        });
+      } else {
+        const text = await response.text();
+        throw new Error("Resposta não é JSON: " + text.slice(0, 200));
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao testar Google Sheets",
