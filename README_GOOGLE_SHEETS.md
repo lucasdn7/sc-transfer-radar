@@ -2,10 +2,10 @@
 
 ## Configuração Rápida
 
-### 1. Definir ID da Planilha
+### 1. ✅ ID da Planilha Configurado
 ```javascript
 // Em api/sheets.js, linha 8:
-const SPREADSHEET_ID = 'SEU_ID_DA_PLANILHA_AQUI';
+const SPREADSHEET_ID = '1WNv8peVjLwu-iJ4vvQFJM5HwpRg8YEBlfchCTWtSojA';
 ```
 
 ### 2. Compartilhar Planilha
@@ -14,8 +14,8 @@ Compartilhe sua planilha com:
 formulario-de-processos@formulario-de-processos.iam.gserviceaccount.com
 ```
 
-### 3. Criar Aba "Página11"
-Certifique-se de que existe uma aba chamada "Página11" na planilha.
+### 3. ✅ Aba "GEINFRA" Configurada
+Certifique-se de que existe uma aba chamada "GEINFRA" na planilha.
 
 ### 4. Criar arquivo .env
 ```bash

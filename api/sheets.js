@@ -5,8 +5,8 @@ const path = require('path');
 const router = express.Router();
 
 // Configuração do Google Sheets
-const SPREADSHEET_ID = 'SUA_PLANILHA_ID'; // Para ser definido pelo usuário
-const SHEET_NAME = 'Página11';
+const SPREADSHEET_ID = '1WNv8peVjLwu-iJ4vvQFJM5HwpRg8YEBlfchCTWtSojA';
+const SHEET_NAME = 'GEINFRA';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 // Função para autenticar com Google Sheets

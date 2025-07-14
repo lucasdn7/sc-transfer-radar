@@ -57,9 +57,9 @@ VITE_API_URL=http://localhost:3001
 ### **Configuração Inicial**
 
 #### **1. Definir ID da Planilha**
-No arquivo `api/sheets.js`, alterar a linha:
+No arquivo `api/sheets.js`, a planilha já está configurada:
 ```javascript
-const SPREADSHEET_ID = 'SUA_PLANILHA_ID'; // ← Substituir pelo ID real
+const SPREADSHEET_ID = '1WNv8peVjLwu-iJ4vvQFJM5HwpRg8YEBlfchCTWtSojA';
 ```
 
 #### **2. Compartilhar a Planilha**
@@ -68,8 +68,8 @@ Compartilhar a planilha do Google Sheets com o e-mail da service account:
 formulario-de-processos@formulario-de-processos.iam.gserviceaccount.com
 ```
 
-#### **3. Criar Aba "Página11"**
-Certifique-se de que existe uma aba chamada "Página11" na planilha.
+#### **3. Criar Aba "GEINFRA"**
+Certifique-se de que existe uma aba chamada "GEINFRA" na planilha.
 
 ### **Executar o Sistema**
 
@@ -152,7 +152,7 @@ Insere dados na planilha do Google Sheets.
 {
   "message": "Dados salvos na planilha!",
   "timestampId": "2024-01-15T10:30:00.000Z",
-  "insertedRange": "Página11!A2:S2"
+       "insertedRange": "GEINFRA!A2:S2"
 }
 ```
 
@@ -162,9 +162,9 @@ Testa a conectividade com a planilha.
 **Resposta:**
 ```json
 {
-  "message": "Conexão com Google Sheets funcionando!",
-  "spreadsheetId": "SUA_PLANILHA_ID",
-  "sheetName": "Página11",
+     "message": "Conexão com Google Sheets funcionando!",
+   "spreadsheetId": "1WNv8peVjLwu-iJ4vvQFJM5HwpRg8YEBlfchCTWtSojA",
+   "sheetName": "GEINFRA",
   "testCell": ["Conteúdo da célula A1"]
 }
 ```
@@ -215,7 +215,7 @@ curl -X POST http://localhost:3001/api/sheets \
 5. **Nomes são buscados** (município e núcleo regional)
 6. **Dados são enviados** para a API `/api/sheets`
 7. **API autentica** com Google Sheets via service account
-8. **Dados são inseridos** na planilha (aba "Página11")
+8. **Dados são inseridos** na planilha (aba "GEINFRA")
 9. **Logs são gerados** no console (sucesso ou erro)
 
 ### **Tratamento de Erros:**
