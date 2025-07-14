@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParcelManager } from '@/components/processes/ParcelManager';
 import type { Database } from '@/integrations/supabase/types';
+import { enviarParaGoogleSheets } from '@/utils/googleSheetsUtils';
 
 interface ProcessFormData {
   process_number: string;
@@ -316,6 +317,34 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         title: isEdit ? 'Processo atualizado com sucesso' : 'Processo criado com sucesso',
         description: isEdit ? 'As informações do processo foram atualizadas.' : 'O novo processo foi adicionado ao sistema.',
       });
+
+      // Enviar dados para Google Sheets após sucesso no Supabase
+      try {
+        await enviarParaGoogleSheets({
+          id: processId,
+          process_number: data.process_number,
+          object: data.object,
+          portaria_number: data.portaria_number,
+          total_portaria_value: data.total_portaria_value,
+          total_concedente_value: data.total_concedente_value,
+          total_proponente_value: data.total_proponente_value,
+          licitado_value: data.licitado_value,
+          vigencia_date: data.vigencia_date,
+          status_id: statusId,
+          municipality_id: municipalityId,
+          regional_nucleus_id: regionalNucleusId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          address: data.address,
+          link_plataforma_governo: data.link_plataforma_governo,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        console.log('Dados enviados para o Google Sheets');
+      } catch (sheetsError) {
+        console.log('Erro ao enviar para o Google Sheets');
+        // Não interrompe o fluxo principal em caso de erro no Google Sheets
+      }
 
       onSuccess();
     } catch (error: any) {
