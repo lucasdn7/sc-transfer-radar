@@ -57,8 +57,8 @@ export function ProcessInsights() {
           <div className="text-2xl font-bold">{completionRate.toFixed(1)}%</div>
           <Progress value={completionRate} className="mt-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {completed} de {totalProcesses} processos finalizados<br/>
-            <span className="italic">processos que já foram totalmente finalizados e possuem o status "Processo Finalizado".</span>
+            {completed} de {totalProcesses} processos concluídos<br/>
+            <span className="italic">Considera apenas processos com status "Executado" ou "Finalizado".</span>
           </p>
         </CardContent>
       </Card>

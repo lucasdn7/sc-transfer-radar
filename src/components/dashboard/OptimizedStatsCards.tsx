@@ -100,10 +100,31 @@ export function OptimizedStatsCards() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {statsData.map((stat, index) => (
-        <StatCard key={index} {...stat} />
-      ))}
-    </div>
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statsData.map((stat, index) => (
+          <StatCard key={index} {...stat} />
+        ))}
+      </div>
+      {/* Novos cards solicitados */}
+      <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-2">
+        <StatCard
+          title="Municípios com Repasse Concluído"
+          value={stats?.repasseStats?.municipiosRepasseConcluido?.toLocaleString('pt-BR') || '0'}
+          change="Valor repassado igual ao concedente"
+          trend="up"
+          icon={TrendingUp}
+          color="text-green-700"
+        />
+        <StatCard
+          title="Municípios com 1ª Parcela Paga (Parcial)"
+          value={stats?.repasseStats?.municipiosPrimeiraParcela?.toLocaleString('pt-BR') || '0'}
+          change="Já receberam parte do valor, mas ainda há saldo a repassar"
+          trend="neutral"
+          icon={TrendingDown}
+          color="text-yellow-600"
+        />
+      </div>
+    </>
   );
 }
