@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { useTechnicalAuth } from "@/hooks/useTechnicalAuth";
+import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User, Shield, Menu, X, Home, FileText, Building, MapPin, BarChart3, Settings } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ const technicalNavItems = [
 
 export function TopHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isAuthenticated, signOut } = useTechnicalAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
