@@ -96,17 +96,59 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
     }
   };
 
-  const addParcel = () => {
+  const addParcel = async () => {
     const newParcel: Parcel = {
       parcel_number: parcels.length + 1,
       value: 0,
       payment_date: null,
     };
-    
-    setParcels(prev => [...prev, newParcel]);
+
+    // Se estamos editando um processo existente, salvar no banco imediatamente
+    if (isEdit && processId) {
+      try {
+        const { data, error } = await supabase
+          .from('process_parcels')
+          .insert([{
+            process_id: processId,
+            parcel_number: newParcel.parcel_number,
+            value: newParcel.value,
+            payment_date: newParcel.payment_date,
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Adicionar a parcela com o ID retornado do banco
+        const savedParcel: Parcel = {
+          id: data.id,
+          parcel_number: data.parcel_number,
+          value: data.value,
+          payment_date: data.payment_date,
+          process_id: data.process_id,
+        };
+
+        setParcels(prev => [...prev, savedParcel]);
+
+        toast({
+          title: "Parcela adicionada",
+          description: `Parcela ${newParcel.parcel_number} foi adicionada com sucesso.`,
+        });
+      } catch (error) {
+        console.error('Erro ao adicionar parcela:', error);
+        toast({
+          title: "Erro ao adicionar parcela",
+          description: "Não foi possível adicionar a parcela ao banco de dados.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Se não está editando, apenas adiciona ao estado local
+      setParcels(prev => [...prev, newParcel]);
+    }
   };
 
-  const removeParcel = (index: number) => {
+  const removeParcel = async (index: number) => {
     setParcels(prev => {
       // Não permitir remoção se há apenas uma parcela
       if (prev.length <= 1) {
@@ -118,6 +160,37 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
         return prev;
       }
       
+      return prev;
+    });
+
+    // Se estamos editando um processo existente, deletar do banco também
+    const parcelToRemove = parcels[index];
+    if (isEdit && parcelToRemove.id && processId) {
+      try {
+        const { error } = await supabase
+          .from('process_parcels')
+          .delete()
+          .eq('id', parcelToRemove.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Parcela removida",
+          description: `Parcela ${parcelToRemove.parcel_number} foi removida com sucesso.`,
+        });
+      } catch (error) {
+        console.error('Erro ao remover parcela do banco:', error);
+        toast({
+          title: "Erro ao remover parcela",
+          description: "Não foi possível remover a parcela do banco de dados.",
+          variant: "destructive",
+        });
+        return; // Não remove do estado local se houve erro no banco
+      }
+    }
+
+    // Remove do estado local e reajusta números
+    setParcels(prev => {
       const newParcels = prev.filter((_, i) => i !== index);
       // Reajustar números das parcelas
       return newParcels.map((parcel, i) => ({
@@ -170,9 +243,10 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
 
   const updateParcelValue = async (index: number, value: number) => {
     const parcel = parcels[index];
+    const previousValue = parcel.value;
     updateParcel(index, 'value', value);
 
-    // Se estamos editando um processo existente, atualizar no banco
+    // Se estamos editando um processo existente E a parcela tem ID (já existe no banco), atualizar no banco
     if (isEdit && parcel.id && processId) {
       try {
         const { error } = await supabase
@@ -189,7 +263,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
           variant: "destructive",
         });
         // Reverter mudança em caso de erro
-        updateParcel(index, 'value', parcel.value);
+        updateParcel(index, 'value', previousValue);
       }
     }
   };
@@ -217,6 +291,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
         <CardTitle className="flex items-center justify-between">
           <span>Gestão de Parcelas</span>
           <Button 
+            type="button"
             onClick={addParcel} 
             variant="outline" 
             size="sm"
@@ -254,6 +329,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
             <div className="text-center py-8 text-gray-500">
               <p>Nenhuma parcela cadastrada</p>
               <Button 
+                type="button"
                 onClick={addParcel} 
                 variant="outline" 
                 className="mt-2"
@@ -316,6 +392,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
                   {/* Linha 4: Botão de remover - sempre visível, mas desabilitado se só há uma parcela */}
                   <div className="w-full sm:w-auto flex justify-end">
                     <Button
+                      type="button"
                       onClick={() => removeParcel(index)}
                       variant="outline"
                       size="sm"

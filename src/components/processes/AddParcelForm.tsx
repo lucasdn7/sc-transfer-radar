@@ -86,6 +86,7 @@ export function AddParcelForm({ processId, existingParcelsCount, onParcelAdded }
           />
         </div>
         <Button 
+          type="button"
           onClick={addParcels} 
           disabled={loading || newParcels.value <= 0}
           className="mb-0"
