@@ -22,6 +22,7 @@ import Auth from "./pages/Auth";
 import TechnicalAuth from "./pages/TechnicalAuth";
 import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
+import { AuthProvider } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient();
 
@@ -56,35 +57,37 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, { hasError:
 const App = () => (
   <GlobalErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TechnicalAuthProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/processes" element={<Processes />} />
-                  <Route path="/process-timeline" element={<ProcessTimeline />} />
-                  <Route path="/process-calendar" element={<ProcessCalendar />} />
-                  <Route path="/municipalities" element={<Municipalities />} />
-                  <Route path="/regional-nuclei" element={<RegionalNuclei />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/map" element={<Map />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/app-settings" element={<AppSettings />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/technical-auth" element={<TechnicalAuth />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AppLayout>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </TechnicalAuthProvider>
+      <AuthProvider>
+        <TechnicalAuthProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/processes" element={<Processes />} />
+                    <Route path="/process-timeline" element={<ProcessTimeline />} />
+                    <Route path="/process-calendar" element={<ProcessCalendar />} />
+                    <Route path="/municipalities" element={<Municipalities />} />
+                    <Route path="/regional-nuclei" element={<RegionalNuclei />} />
+                    <Route path="/documents" element={<Documents />} />
+                    <Route path="/map" element={<Map />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/app-settings" element={<AppSettings />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/technical-auth" element={<TechnicalAuth />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </ThemeProvider>
+        </TechnicalAuthProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </GlobalErrorBoundary>
 );
