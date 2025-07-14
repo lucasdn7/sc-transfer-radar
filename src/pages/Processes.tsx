@@ -48,6 +48,19 @@ export default function Processes() {
     },
   });
 
+  // Buscar status do Supabase para o filtro
+  const { data: statusList = [] } = useQuery({
+    queryKey: ['status-processos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('status_processos')
+        .select('nome')
+        .order('nome', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   // Filtros aplicados
   const filteredProcesses = (processes || [])
@@ -62,6 +75,9 @@ export default function Processes() {
       )
     )
     .sort((a, b) => {
+      if (sortOrder === 'alpha') {
+        return String(a[sortField] || '').localeCompare(String(b[sortField] || ''));
+      }
       const aValue = a[sortField] || 0;
       const bValue = b[sortField] || 0;
       return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
@@ -194,11 +210,9 @@ export default function Processes() {
                 <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Em Análise">Em Análise</SelectItem>
-                  <SelectItem value="Aprovados">Aprovados</SelectItem>
-                  <SelectItem value="Em Execução">Em Execução</SelectItem>
-                  <SelectItem value="Finalizados">Finalizados</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                  {statusList.map((s: any) => (
+                    <SelectItem key={s.nome} value={s.nome}>{s.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <label className="text-xs font-semibold">Município</label>
@@ -249,6 +263,7 @@ export default function Processes() {
                 <SelectContent>
                   <SelectItem value="desc">Maior para menor</SelectItem>
                   <SelectItem value="asc">Menor para maior</SelectItem>
+                  <SelectItem value="alpha">Alfabética (A-Z)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
