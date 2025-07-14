@@ -34,7 +34,7 @@ export default function Dashboard() {
       {/* Gráficos Personalizáveis */}
       <DashboardCharts />
 
-      <ProcessInsights />
+      {/* <ProcessInsights /> removido para evitar duplicidade de cards */}
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">

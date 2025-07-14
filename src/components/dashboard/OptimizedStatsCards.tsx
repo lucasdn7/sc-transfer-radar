@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/utils/processUtils";
 
@@ -99,6 +99,69 @@ export function OptimizedStatsCards() {
     }
   ];
 
+  // Cards de repasse
+  const repasseCards = [
+    {
+      title: "Municípios com Repasse Concluído",
+      value: stats?.repasseStats?.municipiosRepasseConcluido?.toLocaleString('pt-BR') || '0',
+      change: "Valor repassado igual ao concedente",
+      trend: "up" as const,
+      icon: TrendingUp,
+      color: "text-green-700"
+    },
+    {
+      title: "Municípios com 1ª Parcela Paga (Parcial)",
+      value: stats?.repasseStats?.municipiosPrimeiraParcela?.toLocaleString('pt-BR') || '0',
+      change: "Já receberam parte do valor, mas ainda há saldo a repassar",
+      trend: "neutral" as const,
+      icon: TrendingDown,
+      color: "text-yellow-600"
+    }
+  ];
+
+  // Cards de insights
+  const totalProcesses = stats?.totalProcesses || 0;
+  const completed = stats?.executionStats?.completed || 0;
+  const inProgress = stats?.executionStats?.inProgress || 0;
+  const notStarted = stats?.executionStats?.notStarted || 0;
+  const completionRate = totalProcesses > 0 ? (completed / totalProcesses) * 100 : 0;
+  const executionRate = totalProcesses > 0 ? (inProgress / totalProcesses) * 100 : 0;
+  const notStartedRate = totalProcesses > 0 ? (notStarted / totalProcesses) * 100 : 0;
+  const insightsCards = [
+    {
+      title: "Taxa de Conclusão",
+      value: `${completionRate.toFixed(1)}%`,
+      change: `${completed} de ${totalProcesses} processos concluídos\n(Apenas status 'Executado' ou 'Finalizado')`,
+      trend: "up" as const,
+      icon: BarChart3,
+      color: "text-blue-700"
+    },
+    {
+      title: "Em Execução",
+      value: `${executionRate.toFixed(1)}%`,
+      change: `${inProgress} processos em andamento\n(Contrato assinado, Em pagamento, Termo de aditivo, Prestação de contas)`,
+      trend: "neutral" as const,
+      icon: TrendingUp,
+      color: "text-yellow-700"
+    },
+    {
+      title: "A Iniciar",
+      value: `${notStartedRate.toFixed(1)}%`,
+      change: `${notStarted} processos a iniciar\n(Nenhuma etapa executiva iniciada)`,
+      trend: "neutral" as const,
+      icon: FileText,
+      color: "text-gray-700"
+    },
+    {
+      title: "Valor Médio",
+      value: formatCurrency(totalProcesses > 0 ? (stats?.totalValue || 0) / totalProcesses : 0),
+      change: "Valor médio por processo",
+      trend: "neutral" as const,
+      icon: DollarSign,
+      color: "text-green-700"
+    }
+  ];
+
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -106,24 +169,11 @@ export function OptimizedStatsCards() {
           <StatCard key={index} {...stat} />
         ))}
       </div>
-      {/* Novos cards solicitados */}
-      <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-2">
-        <StatCard
-          title="Municípios com Repasse Concluído"
-          value={stats?.repasseStats?.municipiosRepasseConcluido?.toLocaleString('pt-BR') || '0'}
-          change="Valor repassado igual ao concedente"
-          trend="up"
-          icon={TrendingUp}
-          color="text-green-700"
-        />
-        <StatCard
-          title="Municípios com 1ª Parcela Paga (Parcial)"
-          value={stats?.repasseStats?.municipiosPrimeiraParcela?.toLocaleString('pt-BR') || '0'}
-          change="Já receberam parte do valor, mas ainda há saldo a repassar"
-          trend="neutral"
-          icon={TrendingDown}
-          color="text-yellow-600"
-        />
+      {/* Cards de repasse e insights juntos */}
+      <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-4">
+        {repasseCards.concat(insightsCards).map((stat, index) => (
+          <StatCard key={index} {...stat} />
+        ))}
       </div>
     </>
   );
