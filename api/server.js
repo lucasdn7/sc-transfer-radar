@@ -1,6 +1,6 @@
-const express = require('express');
-const cors = require('cors');
-const sheetsRoute = require('./sheets');
+import express from 'express';
+import cors from 'cors';
+import sheetsRoute from './sheets.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -25,4 +25,4 @@ app.listen(PORT, () => {
   console.log(`📊 Endpoint Google Sheets: http://localhost:${PORT}/api/sheets`);
 });
 
-module.exports = app;
+export default app;

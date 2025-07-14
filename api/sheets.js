@@ -1,6 +1,11 @@
-const express = require('express');
-const { google } = require('googleapis');
-const path = require('path');
+import express from 'express';
+import { google } from 'googleapis';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Para obter __dirname em ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -181,4 +186,4 @@ router.get('/sheets/test', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
