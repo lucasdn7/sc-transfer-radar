@@ -27,7 +27,8 @@ export function ProcessList() {
     regionalNucleus: "",
     minValue: "",
     maxValue: "",
-    deadline: null as Date | null
+    deadline: null as Date | null,
+    vigenciaStatus: 'all' as string // novo filtro
   });
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -62,6 +63,18 @@ export function ProcessList() {
       }
       if (advancedFilters.deadline) {
         query = query.lte('vigencia_date', advancedFilters.deadline.toISOString().split('T')[0]);
+      }
+      // Filtro de vigência
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const plus30Str = plus30.toISOString().split('T')[0];
+      if (advancedFilters.vigenciaStatus === 'vencidos') {
+        query = query.lt('vigencia_date', todayStr);
+      } else if (advancedFilters.vigenciaStatus === 'vigentes') {
+        query = query.gte('vigencia_date', todayStr);
+      } else if (advancedFilters.vigenciaStatus === 'proximos') {
+        query = query.gte('vigencia_date', todayStr).lte('vigencia_date', plus30Str);
       }
 
       const { data, error, count } = await query;
