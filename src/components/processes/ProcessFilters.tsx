@@ -25,6 +25,7 @@ interface ProcessFiltersProps {
     minValue: string;
     maxValue: string;
     deadline: Date | null;
+    vigenciaStatus?: string; // novo filtro
   };
   onFiltersChange?: (filters: any) => void;
 }
@@ -173,6 +174,20 @@ export function ProcessFilters({
                 value={filters.maxValue}
                 onChange={(e) => handleFilterChange('maxValue', e.target.value)}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Prazo de Vigência</label>
+              <Select value={filters.vigenciaStatus || 'all'} onValueChange={v => handleFilterChange('vigenciaStatus', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="vencidos">Vencidos</SelectItem>
+                  <SelectItem value="vigentes">Vigentes</SelectItem>
+                  <SelectItem value="proximos">Próximos do vencimento (30 dias)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}

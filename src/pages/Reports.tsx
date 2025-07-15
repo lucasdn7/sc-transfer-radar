@@ -118,6 +118,7 @@ export default function Reports() {
   const [proponentValue, setProponentValue] = useState('');
   const [sortField, setSortField] = useState('total_concedente_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [vigenciaStatus, setVigenciaStatus] = useState('all');
 
   const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
     searchTerm: '',
@@ -142,6 +143,19 @@ export default function Reports() {
     if (proponentValue) {
       data = data.filter(p => (p.total_proponente_value || 0) >= Number(proponentValue));
     }
+    // Filtro de vigência
+    const today = new Date();
+    const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (vigenciaStatus === 'vencidos') {
+      data = data.filter(p => new Date(p.vigencia_date) < today);
+    } else if (vigenciaStatus === 'vigentes') {
+      data = data.filter(p => new Date(p.vigencia_date) >= today);
+    } else if (vigenciaStatus === 'proximos') {
+      data = data.filter(p => {
+        const d = new Date(p.vigencia_date);
+        return d >= today && d <= plus30;
+      });
+    }
     // Ordenação
     data = data.sort((a, b) => {
       const aValue = a[sortField] || 0;
@@ -149,7 +163,7 @@ export default function Reports() {
       return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
     });
     return data;
-  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder]);
+  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder, vigenciaStatus]);
 
   // Função para filtrar os campos exportados, tratando nulos e aninhados
   function filterFields(data: any[], fields: string[]) {
@@ -415,6 +429,20 @@ export default function Reports() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Valor Proponente (mínimo)</label>
               <input type="number" className="input input-bordered w-full" value={proponentValue} onChange={e => setProponentValue(e.target.value)} placeholder="Valor mínimo" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Prazo de Vigência</label>
+              <Select value={vigenciaStatus} onValueChange={setVigenciaStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="vencidos">Vencidos</SelectItem>
+                  <SelectItem value="vigentes">Vigentes</SelectItem>
+                  <SelectItem value="proximos">Próximos do vencimento (30 dias)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {/* Outros filtros relevantes podem ser adicionados aqui */}
           </div>
