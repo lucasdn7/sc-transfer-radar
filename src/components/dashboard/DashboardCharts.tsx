@@ -29,7 +29,14 @@ const CHART_TYPES = [
 ];
 
 export function DashboardCharts() {
-  const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics();
+  const { 
+    metricsData, 
+    isLoading, 
+    valoresPagosPorMes = [], 
+    valoresPagosPorAno = [], 
+    valoresEmpilhadosPorMunicipio = [], 
+    valoresEmpilhadosPorNucleo = [] 
+  } = useDashboardMetrics();
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
