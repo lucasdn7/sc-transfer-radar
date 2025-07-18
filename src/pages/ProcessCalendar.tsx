@@ -57,7 +57,7 @@ export default function ProcessCalendar() {
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       const { data, error } = await supabase
         .from('process_parcels')
-        .select('*, process_id, payment_date, value, number, processes(*, municipalities(name), regional_nuclei(name, acronym))')
+        .select('*, processes(id, process_number, municipalities(name), regional_nuclei(name, acronym))')
         .gte('payment_date', startOfMonth.toISOString().split('T')[0])
         .lte('payment_date', endOfMonth.toISOString().split('T')[0]);
       if (error) throw error;
@@ -329,7 +329,7 @@ export default function ProcessCalendar() {
                           className="text-xs p-1 rounded cursor-pointer transition-colors bg-green-500 text-white hover:opacity-80 border border-green-700"
                           onClick={() => { setSelectedParcel(parcel); setIsParcelModalOpen(true); }}
                         >
-                          <div className="font-medium truncate">Parcela {parcel.number}</div>
+                          <div className="font-medium truncate">Parcela {parcel.parcel_number}</div>
                           <div className="truncate opacity-90">R$ {formatCurrency(parcel.value)}</div>
                         </div>
                       ))}
@@ -408,7 +408,7 @@ export default function ProcessCalendar() {
             <CardContent className="space-y-2">
               <div><b>Valor repassado:</b> {formatCurrency(selectedParcel.value)}</div>
               <div><b>Data do repasse:</b> {new Date(selectedParcel.payment_date).toLocaleDateString('pt-BR')}</div>
-              <div><b>Número da parcela:</b> {selectedParcel.number}</div>
+              <div><b>Número da parcela:</b> {selectedParcel.parcel_number}</div>
               <div><b>Município:</b> {selectedParcel.processes?.municipalities?.name || 'N/A'}</div>
               <div><b>Núcleo Regional:</b> {selectedParcel.processes?.regional_nuclei?.name || 'N/A'}</div>
               <div><b>Processo relacionado:</b> {selectedParcel.processes?.process_number || 'N/A'}</div>
