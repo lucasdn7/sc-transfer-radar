@@ -57,7 +57,7 @@ export default function ProcessCalendar() {
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
       const { data, error } = await supabase
         .from('process_parcels')
-        .select('*, processes(id, process_number, municipalities(name), regional_nuclei(name, acronym))')
+        .select('*, processes(id, process_number, total_concedente_value, municipalities(name), regional_nuclei(name, acronym), process_parcels(id, parcel_number, value, payment_date))')
         .gte('payment_date', startOfMonth.toISOString().split('T')[0])
         .lte('payment_date', endOfMonth.toISOString().split('T')[0]);
       if (error) throw error;
@@ -402,13 +402,18 @@ export default function ProcessCalendar() {
         {/* Modal de parcela repassada */}
         {isParcelModalOpen && selectedParcel && (
           (() => {
+            // Corrigir para usar as parcelas do processo relacionadas
             const allParcels = selectedParcel.processes?.process_parcels || [];
             const totalParcels = allParcels.length;
+            // Ordenar por número da parcela
+            allParcels.sort((a: any, b: any) => (a.parcel_number || 0) - (b.parcel_number || 0));
+            // Parcelas pagas
             const paidParcels = allParcels.filter((p: any) => p.payment_date);
             const paidCount = paidParcels.length;
             const paidValue = paidParcels.reduce((sum: number, p: any) => sum + (p.value || 0), 0);
             const concedenteValue = selectedParcel.processes?.total_concedente_value || 0;
             const saldoARepassar = concedenteValue - paidValue;
+            // Descobrir o índice da parcela atual (1-based)
             const parcelaAtual = selectedParcel.parcel_number;
             return (
               <div className="fixed z-50 left-0 top-0 w-full h-full flex items-center justify-center bg-black bg-opacity-40">
