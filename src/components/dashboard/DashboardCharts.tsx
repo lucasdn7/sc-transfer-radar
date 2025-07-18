@@ -32,11 +32,15 @@ export function DashboardCharts() {
   const { 
     metricsData, 
     isLoading, 
-    valoresPagosPorMes = [], 
-    valoresPagosPorAno = [], 
-    valoresEmpilhadosPorMunicipio = [], 
-    valoresEmpilhadosPorNucleo = [] 
+    valoresPagosPorMes: valoresPagosPorMesHook = [], 
+    valoresPagosPorAno: valoresPagosPorAnoHook = [], 
+    valoresEmpilhadosPorMunicipio: valoresEmpilhadosPorMunicipioHook = [], 
+    valoresEmpilhadosPorNucleo: valoresEmpilhadosPorNucleoHook = [] 
   } = useDashboardMetrics();
+  const valoresPagosPorMes = valoresPagosPorMesHook;
+  const valoresPagosPorAno = valoresPagosPorAnoHook;
+  const valoresEmpilhadosPorMunicipio = valoresEmpilhadosPorMunicipioHook;
+  const valoresEmpilhadosPorNucleo = valoresEmpilhadosPorNucleoHook;
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
