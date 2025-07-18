@@ -7,6 +7,7 @@ import { Download, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280", "#ef4444"];
 
@@ -32,6 +33,7 @@ export function DashboardCharts() {
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
+  const [tab, setTab] = useState("mes");
 
   // Prepara os dados para os gráficos conforme seleção
   const chartData = useMemo(() => {
@@ -129,101 +131,96 @@ export function DashboardCharts() {
           )}
         </CardContent>
       </Card>
-      {/* NOVOS GRÁFICOS */}
-      {/* Gráfico de valores pagos por mês */}
+      {/* NOVO CARD UNIFICADO DE GRÁFICOS */}
       <Card className="w-full mt-6">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Valores Pagos por Mês</CardTitle>
-          <div className="flex gap-2">
-            <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'pdf')}><FileText size={18} /></button>
-            <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'xls')}><Download size={18} /></button>
-          </div>
+          <CardTitle className="text-lg font-semibold">Análise de Valores Pagos e a Repassar</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={valoresPagosPorMes}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
-                <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
-                <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Gráfico de valores pagos por ano */}
-      <Card className="w-full mt-6">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Valores Pagos por Ano</CardTitle>
-          <div className="flex gap-2">
-            <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'pdf')}><FileText size={18} /></button>
-            <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'xls')}><Download size={18} /></button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={valoresPagosPorAno}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
-                <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
-                <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Gráfico empilhado por município */}
-      <Card className="w-full mt-6">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Valores Repassados e a Repassar por Município</CardTitle>
-          <div className="flex gap-2">
-            <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'pdf')}><FileText size={18} /></button>
-            <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'xls')}><Download size={18} /></button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={valoresEmpilhadosPorMunicipio} stackOffset="none">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
-                <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
-                <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Gráfico empilhado por núcleo */}
-      <Card className="w-full mt-6">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg font-semibold">Valores Repassados e a Repassar por Núcleo Regional</CardTitle>
-          <div className="flex gap-2">
-            <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'pdf')}><FileText size={18} /></button>
-            <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'xls')}><Download size={18} /></button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={valoresEmpilhadosPorNucleo} stackOffset="none">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
-                <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
-                <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="mes">Por Mês</TabsTrigger>
+              <TabsTrigger value="ano">Por Ano</TabsTrigger>
+              <TabsTrigger value="municipio">Empilhado por Município</TabsTrigger>
+              <TabsTrigger value="nucleo">Empilhado por Núcleo</TabsTrigger>
+            </TabsList>
+            {/* Por Mês */}
+            <TabsContent value="mes">
+              <div className="flex justify-end mb-2 gap-2">
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'xls')}><Download size={18} /></button>
+              </div>
+              <div className="w-full h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={valoresPagosPorMes}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
+                    <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
+                    <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+            {/* Por Ano */}
+            <TabsContent value="ano">
+              <div className="flex justify-end mb-2 gap-2">
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'xls')}><Download size={18} /></button>
+              </div>
+              <div className="w-full h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={valoresPagosPorAno}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
+                    <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
+                    <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+            {/* Empilhado por Município */}
+            <TabsContent value="municipio">
+              <div className="flex justify-end mb-2 gap-2">
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'xls')}><Download size={18} /></button>
+              </div>
+              <div className="w-full h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[...valoresEmpilhadosPorMunicipio]} stackOffset="none">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
+                    <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
+                    <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+            {/* Empilhado por Núcleo */}
+            <TabsContent value="nucleo">
+              <div className="flex justify-end mb-2 gap-2">
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'xls')}><Download size={18} /></button>
+              </div>
+              <div className="w-full h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[...valoresEmpilhadosPorNucleo]} stackOffset="none">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
+                    <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
+                    <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </>
