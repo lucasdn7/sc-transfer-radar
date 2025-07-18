@@ -138,8 +138,19 @@ export function useProcessParcels(processId: number) {
   };
 
   useEffect(() => {
-    if (processId) {
+    if (processId && processId !== 0) {
       fetchParcels();
+    } else {
+      setParcels([]);
+      setSummary({
+        totalValue: 0,
+        paidValue: 0,
+        remainingValue: 0,
+        totalParcels: 0,
+        paidParcels: 0,
+        progressText: '0/0',
+        progressPercentage: 0
+      });
     }
   }, [processId]);
 
