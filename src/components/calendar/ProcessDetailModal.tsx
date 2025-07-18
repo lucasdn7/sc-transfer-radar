@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Calendar, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
 import { useNavigate } from "react-router-dom";
+import { useProcessParcels } from "@/hooks/useProcessParcels";
+import { formatCurrencyBR } from "@/utils/parcelUtils";
 
 interface ProcessDetailModalProps {
   process: any;
@@ -14,6 +16,7 @@ interface ProcessDetailModalProps {
 
 export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailModalProps) {
   const navigate = useNavigate();
+  const { summary } = useProcessParcels(process.id);
 
   if (!process) return null;
 
@@ -115,6 +118,31 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
                   <div>{formatCurrency(process.licitado_value)}</div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Resumo das Parcelas */}
+          <div className="space-y-2">
+            <h4 className="font-medium">Resumo das Parcelas</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Parcelas Pagas:</span>
+                <div className="text-blue-600 font-bold">
+                  {summary.progressText}
+                </div>
+              </div>
+              <div>
+                <span className="font-medium">Valor Repassado:</span>
+                <div className="text-green-600 font-bold">
+                  {formatCurrencyBR(summary.paidValue)}
+                </div>
+              </div>
+              <div>
+                <span className="font-medium">Saldo a Repassar:</span>
+                <div className="text-orange-600 font-bold">
+                  {formatCurrencyBR(summary.remainingValue)}
+                </div>
+              </div>
             </div>
           </div>
 
