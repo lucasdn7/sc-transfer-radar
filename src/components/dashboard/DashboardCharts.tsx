@@ -37,10 +37,7 @@ export function DashboardCharts() {
     valoresEmpilhadosPorMunicipio: valoresEmpilhadosPorMunicipioHook = [], 
     valoresEmpilhadosPorNucleo: valoresEmpilhadosPorNucleoHook = [] 
   } = useDashboardMetrics();
-  const valoresPagosPorMes = valoresPagosPorMesHook;
-  const valoresPagosPorAno = valoresPagosPorAnoHook;
-  const valoresEmpilhadosPorMunicipio = valoresEmpilhadosPorMunicipioHook;
-  const valoresEmpilhadosPorNucleo = valoresEmpilhadosPorNucleoHook;
+  // Remover shadowing, usar diretamente os nomes do hook
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
@@ -158,12 +155,12 @@ export function DashboardCharts() {
             {/* Por Mês */}
             <TabsContent value="mes">
               <div className="flex justify-end mb-2 gap-2">
-                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'pdf')}><FileText size={18} /></button>
-                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorMes, ['name', 'value'], 'Valores Pagos por Mês', 'xls')}><Download size={18} /></button>
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorMesHook, ['name', 'value'], 'Valores Pagos por Mês', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorMesHook, ['name', 'value'], 'Valores Pagos por Mês', 'xls')}><Download size={18} /></button>
               </div>
               <div className="w-full h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresPagosPorMes}>
+                  <BarChart data={valoresPagosPorMesHook}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -177,12 +174,12 @@ export function DashboardCharts() {
             {/* Por Ano */}
             <TabsContent value="ano">
               <div className="flex justify-end mb-2 gap-2">
-                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'pdf')}><FileText size={18} /></button>
-                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorAno, ['name', 'value'], 'Valores Pagos por Ano', 'xls')}><Download size={18} /></button>
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresPagosPorAnoHook, ['name', 'value'], 'Valores Pagos por Ano', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresPagosPorAnoHook, ['name', 'value'], 'Valores Pagos por Ano', 'xls')}><Download size={18} /></button>
               </div>
               <div className="w-full h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresPagosPorAno}>
+                  <BarChart data={valoresPagosPorAnoHook}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -196,12 +193,12 @@ export function DashboardCharts() {
             {/* Empilhado por Município */}
             <TabsContent value="municipio">
               <div className="flex justify-end mb-2 gap-2">
-                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'pdf')}><FileText size={18} /></button>
-                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipio, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'xls')}><Download size={18} /></button>
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipioHook, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorMunicipioHook, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Município', 'xls')}><Download size={18} /></button>
               </div>
               <div className="w-full h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[...valoresEmpilhadosPorMunicipio]} stackOffset="none">
+                  <BarChart data={[...valoresEmpilhadosPorMunicipioHook]} stackOffset="none">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -215,12 +212,12 @@ export function DashboardCharts() {
             {/* Empilhado por Núcleo */}
             <TabsContent value="nucleo">
               <div className="flex justify-end mb-2 gap-2">
-                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'pdf')}><FileText size={18} /></button>
-                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorNucleo, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'xls')}><Download size={18} /></button>
+                <button title="Exportar PDF" className="text-gray-400 hover:text-blue-600" onClick={() => exportChart(valoresEmpilhadosPorNucleoHook, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'pdf')}><FileText size={18} /></button>
+                <button title="Exportar Excel" className="text-gray-400 hover:text-green-600" onClick={() => exportChart(valoresEmpilhadosPorNucleoHook, ['name', 'repassado', 'aRepassar'], 'Valores Empilhados por Núcleo', 'xls')}><Download size={18} /></button>
               </div>
               <div className="w-full h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[...valoresEmpilhadosPorNucleo]} stackOffset="none">
+                  <BarChart data={[...valoresEmpilhadosPorNucleoHook]} stackOffset="none">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
