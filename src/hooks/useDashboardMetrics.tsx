@@ -219,7 +219,75 @@ export function useDashboardMetrics() {
       }, {} as Record<string, { name: string; value: number }>)
     ).filter(item => item.value > 0);
 
-    return metrics;
+    // --- NOVOS DADOS PARA GRÁFICOS DE PARCELAS PAGAS ---
+    // Valores pagos por mês (todas as parcelas pagas)
+    const parcelasPagas: { value: number; payment_date: string; municipio?: string; nucleo?: string; concedente?: number }[] = [];
+    processesData.forEach(p => {
+      (p.process_parcels || []).forEach(parcel => {
+        if (parcel.payment_date) {
+          parcelasPagas.push({
+            value: parcel.value,
+            payment_date: parcel.payment_date,
+            municipio: p.municipalities?.name || 'Não definido',
+            nucleo: p.regional_nuclei?.name || 'Não definido',
+            concedente: p.total_concedente_value || 0
+          });
+        }
+      });
+    });
+    // Por mês
+    const valoresPagosPorMes: { name: string; value: number }[] = [];
+    parcelasPagas.forEach(p => {
+      const d = new Date(p.payment_date);
+      const key = `${('0'+(d.getMonth()+1)).slice(-2)}/${d.getFullYear()}`;
+      const found = valoresPagosPorMes.find(v => v.name === key);
+      if (found) found.value += p.value;
+      else valoresPagosPorMes.push({ name: key, value: p.value });
+    });
+    valoresPagosPorMes.sort((a, b) => {
+      const [ma, ya] = a.name.split('/').map(Number);
+      const [mb, yb] = b.name.split('/').map(Number);
+      return ya !== yb ? ya - yb : ma - mb;
+    });
+    // Por ano
+    const valoresPagosPorAno: { name: string; value: number }[] = [];
+    parcelasPagas.forEach(p => {
+      const d = new Date(p.payment_date);
+      const key = `${d.getFullYear()}`;
+      const found = valoresPagosPorAno.find(v => v.name === key);
+      if (found) found.value += p.value;
+      else valoresPagosPorAno.push({ name: key, value: p.value });
+    });
+    valoresPagosPorAno.sort((a, b) => Number(a.name) - Number(b.name));
+    // Empilhado por município
+    const valoresEmpilhadosPorMunicipio: { name: string; repassado: number; aRepassar: number }[] = [];
+    const municipios = Array.from(new Set(processesData.map(p => p.municipalities?.name || 'Não definido')));
+    municipios.forEach(mun => {
+      const processosMun = processesData.filter(p => (p.municipalities?.name || 'Não definido') === mun);
+      const concedente = processosMun.reduce((sum, p) => sum + (p.total_concedente_value || 0), 0);
+      const repassado = processosMun.reduce((sum, p) => sum + (p.process_parcels || []).filter(pp => pp.payment_date).reduce((s, pp) => s + (pp.value || 0), 0), 0);
+      valoresEmpilhadosPorMunicipio.push({ name: mun, repassado, aRepassar: Math.max(concedente - repassado, 0) });
+    });
+    // Empilhado por núcleo
+    const nucleos = Array.from(new Set(processesData.map(p => p.regional_nuclei?.name || 'Não definido')));
+    const valoresEmpilhadosPorNucleo: { name: string; repassado: number; aRepassar: number }[] = [];
+    nucleos.forEach(nuc => {
+      const processosNuc = processesData.filter(p => (p.regional_nuclei?.name || 'Não definido') === nuc);
+      const concedente = processosNuc.reduce((sum, p) => sum + (p.total_concedente_value || 0), 0);
+      const repassado = processosNuc.reduce((sum, p) => sum + (p.process_parcels || []).filter(pp => pp.payment_date).reduce((s, pp) => s + (pp.value || 0), 0), 0);
+      valoresEmpilhadosPorNucleo.push({ name: nuc, repassado, aRepassar: Math.max(concedente - repassado, 0) });
+    });
+
+    return {
+      selectedMetrics,
+      setSelectedMetrics,
+      metricsData: calculateMetrics(),
+      isLoading: !processesData,
+      valoresPagosPorMes,
+      valoresPagosPorAno,
+      valoresEmpilhadosPorMunicipio,
+      valoresEmpilhadosPorNucleo
+    };
   };
 
   return {
