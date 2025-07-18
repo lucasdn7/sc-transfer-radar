@@ -16,7 +16,8 @@ interface ProcessDetailModalProps {
 
 export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailModalProps) {
   const navigate = useNavigate();
-  const { summary } = useProcessParcels(process.id);
+  const parcelsHook = process && process.id ? useProcessParcels(process.id) : { summary: { progressText: '0/0', paidValue: 0, remainingValue: 0 } };
+  const summary = parcelsHook.summary;
 
   if (!process) return null;
 
