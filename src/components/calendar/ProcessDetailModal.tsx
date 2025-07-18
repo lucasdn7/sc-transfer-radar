@@ -21,6 +21,16 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
 
   if (!process) return null;
 
+  // Função segura para acessar campos do processo
+  const safe = (fn: () => any, fallback: any = 'N/A') => {
+    try {
+      const v = fn();
+      return v !== undefined && v !== null && v !== '' ? v : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'finalizado':
@@ -58,14 +68,14 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            {process.process_number}
+            {safe(() => process.process_number)}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="space-y-2">
             <h3 className="font-semibold">Objeto do Processo</h3>
-            <p className="text-sm text-gray-600">{process.object}</p>
+            <p className="text-sm text-gray-600">{safe(() => process.object)}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -74,12 +84,12 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
                 <MapPin className="h-4 w-4" />
                 Município
               </h4>
-              <p className="text-sm">{process.municipalities?.name || 'N/A'}</p>
+              <p className="text-sm">{safe(() => process.municipalities?.name)}</p>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-medium">Núcleo Regional</h4>
-              <p className="text-sm">{process.regional_nuclei?.name || 'N/A'}</p>
+              <p className="text-sm">{safe(() => process.regional_nuclei?.name)}</p>
             </div>
           </div>
 
@@ -87,9 +97,9 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
             <h4 className="font-medium">Status</h4>
             <Badge 
               variant="outline" 
-              className={`${getStatusColor(process.status_processos?.nome || '')} text-white border-0`}
+              className={`${getStatusColor(safe(() => process.status_processos?.nome, ''))} text-white border-0`}
             >
-              {process.status_processos?.nome || 'Não definido'}
+              {safe(() => process.status_processos?.nome, 'Não definido')}
             </Badge>
           </div>
 
@@ -102,21 +112,21 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
               <div>
                 <span className="font-medium">Valor Total:</span>
                 <div className="text-green-600 font-bold">
-                  {formatCurrency(process.total_portaria_value)}
+                  {formatCurrency(safe(() => process.total_portaria_value, 0))}
                 </div>
               </div>
               <div>
                 <span className="font-medium">Valor Concedente:</span>
-                <div>{formatCurrency(process.total_concedente_value)}</div>
+                <div>{formatCurrency(safe(() => process.total_concedente_value, 0))}</div>
               </div>
               <div>
                 <span className="font-medium">Valor Proponente:</span>
-                <div>{formatCurrency(process.total_proponente_value)}</div>
+                <div>{formatCurrency(safe(() => process.total_proponente_value, 0))}</div>
               </div>
-              {process.licitado_value && (
+              {safe(() => process.licitado_value) && (
                 <div>
                   <span className="font-medium">Valor Licitado:</span>
-                  <div>{formatCurrency(process.licitado_value)}</div>
+                  <div>{formatCurrency(safe(() => process.licitado_value, 0))}</div>
                 </div>
               )}
             </div>
@@ -150,14 +160,14 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
           <div className="space-y-2">
             <h4 className="font-medium">Data de Vigência</h4>
             <p className="text-sm">
-              {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
+              {new Date(safe(() => process.vigencia_date, new Date())).toLocaleDateString('pt-BR')}
             </p>
           </div>
 
-          {process.address && (
+          {safe(() => process.address) && (
             <div className="space-y-2">
               <h4 className="font-medium">Endereço</h4>
-              <p className="text-sm text-gray-600">{process.address}</p>
+              <p className="text-sm text-gray-600">{safe(() => process.address)}</p>
             </div>
           )}
 
