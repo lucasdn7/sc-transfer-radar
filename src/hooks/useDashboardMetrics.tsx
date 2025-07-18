@@ -290,10 +290,16 @@ export function useDashboardMetrics() {
     };
   };
 
+  // Corrigir retorno do hook para garantir arrays sempre
+  const safeArray = (arr: any) => Array.isArray(arr) ? arr : [];
   return {
     selectedMetrics,
     setSelectedMetrics,
     metricsData: calculateMetrics(),
-    isLoading: !processesData
+    isLoading: !processesData,
+    valoresPagosPorMes: safeArray(valoresPagosPorMes),
+    valoresPagosPorAno: safeArray(valoresPagosPorAno),
+    valoresEmpilhadosPorMunicipio: safeArray(valoresEmpilhadosPorMunicipio),
+    valoresEmpilhadosPorNucleo: safeArray(valoresEmpilhadosPorNucleo)
   };
 }
