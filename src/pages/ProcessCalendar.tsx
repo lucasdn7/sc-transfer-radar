@@ -400,32 +400,34 @@ export default function ProcessCalendar() {
           onClose={() => setIsModalOpen(false)}
         />
         {/* Modal de parcela repassada */}
-        {selectedParcel && (
-          <Card className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md shadow-2xl">
-            <CardHeader>
-              <CardTitle>Detalhes da Parcela Repassada</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div><b>Valor repassado:</b> {formatCurrency(selectedParcel.value)}</div>
-              <div><b>Data do repasse:</b> {new Date(selectedParcel.payment_date).toLocaleDateString('pt-BR')}</div>
-              <div><b>Número da parcela:</b> {selectedParcel.parcel_number}</div>
-              <div><b>Município:</b> {selectedParcel.processes?.municipalities?.name || 'N/A'}</div>
-              <div><b>Núcleo Regional:</b> {selectedParcel.processes?.regional_nuclei?.name || 'N/A'}</div>
-              <div><b>Processo relacionado:</b> {selectedParcel.processes?.process_number || 'N/A'}</div>
-              {/* Relação do que já foi repassado e do que falta */}
-              <div>
-                <b>Já repassado para o município:</b> {/* Soma das parcelas pagas desse processo */}
-                {formatCurrency((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0))}
+        {isParcelModalOpen && selectedParcel && (
+          <div className="fixed z-50 left-0 top-0 w-full h-full flex items-center justify-center bg-black bg-opacity-40">
+            <Card className="w-full max-w-md shadow-2xl">
+              <CardHeader>
+                <CardTitle>Detalhes da Parcela Repassada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div><b>Valor repassado:</b> {formatCurrency(selectedParcel.value)}</div>
+                <div><b>Data do repasse:</b> {new Date(selectedParcel.payment_date).toLocaleDateString('pt-BR')}</div>
+                <div><b>Número da parcela:</b> {selectedParcel.parcel_number}</div>
+                <div><b>Município:</b> {selectedParcel.processes?.municipalities?.name || 'N/A'}</div>
+                <div><b>Núcleo Regional:</b> {selectedParcel.processes?.regional_nuclei?.name || 'N/A'}</div>
+                <div><b>Processo relacionado:</b> {selectedParcel.processes?.process_number || 'N/A'}</div>
+                {/* Relação do que já foi repassado e do que falta */}
+                <div>
+                  <b>Já repassado para o município:</b> {/* Soma das parcelas pagas desse processo */}
+                  {formatCurrency((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0))}
+                </div>
+                <div>
+                  <b>Saldo a repassar:</b> {/* Valor concedente - já repassado */}
+                  {formatCurrency((selectedParcel.processes?.total_concedente_value || 0) - ((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0)))}
+                </div>
+              </CardContent>
+              <div className="flex justify-end p-4 pt-0">
+                <Button onClick={() => { setIsParcelModalOpen(false); setSelectedParcel(null); }}>Fechar</Button>
               </div>
-              <div>
-                <b>Saldo a repassar:</b> {/* Valor concedente - já repassado */}
-                {formatCurrency((selectedParcel.processes?.total_concedente_value || 0) - ((selectedParcel.processes?.process_parcels || []).filter((p: any) => p.payment_date).reduce((sum: number, p: any) => sum + (p.value || 0), 0)))}
-              </div>
-            </CardContent>
-            <div className="flex justify-end p-4 pt-0">
-              <Button onClick={() => setIsParcelModalOpen(false)}>Fechar</Button>
-            </div>
-          </Card>
+            </Card>
+          </div>
         )}
       </div>
     </TooltipProvider>
