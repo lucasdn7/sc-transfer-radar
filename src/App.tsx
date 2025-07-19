@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import AppSettings from "./pages/AppSettings";
 import Auth from "./pages/Auth";
 import TechnicalAuth from "./pages/TechnicalAuth";
+import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -78,6 +79,7 @@ const App = () => (
                   <Route path="/app-settings" element={<AppSettings />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/technical-auth" element={<TechnicalAuth />} />
+                  <Route path="/favorites" element={<Favorites />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>

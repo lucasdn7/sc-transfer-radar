@@ -2,17 +2,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Download, Clock, MapPin, Calendar, ExternalLink } from "lucide-react";
+import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProcessTableProps {
   processes: any[];
 }
 
 export function ProcessTable({ processes }: ProcessTableProps) {
+  const { user, userRole } = useAuth();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'finalizado':
@@ -36,6 +41,16 @@ export function ProcessTable({ processes }: ProcessTableProps) {
     const diffTime = deadline.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const handleFavoriteToggle = async (processId: number) => {
+    if (!user || userRole !== "technical") return;
+    
+    if (isFavorite(processId)) {
+      await removeFromFavorites.mutateAsync(processId);
+    } else {
+      await addToFavorites.mutateAsync(processId);
+    }
   };
 
   if (processes.length === 0) {
@@ -81,6 +96,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                 const daysLeft = getDaysUntilDeadline(process.vigencia_date);
                 const isUrgent = daysLeft <= 30 && daysLeft >= 0;
                 const isExpired = daysLeft < 0;
+                const isProcessFavorite = isFavorite(process.id);
 
                 return (
                   <TableRow key={process.id} className="hover:bg-gray-50">
@@ -138,6 +154,21 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        {userRole === "technical" && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleFavoriteToggle(process.id)}
+                            className={`${
+                              isProcessFavorite 
+                                ? 'text-yellow-500 hover:text-yellow-600' 
+                                : 'text-gray-400 hover:text-yellow-500'
+                            }`}
+                            title={isProcessFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                          >
+                            <Star className={`h-4 w-4 ${isProcessFavorite ? 'fill-current' : ''}`} />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/process-timeline?process=${process.id}`}>
                             <Clock className="h-4 w-4" />

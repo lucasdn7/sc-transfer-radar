@@ -12,9 +12,11 @@ import {
   Settings, 
   Calendar,
   Clock,
-  BookOpen
+  BookOpen,
+  Star
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const sidebarItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -31,6 +33,7 @@ const sidebarItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { userRole } = useAuth();
 
   return (
     <div className="flex h-full flex-col border-r bg-muted/10">
@@ -55,6 +58,20 @@ export function Sidebar() {
               </Link>
             </Button>
           ))}
+          
+          {/* Item Favoritos - visível apenas para área técnica */}
+          {userRole === "technical" && (
+            <Button
+              variant={location.pathname === "/favorites" ? "secondary" : "ghost"}
+              className="justify-start"
+              asChild
+            >
+              <Link to="/favorites">
+                <Star className="mr-2 h-4 w-4" />
+                Favoritos
+              </Link>
+            </Button>
+          )}
           
           <Separator className="my-4" />
           
