@@ -86,6 +86,17 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       });
       return;
     }
+
+    // Validação da categoria
+    if (categoryMode === 'select' && !selectedCategoryId) {
+      toast({
+        title: 'Categoria obrigatória',
+        description: 'Por favor, selecione uma categoria para o documento.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (categoryMode === 'custom' && !customCategory.trim()) {
       toast({
         title: 'Categoria obrigatória',
@@ -94,9 +105,11 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       });
       return;
     }
+
     setIsUploading(true);
     try {
-      let categoryId = selectedCategoryId ? Number(selectedCategoryId) : null;
+      let categoryId: number | null = null;
+      
       // Se for nova categoria, cria e pega o id
       if (categoryMode === 'custom' && customCategory.trim()) {
         // Verifica se já existe (case insensitive)
@@ -117,20 +130,32 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       } else if (selectedCategoryId && String(selectedCategoryId).startsWith('fixa-')) {
         // Se for categoria fixa ainda não cadastrada, cria
         const fixaName = categories.find((c) => String(c.id) === String(selectedCategoryId))?.name;
-        const { data: newCat, error: catError } = await supabase
-          .from('document_categories')
-          .insert({ name: fixaName })
-          .select('id')
-          .single();
-        if (catError) throw catError;
-        categoryId = newCat.id;
+        if (fixaName) {
+          const { data: newCat, error: catError } = await supabase
+            .from('document_categories')
+            .insert({ name: fixaName })
+            .select('id')
+            .single();
+          if (catError) throw catError;
+          categoryId = newCat.id;
+        }
+      } else if (selectedCategoryId) {
+        // Categoria já existente no banco
+        categoryId = Number(selectedCategoryId);
       }
+
+      // Garantir que temos uma categoria válida
+      if (!categoryId) {
+        throw new Error('Categoria é obrigatória. Por favor, selecione ou crie uma categoria.');
+      }
+
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(fileName, selectedFile);
       if (uploadError) throw uploadError;
+      
       const finalTitle = keepFileName ? selectedFile.name : customTitle || selectedFile.name;
       const documentData: any = {
         title: finalTitle,
@@ -141,14 +166,14 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         file_mime_type: selectedFile.type,
         is_public: isPublic,
         uploaded_by_user_id: null,
+        document_category_id: categoryId, // Sempre incluir a categoria
       };
-      if (categoryId) {
-        documentData.document_category_id = categoryId;
-      }
+
       const { error: insertError } = await supabase
         .from('documents')
         .insert(documentData);
       if (insertError) throw insertError;
+      
       await supabase.from('notifications').insert({
         message: `Novo documento disponível: "${finalTitle}" para download na área pública de Documentação!`,
         type: 'informative',
@@ -156,6 +181,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         created_at: new Date().toISOString(),
         is_read: false
       });
+      
       toast({
         title: 'Documento enviado com sucesso',
         description: 'O documento foi adicionado à biblioteca.',
@@ -228,7 +254,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
             </div>
             {/* Categoria */}
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label>Categoria *</Label>
               <div className="flex gap-2 items-center">
                 <Select
                   value={categoryMode === 'select' ? selectedCategoryId : ''}
@@ -239,8 +265,8 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                   }}
                   disabled={categoryMode === 'custom'}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
+                  <SelectTrigger className={!selectedCategoryId && categoryMode === 'select' ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Selecione uma categoria (obrigatório)" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -267,7 +293,8 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                     ref={customCategoryInputRef}
                     value={customCategory}
                     onChange={e => setCustomCategory(e.target.value)}
-                    placeholder="Digite a nova categoria"
+                    placeholder="Digite a nova categoria (obrigatório)"
+                    className={!customCategory.trim() ? 'border-red-500' : ''}
                   />
                   <Button
                     type="button"
@@ -277,6 +304,12 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
                     Cancelar
                   </Button>
                 </div>
+              )}
+              {!selectedCategoryId && categoryMode === 'select' && (
+                <p className="text-sm text-red-500">Categoria é obrigatória</p>
+              )}
+              {categoryMode === 'custom' && !customCategory.trim() && (
+                <p className="text-sm text-red-500">Digite o nome da nova categoria</p>
               )}
             </div>
             {/* Upload do arquivo */}
