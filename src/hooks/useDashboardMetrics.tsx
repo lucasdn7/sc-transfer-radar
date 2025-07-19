@@ -294,6 +294,10 @@ export function useDashboardMetrics() {
     selectedMetrics,
     setSelectedMetrics,
     metricsData: calculateMetrics(),
-    isLoading: !processesData
+    isLoading: !processesData,
+    valoresPagosPorMes,
+    valoresPagosPorAno,
+    valoresEmpilhadosPorMunicipio,
+    valoresEmpilhadosPorNucleo
   };
 }
