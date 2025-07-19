@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 import { getStatusColor, getStatusLabel, formatCurrency } from "@/utils/processUtils";
 import type { Database } from "@/integrations/supabase/types";
 import { useState, useEffect } from "react";
@@ -19,7 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export default function Processes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userRole } = useAuth();
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProcess, setEditingProcess] = useState<any>(null);
@@ -28,7 +30,7 @@ export default function Processes() {
   const [filterMunicipality, setFilterMunicipality] = useState('all');
   const [filterNucleus, setFilterNucleus] = useState('all');
   const [sortField, setSortField] = useState('total_portaria_value');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'alpha'>('desc');
 
   const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['processes'],
@@ -110,6 +112,16 @@ export default function Processes() {
   const handleEdit = (process: any) => {
     setEditingProcess(process);
     setIsFormOpen(true);
+  };
+
+  const handleFavoriteToggle = async (processId: number) => {
+    if (!isAuthenticated || userRole !== "technical") return;
+    
+    if (isFavorite(processId)) {
+      await removeFromFavorites.mutateAsync(processId);
+    } else {
+      await addToFavorites.mutateAsync(processId);
+    }
   };
 
   if (isLoading) {
@@ -313,6 +325,21 @@ export default function Processes() {
                           Valor Total
                         </div>
                       </div>
+                      {userRole === "technical" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFavoriteToggle(process.id)}
+                          className={`${
+                            isFavorite(process.id)
+                              ? 'text-yellow-500 hover:text-yellow-600'
+                              : 'text-gray-400 hover:text-yellow-500'
+                          }`}
+                          title={isFavorite(process.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        >
+                          <Star className={`h-4 w-4 ${isFavorite(process.id) ? 'fill-current' : ''}`} />
+                        </Button>
+                      )}
                       {isAuthenticated && (
                         <Button
                           variant="ghost"
