@@ -12,7 +12,7 @@ interface DocumentCardProps {
   onEdit?: (document: any) => void;
 }
 
-export function DocumentCard({ document, onPreview, onDownload }: DocumentCardProps) {
+export function DocumentCard({ document, onPreview, onDownload, onEdit }: DocumentCardProps) {
   const isRecentDocument = (createdAt: string) => {
     const created = new Date(createdAt);
     const now = new Date();
