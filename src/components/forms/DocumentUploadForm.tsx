@@ -197,14 +197,19 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
         };
       }
       const finalTitle = keepFileName && selectedFile ? selectedFile.name : customTitle || (selectedFile ? selectedFile.name : document?.title);
+      // Montar objeto apenas com campos editáveis
       const documentData: any = {
         title: customTitle || document?.title || '',
         description: descriptionValue,
         is_public: isPublic,
-        uploaded_by_user_id: null,
         document_category_id: categoryId,
-        ...fileMeta,
       };
+      if (selectedFile) {
+        documentData.file_name = selectedFile.name;
+        documentData.file_size = selectedFile.size;
+        documentData.file_mime_type = selectedFile.type;
+        documentData.file_path = fileName;
+      }
       if (isEditMode && document?.id) {
         // Atualizar documento existente
         const { error: updateError } = await supabase
