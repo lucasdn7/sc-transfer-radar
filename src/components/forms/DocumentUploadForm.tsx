@@ -197,7 +197,7 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
       }
       const finalTitle = keepFileName && selectedFile ? selectedFile.name : customTitle || (selectedFile ? selectedFile.name : document?.title);
       const documentData: any = {
-        title: finalTitle,
+        title: customTitle || document?.title || '',
         description: data.description,
         is_public: isPublic,
         uploaded_by_user_id: null,
@@ -292,7 +292,8 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
               <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
-                {...register('description')}
+                value={data.description}
+                onChange={e => setValue('description', e.target.value)}
                 placeholder="Descrição do documento..."
                 rows={3}
               />
