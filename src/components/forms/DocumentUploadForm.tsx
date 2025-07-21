@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Upload, X } from 'lucide-react';
 import { useRef } from 'react';
+import React from 'react';
 
 interface DocumentUploadFormData {
   title: string;
@@ -24,9 +25,11 @@ interface DocumentUploadFormData {
 interface DocumentUploadFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  document?: any;
+  isEditMode?: boolean;
 }
 
-export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormProps) {
+export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }: DocumentUploadFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [keepFileName, setKeepFileName] = useState(true);
@@ -39,11 +42,33 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
   const customCategoryInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<DocumentUploadFormData>({
+  const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm<DocumentUploadFormData>({
     defaultValues: {
       is_public: true,
     },
   });
+
+  // Preencher campos ao entrar em modo edição
+  React.useEffect(() => {
+    if (isEditMode && document) {
+      setKeepFileName(false);
+      setCustomTitle(document.title || '');
+      setValue('description', document.description || '');
+      setIsPublic(document.is_public ?? true);
+      if (document.document_category_id) {
+        setCategoryMode('select');
+        setSelectedCategoryId(document.document_category_id.toString());
+      }
+    }
+    if (!isEditMode) {
+      reset();
+      setCustomTitle('');
+      setSelectedFile(null);
+      setCategoryMode('select');
+      setSelectedCategoryId('');
+      setIsPublic(true);
+    }
+  }, [isEditMode, document, setValue, reset]);
 
   const CATEGORIAS_FIXAS = [
     'Ofícios',
@@ -78,7 +103,7 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
   ];
 
   const onSubmit = async (data: DocumentUploadFormData) => {
-    if (!selectedFile) {
+    if (!selectedFile && !isEditMode) {
       toast({
         title: 'Arquivo obrigatório',
         description: 'Por favor, selecione um arquivo para upload.',
@@ -149,31 +174,51 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
         throw new Error('Categoria é obrigatória. Por favor, selecione ou crie uma categoria.');
       }
 
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, selectedFile);
-      if (uploadError) throw uploadError;
-      
-      const finalTitle = keepFileName ? selectedFile.name : customTitle || selectedFile.name;
+      let fileName = document?.file_path;
+      let fileMeta = {
+        file_name: document?.file_name,
+        file_size: document?.file_size,
+        file_mime_type: document?.file_mime_type,
+        file_path: document?.file_path,
+      };
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(fileName, selectedFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        fileMeta = {
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+          file_mime_type: selectedFile.type,
+          file_path: fileName,
+        };
+      }
+      const finalTitle = keepFileName && selectedFile ? selectedFile.name : customTitle || (selectedFile ? selectedFile.name : document?.title);
       const documentData: any = {
         title: finalTitle,
         description: data.description,
-        file_name: selectedFile.name,
-        file_path: fileName,
-        file_size: selectedFile.size,
-        file_mime_type: selectedFile.type,
         is_public: isPublic,
         uploaded_by_user_id: null,
         document_category_id: categoryId, // Sempre incluir a categoria
+        ...fileMeta,
       };
+      if (isEditMode && document?.id) {
+        // Atualizar documento existente
+        const { error: updateError } = await supabase
+          .from('documents')
+          .update(documentData)
+          .eq('id', document.id);
+        if (updateError) throw updateError;
+      } else {
+        // Inserir novo documento
+        const { error: insertError } = await supabase
+          .from('documents')
+          .insert(documentData);
+        if (insertError) throw insertError;
+      }
 
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert(documentData);
-      if (insertError) throw insertError;
-      
       await supabase.from('notifications').insert({
         message: `Novo documento disponível: "${finalTitle}" para download na área pública de Documentação!`,
         type: 'informative',
@@ -183,13 +228,13 @@ export function DocumentUploadForm({ onSuccess, onCancel }: DocumentUploadFormPr
       });
       
       toast({
-        title: 'Documento enviado com sucesso',
-        description: 'O documento foi adicionado à biblioteca.',
+        title: isEditMode ? 'Documento atualizado com sucesso' : 'Documento enviado com sucesso',
+        description: isEditMode ? 'O documento foi atualizado.' : 'O documento foi adicionado à biblioteca.',
       });
       onSuccess();
     } catch (error: any) {
       toast({
-        title: 'Erro ao enviar documento',
+        title: isEditMode ? 'Erro ao atualizar documento' : 'Erro ao enviar documento',
         description: error.message,
         variant: 'destructive',
       });

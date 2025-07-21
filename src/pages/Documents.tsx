@@ -47,6 +47,7 @@ export default function Documents() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewDocument, setPreviewDocument] = useState<any>(null);
+  const [editDocument, setEditDocument] = useState<any>(null);
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const { data: documents, isLoading, error, refetch } = useDocuments(debouncedSearchTerm, selectedCategory);
@@ -176,6 +177,7 @@ export default function Documents() {
                   document={document}
                   onPreview={setPreviewDocument}
                   onDownload={handleDownload}
+                  onEdit={setEditDocument}
                 />
               ))
             ) : (
@@ -197,6 +199,26 @@ export default function Documents() {
             onClose={() => setPreviewDocument(null)}
             onDownload={handleDownload}
           />
+
+          {/* Modal de edição de documento */}
+          <Dialog open={!!editDocument} onOpenChange={v => { if (!v) setEditDocument(null); }}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Editar Documento</DialogTitle>
+              </DialogHeader>
+              {editDocument && (
+                <DocumentUploadForm
+                  onSuccess={() => {
+                    setEditDocument(null);
+                    refetch();
+                  }}
+                  onCancel={() => setEditDocument(null)}
+                  document={editDocument}
+                  isEditMode={true}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </ErrorBoundary>
     </React.Suspense>
