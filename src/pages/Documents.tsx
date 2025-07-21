@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
+import { List, LayoutGrid, Eye, Download } from 'lucide-react';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback: (error: Error) => ReactNode }, { error: Error | null }> {
   constructor(props: any) {
@@ -48,6 +50,7 @@ export default function Documents() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [previewDocument, setPreviewDocument] = useState<any>(null);
   const [editDocument, setEditDocument] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const { data: documents, isLoading, error, refetch } = useDocuments(debouncedSearchTerm, selectedCategory);
@@ -68,6 +71,10 @@ export default function Documents() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+  };
+
+  const handlePreview = (document: any) => {
+    setPreviewDocument(document);
   };
 
   if (isLoading) {
@@ -108,7 +115,7 @@ export default function Documents() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-2">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Documentação</h1>
               <p className="text-muted-foreground">
@@ -118,28 +125,32 @@ export default function Documents() {
                 Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
               </p>
             </div>
-            {isAuthenticated && (
-              <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload Documento
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Upload de Documento</DialogTitle>
-                  </DialogHeader>
-                  <DocumentUploadForm 
-                    onSuccess={() => {
-                      setIsUploadOpen(false);
-                      refetch();
-                    }}
-                    onCancel={() => setIsUploadOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
+            <div className="flex gap-2 items-center">
+              <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
+              <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
+              {isAuthenticated && (
+                <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Upload Documento
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Upload de Documento</DialogTitle>
+                    </DialogHeader>
+                    <DocumentUploadForm 
+                      onSuccess={() => {
+                        setIsUploadOpen(false);
+                        refetch();
+                      }}
+                      onCancel={() => setIsUploadOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
 
           {/* Barra de busca textual */}
@@ -169,35 +180,81 @@ export default function Documents() {
           </Tabs>
 
           {/* Listagem de documentos */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {documents && documents.length > 0 ? (
-              documents.map((document) => (
-                <DocumentCard
-                  key={document.id}
-                  document={document}
-                  onPreview={setPreviewDocument}
-                  onDownload={handleDownload}
-                  onEdit={setEditDocument}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12 flex flex-col items-center justify-center">
-                <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Nenhum documento disponível ainda
-                </h3>
-                <p className="text-gray-600 max-w-md">
-                  Quando houver documentos cadastrados pela área técnica, eles aparecerão aqui para leitura e download público. Utilize o botão acima para inserir um novo documento (apenas área técnica).
-                </p>
-              </div>
-            )}
-          </div>
+          {viewMode === 'list' ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <Thead>
+                  <Tr>
+                    <Th>Nome</Th>
+                    <Th>Categoria</Th>
+                    <Th>Descrição</Th>
+                    <Th>Inserido em</Th>
+                    <Th>Tipo</Th>
+                    <Th>Ações</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {documents && documents.length > 0 ? (
+                    documents.map((document) => (
+                      <Tr key={document.id}>
+                        <Td className="flex items-center gap-2">
+                          {document.title}
+                          {!document.is_public && <span title="Restrito" className="ml-1 text-blue-400"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.26L20 9.27l-5 3.64L16.18 21 12 17.27 7.82 21 9 12.91l-5-3.64 5.91-.01z"/></svg></span>}
+                        </Td>
+                        <Td>{document.document_categories?.name || document.category_name || 'Sem categoria'}</Td>
+                        <Td>{document.description}</Td>
+                        <Td>{document.created_at ? new Date(document.created_at).toLocaleDateString('pt-BR') : '-'}</Td>
+                        <Td>{/* Tag de extensão */}
+                          <FileTypeTag fileName={document.file_name} />
+                        </Td>
+                        <Td className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handlePreview(document)}><Eye className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDownload(document)}><Download className="h-4 w-4" /></Button>
+                          {isAuthenticated && <Button size="sm" variant="outline" onClick={() => setEditDocument(document)}>Editar</Button>}
+                        </Td>
+                      </Tr>
+                    ))
+                  ) : (
+                    <Tr>
+                      <Td colSpan={6} className="text-center py-8">Nenhum documento disponível ainda</Td>
+                    </Tr>
+                  )}
+                </Tbody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {documents && documents.length > 0 ? (
+                documents.map((document) => (
+                  <DocumentCard
+                    key={document.id}
+                    document={document}
+                    onPreview={handlePreview}
+                    onDownload={handleDownload}
+                    onEdit={setEditDocument}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12 flex flex-col items-center justify-center">
+                  <FileText className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Nenhum documento disponível ainda
+                  </h3>
+                  <p className="text-gray-600 max-w-md">
+                    Quando houver documentos cadastrados pela área técnica, eles aparecerão aqui para leitura e download público. Utilize o botão acima para inserir um novo documento (apenas área técnica).
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* Preview Modal funcional */}
           <DocumentPreviewModal
             document={previewDocument}
             isOpen={!!previewDocument}
             onClose={() => setPreviewDocument(null)}
             onDownload={handleDownload}
+            previewType={previewDocument ? getPreviewType(previewDocument.file_name) : undefined}
           />
 
           {/* Modal de edição de documento */}
@@ -223,4 +280,26 @@ export default function Documents() {
       </ErrorBoundary>
     </React.Suspense>
   );
+}
+
+// Função utilitária para tag de tipo de arquivo
+function FileTypeTag({ fileName }: { fileName: string }) {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  let color = 'bg-gray-300 text-gray-800';
+  let label = ext;
+  if (['pdf'].includes(ext)) { color = 'bg-red-500 text-white'; label = 'PDF'; }
+  if (['xls', 'xlsx'].includes(ext)) { color = 'bg-green-600 text-white'; label = 'Excel'; }
+  if (['doc', 'docx'].includes(ext)) { color = 'bg-blue-600 text-white'; label = 'Word'; }
+  if (['ppt', 'pptx'].includes(ext)) { color = 'bg-orange-500 text-white'; label = 'PPT'; }
+  if (['jpg', 'jpeg', 'png'].includes(ext)) { color = 'bg-purple-500 text-white'; label = ext.toUpperCase(); }
+  return <span className={`px-2 py-1 rounded text-xs font-bold ${color}`}>{label}</span>;
+}
+
+// Função utilitária para preview
+function getPreviewType(fileName: string) {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (['pdf'].includes(ext)) return 'pdf';
+  if (['jpg', 'jpeg', 'png'].includes(ext)) return 'image';
+  if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) return 'gdocs';
+  return 'other';
 }
