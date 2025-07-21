@@ -62,10 +62,16 @@ export function DocumentPreviewModal({ document, isOpen, onClose, onDownload, pr
                 </p>
               </>
             )}
-            <Button onClick={() => onDownload(document)} className="mt-4">
+            <a
+              href={publicUrl}
+              download={document.file_name}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-4 py-2 mt-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+            >
               <Download className="h-4 w-4 mr-2" />
               Baixar Documento
-            </Button>
+            </a>
           </div>
         </div>
       </DialogContent>

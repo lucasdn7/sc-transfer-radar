@@ -78,14 +78,16 @@ export function DocumentCard({ document, onPreview, onDownload, onEdit }: Docume
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
-          <Button 
-            onClick={() => onDownload(document)}
-            className="flex-1 font-bold"
-            variant="outline"
+          <a
+            href={`https://yonisrknsnsrigmgrcvk.supabase.co/storage/v1/object/public/documents/${document.file_path}`}
+            download={document.file_name}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 inline-flex items-center justify-center px-4 py-2 font-bold bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           >
             <Download className="h-4 w-4 mr-2" />
             Baixar
-          </Button>
+          </a>
           {onEdit && (
             <Button 
               onClick={() => onEdit(document)}
