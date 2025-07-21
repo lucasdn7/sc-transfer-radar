@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, Users, ChevronLeft, ChevronRight, List, LayoutGrid, Edit } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { RegionalNucleusForm } from "@/components/forms/RegionalNucleusForm";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { RegionalNucleusCard } from "@/components/regional-nuclei/RegionalNucleusCard";
 import { useRegionalNuclei, useNucleiStats } from "@/hooks/useRegionalNuclei";
+import { Link } from "react-router-dom";
 
 function useDebouncedValue<T>(value: T, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -26,6 +27,7 @@ export default function RegionalNuclei() {
   const [editingNucleus, setEditingNucleus] = useState<any>(null);
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
 
@@ -137,17 +139,74 @@ export default function RegionalNuclei() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {regionalNuclei?.data?.map((nucleus) => (
-          <RegionalNucleusCard
-            key={nucleus.id}
-            nucleus={nucleus}
-            stats={nucleiStats?.[nucleus.id]}
-            isAuthenticated={isAuthenticated}
-            onEdit={handleEdit}
-          />
-        ))}
+      <div className="flex justify-end gap-2 mb-2">
+        <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
+        <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
       </div>
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {regionalNuclei?.data?.map((nucleus) => (
+            <RegionalNucleusCard
+              key={nucleus.id}
+              nucleus={nucleus}
+              stats={nucleiStats?.[nucleus.id]}
+              isAuthenticated={isAuthenticated}
+              onEdit={handleEdit}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="border px-2 py-1 bg-gray-100">Nome</th>
+                <th className="border px-2 py-1 bg-gray-100">Sigla</th>
+                <th className="border px-2 py-1 bg-gray-100">Região</th>
+                <th className="border px-2 py-1 bg-gray-100">Responsável Técnico</th>
+                <th className="border px-2 py-1 bg-gray-100">Telefone</th>
+                <th className="border px-2 py-1 bg-gray-100">E-mail</th>
+                <th className="border px-2 py-1 bg-gray-100">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {regionalNuclei?.data && regionalNuclei.data.length > 0 ? (
+                regionalNuclei.data.map((n: any) => (
+                  <tr key={n.id}>
+                    <td className="border px-2 py-1">{n.name}</td>
+                    <td className="border px-2 py-1">{n.acronym}</td>
+                    <td className="border px-2 py-1">{n.region_id}</td>
+                    <td className="border px-2 py-1">{n.technical_responsible_name}</td>
+                    <td className="border px-2 py-1">{n.phone}</td>
+                    <td className="border px-2 py-1">{n.email}</td>
+                    <td className="border px-2 py-1">
+                      <Button variant="ghost" size="sm" asChild className="mr-2">
+                        <Link to={`/municipalities?nucleus=${n.id}`} title="Ver Municípios">
+                          Ver Municípios
+                        </Link>
+                      </Button>
+                      {isAuthenticated && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingNucleus(n)}
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 border px-2 py-1">Nenhum núcleo regional disponível</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {regionalNuclei?.data?.length === 0 && (
         <div className="text-center py-8">

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +31,7 @@ export default function Processes() {
   const [filterNucleus, setFilterNucleus] = useState('all');
   const [sortField, setSortField] = useState('total_portaria_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'alpha'>('desc');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['processes'],
@@ -283,175 +284,245 @@ export default function Processes() {
         </Popover>
       </div>
 
-      <div className="grid gap-6">
-        {filteredProcesses.length > 0 ? (
-          filteredProcesses.map((process) => {
-            const parcels = parcelsMap[process.id] || [];
-            const totalParcels = parcels.length;
-            const paidParcels = parcels.filter(p => p.payment_date).length;
-            const repassedValue = parcels.filter(p => p.payment_date).reduce((sum, p) => sum + (p.value || 0), 0);
-            const saldoARepassar = (process.total_concedente_value || 0) - repassedValue;
-            return (
-              <Card key={process.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        {process.process_number}
-                        {/* Botão de link externo */}
-                        {process.link_plataforma_governo && (
-                          <a
-                            href={process.link_plataforma_governo}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                            title="Acessar plataforma do governo"
-                          >
-                            <ExternalLink className="h-5 w-5 inline" />
-                          </a>
-                        )}
-                      </CardTitle>
-                      <Badge variant="secondary">
-                        {process.status_processos?.nome || 'Não definido'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600">
-                          {formatCurrency(process.total_portaria_value)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Valor Total
-                        </div>
-                      </div>
-                      {userRole === "technical" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleFavoriteToggle(process.id)}
-                          className={`${
-                            isFavorite(process.id)
-                              ? 'text-yellow-500 hover:text-yellow-600'
-                              : 'text-gray-400 hover:text-yellow-500'
-                          }`}
-                          title={isFavorite(process.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                        >
-                          <Star className={`h-4 w-4 ${isFavorite(process.id) ? 'fill-current' : ''}`} />
-                        </Button>
-                      )}
-                      {isAuthenticated && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(process)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-1">Objeto:</h3>
-                    <p className="text-gray-600">{process.object}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      <span>
-                        {process.municipalities?.name}
-                        {process.municipalities?.regioes && ` - ${process.municipalities.regioes.nome}`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span>
-                        Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {process.portaria_number && (
-                    <div className="text-sm text-gray-600">
-                      <strong>Portaria:</strong> {process.portaria_number}
-                    </div>
-                  )}
-
-                  {process.regional_nuclei && (
-                    <div className="text-sm text-gray-600">
-                      <strong>Núcleo Regional:</strong> {process.regional_nuclei.name} ({process.regional_nuclei.acronym})
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(process.total_concedente_value)}
-                      </div>
-                      <div className="text-xs text-gray-500">Concedente</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(process.total_proponente_value)}
-                      </div>
-                      <div className="text-xs text-gray-500">Contrapartida</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {process.licitado_value ? formatCurrency(process.licitado_value) : 'N/A'}
-                      </div>
-                      <div className="text-xs text-gray-500">Licitado</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 pt-2">
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {paidParcels}/{totalParcels}
-                      </div>
-                      <div className="text-xs text-gray-500">Parcelas Pagas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(repassedValue)}
-                      </div>
-                      <div className="text-xs text-gray-500">Valor Repassado</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(saldoARepassar)}
-                      </div>
-                      <div className="text-xs text-gray-500">Saldo a Repassar</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        ) : (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm ? 'Nenhum processo encontrado' : 'Nenhum processo cadastrado'}
-            </h3>
-            <p className="text-gray-600">
-              {searchTerm 
-                ? 'Tente alterar os termos de busca.' 
-                : 'Não há processos cadastrados no sistema.'
-              }
-            </p>
-            {isAuthenticated && !searchTerm && (
-              <Button className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Primeiro Processo
-              </Button>
-            )}
-          </div>
-        )}
+      <div className="flex justify-end gap-2 mb-2">
+        <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
+        <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
       </div>
+      {viewMode === 'cards' ? (
+        <div className="grid gap-6">
+          {filteredProcesses.length > 0 ? (
+            filteredProcesses.map((process) => {
+              const parcels = parcelsMap[process.id] || [];
+              const totalParcels = parcels.length;
+              const paidParcels = parcels.filter(p => p.payment_date).length;
+              const repassedValue = parcels.filter(p => p.payment_date).reduce((sum, p) => sum + (p.value || 0), 0);
+              const saldoARepassar = (process.total_concedente_value || 0) - repassedValue;
+              return (
+                <Card key={process.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          {process.process_number}
+                          {/* Botão de link externo */}
+                          {process.link_plataforma_governo && (
+                            <a
+                              href={process.link_plataforma_governo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 text-blue-600 hover:text-blue-800"
+                              title="Acessar plataforma do governo"
+                            >
+                              <ExternalLink className="h-5 w-5 inline" />
+                            </a>
+                          )}
+                        </CardTitle>
+                        <Badge variant="secondary">
+                          {process.status_processos?.nome || 'Não definido'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatCurrency(process.total_portaria_value)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Valor Total
+                          </div>
+                        </div>
+                        {userRole === "technical" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFavoriteToggle(process.id)}
+                            className={`${
+                              isFavorite(process.id)
+                                ? 'text-yellow-500 hover:text-yellow-600'
+                                : 'text-gray-400 hover:text-yellow-500'
+                            }`}
+                            title={isFavorite(process.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                          >
+                            <Star className={`h-4 w-4 ${isFavorite(process.id) ? 'fill-current' : ''}`} />
+                          </Button>
+                        )}
+                        {isAuthenticated && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(process)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-1">Objeto:</h3>
+                      <p className="text-gray-600">{process.object}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span>
+                          {process.municipalities?.name}
+                          {process.municipalities?.regioes && ` - ${process.municipalities.regioes.nome}`}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        <span>
+                          Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {process.portaria_number && (
+                      <div className="text-sm text-gray-600">
+                        <strong>Portaria:</strong> {process.portaria_number}
+                      </div>
+                    )}
+
+                    {process.regional_nuclei && (
+                      <div className="text-sm text-gray-600">
+                        <strong>Núcleo Regional:</strong> {process.regional_nuclei.name} ({process.regional_nuclei.acronym})
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(process.total_concedente_value)}
+                        </div>
+                        <div className="text-xs text-gray-500">Concedente</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(process.total_proponente_value)}
+                        </div>
+                        <div className="text-xs text-gray-500">Contrapartida</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {process.licitado_value ? formatCurrency(process.licitado_value) : 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">Licitado</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 pt-2">
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {paidParcels}/{totalParcels}
+                        </div>
+                        <div className="text-xs text-gray-500">Parcelas Pagas</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(repassedValue)}
+                        </div>
+                        <div className="text-xs text-gray-500">Valor Repassado</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatCurrency(saldoARepassar)}
+                        </div>
+                        <div className="text-xs text-gray-500">Saldo a Repassar</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm ? 'Nenhum processo encontrado' : 'Nenhum processo cadastrado'}
+              </h3>
+              <p className="text-gray-600">
+                {searchTerm 
+                  ? 'Tente alterar os termos de busca.' 
+                  : 'Não há processos cadastrados no sistema.'
+                }
+              </p>
+              {isAuthenticated && !searchTerm && (
+                <Button className="mt-4">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar Primeiro Processo
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="border px-2 py-1 bg-gray-100">Nº Processo</th>
+                <th className="border px-2 py-1 bg-gray-100">Objeto</th>
+                <th className="border px-2 py-1 bg-gray-100">Município</th>
+                <th className="border px-2 py-1 bg-gray-100">Núcleo</th>
+                <th className="border px-2 py-1 bg-gray-100">Status</th>
+                <th className="border px-2 py-1 bg-gray-100">Valor Portaria</th>
+                <th className="border px-2 py-1 bg-gray-100">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProcesses.map((process: any) => (
+                <tr key={process.id}>
+                  <td className="border px-2 py-1">{process.process_number}</td>
+                  <td className="border px-2 py-1">{process.object}</td>
+                  <td className="border px-2 py-1">{process.municipalities?.name}</td>
+                  <td className="border px-2 py-1">{process.regional_nuclei?.name}</td>
+                  <td className="border px-2 py-1">{process.status_processos?.nome}</td>
+                  <td className="border px-2 py-1">{formatCurrency(process.total_portaria_value)}</td>
+                  <td className="border px-2 py-1">
+                    {process.link_plataforma_governo && (
+                      <a
+                        href={process.link_plataforma_governo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 mr-2"
+                        title="Acessar plataforma do governo"
+                      >
+                        <ExternalLink className="h-5 w-5 inline" />
+                      </a>
+                    )}
+                    {userRole === "technical" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFavoriteToggle(process.id)}
+                        className={`mr-2 ${isFavorite(process.id) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-yellow-500'}`}
+                        title={isFavorite(process.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                      >
+                        <Star className={`h-4 w-4 ${isFavorite(process.id) ? 'fill-current' : ''}`} />
+                      </Button>
+                    )}
+                    {isAuthenticated && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(process)}
+                        className="mr-2"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {/* Adicione aqui outros botões de ação, como visualizar, se houver */}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
