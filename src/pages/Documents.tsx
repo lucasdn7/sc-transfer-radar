@@ -55,21 +55,15 @@ export default function Documents() {
   const { data: documents, isLoading, error, refetch } = useDocuments(debouncedSearchTerm, selectedCategory);
   const { data: categories } = useDocumentCategories();
 
-  const handleDownload = async (document: any) => {
-    const { data } = await supabase.storage
-      .from('documents')
-      .download(document.file_path);
-    
-    if (data) {
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = document.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+  const handleDownload = (document: any) => {
+    const supabaseUrl = "https://yonisrknsnsrigmgrcvk.supabase.co";
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/documents/${document.file_path}`;
+    const a = window.document.createElement('a');
+    a.href = publicUrl;
+    a.download = document.file_name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handlePreview = (document: any) => {
