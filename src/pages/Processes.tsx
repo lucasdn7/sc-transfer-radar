@@ -482,7 +482,40 @@ export default function Processes() {
                   <td className="border px-2 py-1">{process.status_processos?.nome}</td>
                   <td className="border px-2 py-1">{formatCurrency(process.total_portaria_value)}</td>
                   <td className="border px-2 py-1">
-                    {/* Adicione aqui botões de ações como visualizar, editar, etc. */}
+                    {process.link_plataforma_governo && (
+                      <a
+                        href={process.link_plataforma_governo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 mr-2"
+                        title="Acessar plataforma do governo"
+                      >
+                        <ExternalLink className="h-5 w-5 inline" />
+                      </a>
+                    )}
+                    {userRole === "technical" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFavoriteToggle(process.id)}
+                        className={`mr-2 ${isFavorite(process.id) ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-yellow-500'}`}
+                        title={isFavorite(process.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                      >
+                        <Star className={`h-4 w-4 ${isFavorite(process.id) ? 'fill-current' : ''}`} />
+                      </Button>
+                    )}
+                    {isAuthenticated && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(process)}
+                        className="mr-2"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {/* Adicione aqui outros botões de ação, como visualizar, se houver */}
                   </td>
                 </tr>
               ))}
