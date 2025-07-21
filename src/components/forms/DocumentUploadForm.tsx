@@ -212,11 +212,13 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
       }
       if (isEditMode && document?.id) {
         // Atualizar documento existente
-        const { error: updateError } = await supabase
+        const { data: updated, error: updateError } = await supabase
           .from('documents')
           .update(documentData)
-          .eq('id', document.id);
+          .eq('id', document.id)
+          .select();
         if (updateError) throw updateError;
+        if (!updated || updated.length === 0) throw new Error('Nenhuma linha foi atualizada.');
       } else {
         // Inserir novo documento
         const { error: insertError } = await supabase
