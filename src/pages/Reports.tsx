@@ -213,7 +213,8 @@ export default function Reports() {
       const filtered = filterFields(data, fields);
       const columns = fields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
       const rows = filtered.map(obj => fields.map(col => obj[col]));
-      const doc = new jsPDF();
+      // Usar orientação paisagem
+      const doc = new jsPDF({ orientation: 'landscape' });
       autoTable(doc, { head: [columns], body: rows });
       doc.save(`${fileName}.pdf`);
       toast({ title: 'Download iniciado', description: 'Arquivo PDF gerado com sucesso.' });
