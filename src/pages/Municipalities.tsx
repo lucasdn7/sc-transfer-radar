@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, MapPin, Phone, Mail, Users, Plus, Edit } from "lucide-react";
+import { Search, MapPin, Phone, Mail, Users, Plus, Edit, List, LayoutGrid } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,7 @@ export default function Municipalities() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const { data: municipalities, isLoading, error, refetch } = useQuery({
@@ -207,125 +208,167 @@ export default function Municipalities() {
         </CardContent>
       </Card>
 
-      {/* Municipalities Grid com Cards Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {municipalities?.map((municipality) => {
-          const stats = municipalityStats?.[municipality.id];
-          const regularity = getRegularityIndicator(stats);
-          
-          return (
-            <Card key={municipality.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <CardTitle className="text-lg">{municipality.name}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${regularity.color}`}></div>
-                      <span className="text-sm text-gray-600">{regularity.label}</span>
+      <div className="flex justify-end gap-2 mb-2">
+        <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
+        <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
+      </div>
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {municipalities?.map((municipality) => {
+            const stats = municipalityStats?.[municipality.id];
+            const regularity = getRegularityIndicator(stats);
+            
+            return (
+              <Card key={municipality.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <CardTitle className="text-lg">{municipality.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${regularity.color}`}></div>
+                        <span className="text-sm text-gray-600">{regularity.label}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/map?municipality=${municipality.id}`}>
+                          <MapPin className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      {isAuthenticated && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(municipality)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/map?municipality=${municipality.id}`}>
-                        <MapPin className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(municipality)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Mini Cards de Resumo */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="text-lg font-bold text-blue-600">
+                        {stats?.totalProcesses || 0}
+                      </div>
+                      <div className="text-xs text-blue-600">Processos</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                      <div className="text-sm font-bold text-green-600">
+                        {stats ? formatCurrency(stats.totalValue) : 'R$ 0,00'}
+                      </div>
+                      <div className="text-xs text-green-600">Valor Total</div>
+                    </div>
+                  </div>
+
+                  {/* Informações do Município */}
+                  <div className="space-y-2">
+                    {municipality.regioes && (
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm">{municipality.regioes.nome}</span>
+                      </div>
+                    )}
+
+                    {municipality.regional_nuclei && (
+                      <div>
+                        <Badge variant="outline">
+                          {municipality.regional_nuclei.acronym}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {municipality.mayor_name && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {municipality.mayor_name}
+                        </div>
+                        <div className="text-xs text-gray-500">Prefeito</div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-gray-500">
+                      CNPJ: {municipality.cnpj}
+                    </div>
+                  </div>
+
+                  {/* Contatos */}
+                  <div className="space-y-1">
+                    {municipality.phone && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Phone className="h-3 w-3 text-gray-400" />
+                        <span>{municipality.phone}</span>
+                      </div>
+                    )}
+
+                    {municipality.email && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Mail className="h-3 w-3 text-gray-400" />
+                        <span>{municipality.email}</span>
+                      </div>
                     )}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Mini Cards de Resumo */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <div className="text-lg font-bold text-blue-600">
-                      {stats?.totalProcesses || 0}
-                    </div>
-                    <div className="text-xs text-blue-600">Processos</div>
-                  </div>
-                  <div className="bg-green-50 p-3 rounded-lg">
-                    <div className="text-sm font-bold text-green-600">
-                      {stats ? formatCurrency(stats.totalValue) : 'R$ 0,00'}
-                    </div>
-                    <div className="text-xs text-green-600">Valor Total</div>
-                  </div>
-                </div>
 
-                {/* Informações do Município */}
-                <div className="space-y-2">
-                  {municipality.regioes && (
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{municipality.regioes.nome}</span>
-                    </div>
-                  )}
-
-                  {municipality.regional_nuclei && (
-                    <div>
-                      <Badge variant="outline">
-                        {municipality.regional_nuclei.acronym}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {municipality.mayor_name && (
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {municipality.mayor_name}
+                  {/* Distribuição de Status */}
+                  {stats && stats.statuses && Object.keys(stats.statuses).length > 0 && (
+                    <div className="pt-3 border-t">
+                      <div className="text-sm font-medium mb-2">Status dos Processos</div>
+                      <div className="space-y-1">
+                        {Object.entries(stats.statuses).map(([status, count]: [string, any]) => (
+                          <div key={status} className="flex justify-between text-xs">
+                            <span>{status}:</span>
+                            <span className="font-medium">{count}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="text-xs text-gray-500">Prefeito</div>
                     </div>
                   )}
-
-                  <div className="text-xs text-gray-500">
-                    CNPJ: {municipality.cnpj}
-                  </div>
-                </div>
-
-                {/* Contatos */}
-                <div className="space-y-1">
-                  {municipality.phone && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span>{municipality.phone}</span>
-                    </div>
-                  )}
-
-                  {municipality.email && (
-                    <div className="flex items-center space-x-2 text-sm">
-                      <Mail className="h-3 w-3 text-gray-400" />
-                      <span>{municipality.email}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Distribuição de Status */}
-                {stats && stats.statuses && Object.keys(stats.statuses).length > 0 && (
-                  <div className="pt-3 border-t">
-                    <div className="text-sm font-medium mb-2">Status dos Processos</div>
-                    <div className="space-y-1">
-                      {Object.entries(stats.statuses).map(([status, count]: [string, any]) => (
-                        <div key={status} className="flex justify-between text-xs">
-                          <span>{status}:</span>
-                          <span className="font-medium">{count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="border px-2 py-1 bg-gray-100">Município</th>
+                <th className="border px-2 py-1 bg-gray-100">Região</th>
+                <th className="border px-2 py-1 bg-gray-100">Núcleo</th>
+                <th className="border px-2 py-1 bg-gray-100">Classificação</th>
+                <th className="border px-2 py-1 bg-gray-100">Telefone</th>
+                <th className="border px-2 py-1 bg-gray-100">E-mail</th>
+                <th className="border px-2 py-1 bg-gray-100">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {municipalities && municipalities.length > 0 ? (
+                municipalities.map((m: any) => (
+                  <tr key={m.id}>
+                    <td className="border px-2 py-1">{m.name}</td>
+                    <td className="border px-2 py-1">{m.regioes?.nome}</td>
+                    <td className="border px-2 py-1">{m.regional_nuclei?.name}</td>
+                    <td className="border px-2 py-1">{m.municipality_classifications?.name}</td>
+                    <td className="border px-2 py-1">{m.phone}</td>
+                    <td className="border px-2 py-1">{m.email}</td>
+                    <td className="border px-2 py-1">
+                      {/* Adicione aqui botões de ações como visualizar, editar, etc. */}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 border px-2 py-1">Nenhum município disponível</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {municipalities?.length === 0 && (
         <div className="text-center py-8">
