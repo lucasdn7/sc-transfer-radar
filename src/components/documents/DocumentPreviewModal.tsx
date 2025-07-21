@@ -8,10 +8,16 @@ interface DocumentPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDownload: (document: any) => void;
+  previewType?: 'pdf' | 'image' | 'gdocs' | 'other';
 }
 
-export function DocumentPreviewModal({ document, isOpen, onClose, onDownload }: DocumentPreviewModalProps) {
+export function DocumentPreviewModal({ document, isOpen, onClose, onDownload, previewType }: DocumentPreviewModalProps) {
   if (!document) return null;
+
+  // Montar URL pública do arquivo
+  // Supondo que o bucket seja 'documents' e o caminho está em document.file_path
+  const supabaseUrl = "https://yonisrknsnsrigmgrcvk.supabase.co";
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/documents/${document.file_path}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -23,12 +29,40 @@ export function DocumentPreviewModal({ document, isOpen, onClose, onDownload }: 
           <div className="text-sm text-gray-600">
             {document.description}
           </div>
-          <div className="bg-gray-100 p-8 rounded-lg text-center">
-            <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">
-              Preview não disponível para este tipo de arquivo
-            </p>
-            <Button onClick={() => onDownload(document)}>
+          <div className="bg-gray-100 p-4 rounded-lg text-center min-h-[300px] flex flex-col items-center justify-center">
+            {previewType === 'pdf' && (
+              <iframe
+                src={publicUrl}
+                title="Preview PDF"
+                className="w-full h-[60vh] border rounded"
+                style={{ minHeight: 400 }}
+              />
+            )}
+            {previewType === 'image' && (
+              <img
+                src={publicUrl}
+                alt={document.title}
+                className="max-h-[60vh] mx-auto rounded shadow"
+                style={{ maxWidth: '100%' }}
+              />
+            )}
+            {previewType === 'gdocs' && (
+              <iframe
+                src={`https://docs.google.com/gview?url=${encodeURIComponent(publicUrl)}&embedded=true`}
+                title="Preview Google Docs"
+                className="w-full h-[60vh] border rounded"
+                style={{ minHeight: 400 }}
+              />
+            )}
+            {(!previewType || previewType === 'other') && (
+              <>
+                <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-4">
+                  Preview não disponível para este tipo de arquivo
+                </p>
+              </>
+            )}
+            <Button onClick={() => onDownload(document)} className="mt-4">
               <Download className="h-4 w-4 mr-2" />
               Baixar Documento
             </Button>
