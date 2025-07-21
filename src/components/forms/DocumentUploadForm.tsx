@@ -258,7 +258,7 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
               Cancelar
             </Button>
             <Button type="submit" disabled={isUploading}>
-              {isUploading ? 'Enviando...' : 'Enviar Documento'}
+              {isUploading ? (isEditMode ? 'Salvando...' : 'Enviando...') : (isEditMode ? 'Salvar' : 'Enviar Documento')}
             </Button>
           </div>
           <div className="max-h-[60vh] overflow-y-auto pr-2 pb-4">
