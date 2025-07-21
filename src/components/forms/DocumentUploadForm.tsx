@@ -199,10 +199,10 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
       const finalTitle = keepFileName && selectedFile ? selectedFile.name : customTitle || (selectedFile ? selectedFile.name : document?.title);
       const documentData: any = {
         title: customTitle || document?.title || '',
-        description: data.description,
+        description: descriptionValue,
         is_public: isPublic,
         uploaded_by_user_id: null,
-        document_category_id: categoryId, // Sempre incluir a categoria
+        document_category_id: categoryId,
         ...fileMeta,
       };
       if (isEditMode && document?.id) {
