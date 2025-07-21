@@ -356,7 +356,21 @@ export default function Municipalities() {
                     <td className="border px-2 py-1">{m.phone}</td>
                     <td className="border px-2 py-1">{m.email}</td>
                     <td className="border px-2 py-1">
-                      {/* Adicione aqui botões de ações como visualizar, editar, etc. */}
+                      <Button variant="ghost" size="sm" asChild className="mr-2">
+                        <Link to={`/map?municipality=${m.id}`} title="Ver no Mapa">
+                          <MapPin className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      {isAuthenticated && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingMunicipality(m)}
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))

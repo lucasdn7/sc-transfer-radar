@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Users, ChevronLeft, ChevronRight, List, LayoutGrid } from "lucide-react";
+import { Search, Plus, Users, ChevronLeft, ChevronRight, List, LayoutGrid, Edit } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { RegionalNucleusForm } from "@/components/forms/RegionalNucleusForm";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { RegionalNucleusCard } from "@/components/regional-nuclei/RegionalNucleusCard";
 import { useRegionalNuclei, useNucleiStats } from "@/hooks/useRegionalNuclei";
+import { Link } from "react-router-dom";
 
 function useDebouncedValue<T>(value: T, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -179,7 +180,21 @@ export default function RegionalNuclei() {
                     <td className="border px-2 py-1">{n.phone}</td>
                     <td className="border px-2 py-1">{n.email}</td>
                     <td className="border px-2 py-1">
-                      {/* Adicione aqui botões de ações como visualizar, editar, etc. */}
+                      <Button variant="ghost" size="sm" asChild className="mr-2">
+                        <Link to={`/municipalities?nucleus=${n.id}`} title="Ver Municípios">
+                          Ver Municípios
+                        </Link>
+                      </Button>
+                      {isAuthenticated && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingNucleus(n)}
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))
