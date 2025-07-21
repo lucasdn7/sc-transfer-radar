@@ -339,7 +339,7 @@ export default function Municipalities() {
                 <th className="border px-2 py-1 bg-gray-100">Município</th>
                 <th className="border px-2 py-1 bg-gray-100">Região</th>
                 <th className="border px-2 py-1 bg-gray-100">Núcleo</th>
-                <th className="border px-2 py-1 bg-gray-100">Classificação</th>
+                <th className="border px-2 py-1 bg-gray-100">CNPJ</th>
                 <th className="border px-2 py-1 bg-gray-100">Telefone</th>
                 <th className="border px-2 py-1 bg-gray-100">E-mail</th>
                 <th className="border px-2 py-1 bg-gray-100">Ações</th>
@@ -352,7 +352,7 @@ export default function Municipalities() {
                     <td className="border px-2 py-1">{m.name}</td>
                     <td className="border px-2 py-1">{m.regioes?.nome}</td>
                     <td className="border px-2 py-1">{m.regional_nuclei?.name}</td>
-                    <td className="border px-2 py-1">{m.municipality_classifications?.name}</td>
+                    <td className="border px-2 py-1">{m.cnpj}</td>
                     <td className="border px-2 py-1">{m.phone}</td>
                     <td className="border px-2 py-1">{m.email}</td>
                     <td className="border px-2 py-1">
