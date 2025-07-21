@@ -9,6 +9,7 @@ interface DocumentCardProps {
   document: any;
   onPreview: (document: any) => void;
   onDownload: (document: any) => void;
+  onEdit?: (document: any) => void;
 }
 
 export function DocumentCard({ document, onPreview, onDownload }: DocumentCardProps) {
@@ -55,6 +56,10 @@ export function DocumentCard({ document, onPreview, onDownload }: DocumentCardPr
         <div className="text-xs text-gray-500 space-y-1">
           <div className="flex items-center gap-2">
             <Calendar className="h-3 w-3" />
+            <span>Inserido em: {document.created_at ? new Date(document.created_at).toLocaleDateString('pt-BR') : '-'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3 w-3" />
             <span>Última modificação: {ultimaMod ? new Date(ultimaMod).toLocaleDateString('pt-BR') : '-'}</span>
           </div>
           {document.page_count && (
@@ -81,6 +86,15 @@ export function DocumentCard({ document, onPreview, onDownload }: DocumentCardPr
             <Download className="h-4 w-4 mr-2" />
             Baixar
           </Button>
+          {onEdit && (
+            <Button 
+              onClick={() => onEdit(document)}
+              className="flex-1 font-bold"
+              variant="outline"
+            >
+              Editar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
