@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, Download, Eye } from 'lucide-react';
+import { FileText, Calendar, Download, Eye, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 interface DocumentCardProps {
@@ -10,9 +10,10 @@ interface DocumentCardProps {
   onPreview: (document: any) => void;
   onDownload: (document: any) => void;
   onEdit?: (document: any) => void;
+  onDelete?: (document: any) => void;
 }
 
-export function DocumentCard({ document, onPreview, onDownload, onEdit }: DocumentCardProps) {
+export function DocumentCard({ document, onPreview, onDownload, onEdit, onDelete }: DocumentCardProps) {
   const isRecentDocument = (createdAt: string) => {
     const created = new Date(createdAt);
     const now = new Date();
@@ -88,6 +89,19 @@ export function DocumentCard({ document, onPreview, onDownload, onEdit }: Docume
             <Download className="h-4 w-4 mr-2" />
             Baixar
           </a>
+          {onDelete && (
+            <Button
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.')) onDelete(document);
+              }}
+              className="flex-1 font-bold"
+              variant="outline"
+              title="Excluir"
+            >
+              <Trash2 className="h-4 w-4 text-red-600 mr-2" />
+              Excluir
+            </Button>
+          )}
           {onEdit && (
             <Button 
               onClick={() => onEdit(document)}

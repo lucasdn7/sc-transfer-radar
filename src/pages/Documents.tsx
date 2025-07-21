@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { List, LayoutGrid, Eye, Download } from 'lucide-react';
+import { List, LayoutGrid, Eye, Download, Trash2 } from 'lucide-react';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback: (error: Error) => ReactNode }, { error: Error | null }> {
   constructor(props: any) {
@@ -68,6 +68,16 @@ export default function Documents() {
 
   const handlePreview = (document: any) => {
     setPreviewDocument(document);
+  };
+
+  const handleDelete = async (document: any) => {
+    if (!window.confirm('Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.')) return;
+    const { error } = await supabase.from('documents').delete().eq('id', document.id);
+    if (error) {
+      alert('Erro ao excluir documento: ' + error.message);
+    } else {
+      refetch();
+    }
   };
 
   if (isLoading) {
@@ -210,6 +220,9 @@ export default function Documents() {
                           >
                             <Download className="h-4 w-4" />
                           </a>
+                          <Button size="sm" variant="outline" onClick={() => handleDelete(document)} title="Excluir">
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
                           {isAuthenticated && <Button size="sm" variant="outline" onClick={() => setEditDocument(document)}>Editar</Button>}
                         </td>
                       </tr>
@@ -232,6 +245,7 @@ export default function Documents() {
                     onPreview={handlePreview}
                     onDownload={handleDownload}
                     onEdit={setEditDocument}
+                    onDelete={handleDelete}
                   />
                 ))
               ) : (
