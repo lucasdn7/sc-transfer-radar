@@ -12,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@/components/ui/table';
 import { List, LayoutGrid, Eye, Download } from 'lucide-react';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback: (error: Error) => ReactNode }, { error: Error | null }> {
@@ -182,45 +181,43 @@ export default function Documents() {
           {/* Listagem de documentos */}
           {viewMode === 'list' ? (
             <div className="overflow-x-auto">
-              <Table>
-                <Thead>
-                  <Tr>
-                    <Th>Nome</Th>
-                    <Th>Categoria</Th>
-                    <Th>Descrição</Th>
-                    <Th>Inserido em</Th>
-                    <Th>Tipo</Th>
-                    <Th>Ações</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border px-2 py-1 bg-gray-100">Nome</th>
+                    <th className="border px-2 py-1 bg-gray-100">Categoria</th>
+                    <th className="border px-2 py-1 bg-gray-100">Descrição</th>
+                    <th className="border px-2 py-1 bg-gray-100">Inserido em</th>
+                    <th className="border px-2 py-1 bg-gray-100">Tipo</th>
+                    <th className="border px-2 py-1 bg-gray-100">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {documents && documents.length > 0 ? (
                     documents.map((document) => (
-                      <Tr key={document.id}>
-                        <Td className="flex items-center gap-2">
+                      <tr key={document.id}>
+                        <td className="flex items-center gap-2 border px-2 py-1">
                           {document.title}
                           {!document.is_public && <span title="Restrito" className="ml-1 text-blue-400"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.26L20 9.27l-5 3.64L16.18 21 12 17.27 7.82 21 9 12.91l-5-3.64 5.91-.01z"/></svg></span>}
-                        </Td>
-                        <Td>{document.document_categories?.name || document.category_name || 'Sem categoria'}</Td>
-                        <Td>{document.description}</Td>
-                        <Td>{document.created_at ? new Date(document.created_at).toLocaleDateString('pt-BR') : '-'}</Td>
-                        <Td>{/* Tag de extensão */}
-                          <FileTypeTag fileName={document.file_name} />
-                        </Td>
-                        <Td className="flex gap-2">
+                        </td>
+                        <td className="border px-2 py-1">{document.document_categories?.name || document.category_name || 'Sem categoria'}</td>
+                        <td className="border px-2 py-1">{document.description}</td>
+                        <td className="border px-2 py-1">{document.created_at ? new Date(document.created_at).toLocaleDateString('pt-BR') : '-'}</td>
+                        <td className="border px-2 py-1"><FileTypeTag fileName={document.file_name} /></td>
+                        <td className="flex gap-2 border px-2 py-1">
                           <Button size="sm" variant="outline" onClick={() => handlePreview(document)}><Eye className="h-4 w-4" /></Button>
                           <Button size="sm" variant="outline" onClick={() => handleDownload(document)}><Download className="h-4 w-4" /></Button>
                           {isAuthenticated && <Button size="sm" variant="outline" onClick={() => setEditDocument(document)}>Editar</Button>}
-                        </Td>
-                      </Tr>
+                        </td>
+                      </tr>
                     ))
                   ) : (
-                    <Tr>
-                      <Td colSpan={6} className="text-center py-8">Nenhum documento disponível ainda</Td>
-                    </Tr>
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 border px-2 py-1">Nenhum documento disponível ainda</td>
+                    </tr>
                   )}
-                </Tbody>
-              </Table>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
