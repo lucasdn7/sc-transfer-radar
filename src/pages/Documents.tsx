@@ -200,7 +200,16 @@ export default function Documents() {
                         <td className="border px-2 py-1"><FileTypeTag fileName={document.file_name} /></td>
                         <td className="flex gap-2 border px-2 py-1">
                           <Button size="sm" variant="outline" onClick={() => handlePreview(document)}><Eye className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDownload(document)}><Download className="h-4 w-4" /></Button>
+                          <a
+                            href={`https://yonisrknsnsrigmgrcvk.supabase.co/storage/v1/object/public/documents/${document.file_path}`}
+                            download={document.file_name}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                            style={{ minWidth: 32 }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
                           {isAuthenticated && <Button size="sm" variant="outline" onClick={() => setEditDocument(document)}>Editar</Button>}
                         </td>
                       </tr>
