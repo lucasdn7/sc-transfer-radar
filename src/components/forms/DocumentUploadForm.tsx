@@ -42,11 +42,12 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
   const customCategoryInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm<DocumentUploadFormData>({
+  const { register, handleSubmit, setValue, formState: { errors }, reset, watch } = useForm<DocumentUploadFormData>({
     defaultValues: {
       is_public: true,
     },
   });
+  const descriptionValue = watch('description') || '';
 
   // Preencher campos ao entrar em modo edição
   React.useEffect(() => {
@@ -292,7 +293,8 @@ export function DocumentUploadForm({ onSuccess, onCancel, document, isEditMode }
               <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
-                value={data.description}
+                {...register('description')}
+                value={descriptionValue}
                 onChange={e => setValue('description', e.target.value)}
                 placeholder="Descrição do documento..."
                 rows={3}
