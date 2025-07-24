@@ -38,11 +38,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Try to fetch user role from profiles table
           setTimeout(async () => {
             try {
-              const { data: profile } = await supabase
+              const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', session.user.id)
                 .single();
+              
+              if (error) {
+                // Se a tabela não existir ou houver erro 404, usar role padrão
+                if (error.code === 'PGRST116' || error.message?.includes('404')) {
+                  console.log('Tabela profiles não encontrada, usando role padrão');
+                } else {
+                  console.warn('Erro ao buscar perfil do usuário:', error.message);
+                }
+                setUserRole('viewer');
+                return;
+              }
               
               if (profile?.role) {
                 setUserRole(profile.role);
@@ -50,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUserRole('viewer');
               }
             } catch (error) {
-              console.error('Error fetching user role:', error);
+              console.warn('Erro inesperado ao buscar perfil:', error);
               setUserRole('viewer');
             }
           }, 0);

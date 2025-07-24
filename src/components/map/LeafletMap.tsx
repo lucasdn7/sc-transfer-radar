@@ -35,7 +35,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   const [retryCount, setRetryCount] = useState(0);
 
   // MapTiles API key - você pode configurar isso através de uma variável de ambiente
-  const MAPTILES_API_KEY = token || 'your-maptiles-api-key';
+  const MAPTILES_API_KEY = token || 'get_your_own_OpIi9ZULNHzrESv6T2vL';
 
   const initializeMap = () => {
     setRetryCount(prev => prev + 1);
@@ -54,7 +54,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   };
 
   useEffect(() => {
-    if (!mapContainer.current || !token) return;
+    if (!mapContainer.current) return;
     
     // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
     if (map.current && isLoaded && !error) {
@@ -69,9 +69,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
     try {
       // Verificar se o token é válido (formato básico)
       if (!token || token.length < 10) {
-        setError('Token inválido. Verifique sua chave API do MapTiles.');
-        setIsInitializing(false);
-        return;
+        console.warn('Token do MapTiles não configurado ou inválido, usando OpenStreetMap como fallback');
       }
 
       // Verificar se o container está disponível
@@ -83,15 +81,20 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
 
       // Configurar estilos baseado na seleção
       const getMapTileUrl = (style: string) => {
+        // Se não há token válido, usar OpenStreetMap como fallback
+        if (!token || token.length < 10) {
+          return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        }
+        
         const styleMap: { [key: string]: string } = {
           satellite: 'satellite-v2',
-          street: 'streets-v2',
+          street: 'streets-v2', 
           terrain: 'outdoor-v2',
           dark: 'dark-v2'
         };
         
         const selectedStyle = styleMap[style] || styleMap.satellite;
-        return `https://api.maptiler.com/maps/${selectedStyle}/256/{z}/{x}/{y}.png?key=${MAPTILES_API_KEY}`;
+        return `https://api.maptiler.com/maps/${selectedStyle}/{z}/{x}/{y}.png?key=${MAPTILES_API_KEY}`;
       };
 
       // Criar o mapa Leaflet
@@ -103,8 +106,12 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       });
 
       // Adicionar camada de tiles
+      const attribution = (!token || token.length < 10) 
+        ? '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
+        : '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+        
       const tileLayer = L.tileLayer(getMapTileUrl(mapStyle), {
-        attribution: '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
+        attribution: attribution,
         maxZoom: 18,
       });
 
@@ -233,21 +240,28 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       });
 
       // Tratamento de erros
+      let tileErrorCount = 0;
       tileLayer.on('tileerror', (e) => {
-        console.error('Erro ao carregar tiles:', e);
+        tileErrorCount++;
+        console.warn(`Erro ao carregar tile ${tileErrorCount}:`, e.tile?.src);
         
-        // Limpar o timeout quando há erro
-        clearTimeout(loadTimeout);
-        
-        if (e.error?.status === 401 || e.error?.status === 403) {
-          setError('Token do MapTiles inválido ou expirado. Verifique sua chave API.');
-        } else if (e.error?.status === 429) {
-          setError('Limite de requisições excedido. Tente novamente mais tarde.');
-        } else {
-          setError('Erro ao carregar o mapa. Verifique sua chave API e conexão.');
+        // Só mostrar erro se houver muitos tiles falhando
+        if (tileErrorCount > 5) {
+          console.error('Muitos erros de tiles, possível problema com a API');
+          
+          // Limpar o timeout quando há erro crítico
+          clearTimeout(loadTimeout);
+          
+          if (e.error?.status === 401 || e.error?.status === 403) {
+            setError('Token do MapTiles inválido ou expirado. Verifique sua chave API.');
+          } else if (e.error?.status === 429) {
+            setError('Limite de requisições excedido. Tente novamente mais tarde.');
+          } else {
+            setError('Erro ao carregar o mapa. Verifique sua chave API e conexão.');
+          }
+          
+          setIsInitializing(false);
         }
-        
-        setIsInitializing(false);
       });
 
       // Simular carregamento inicial
