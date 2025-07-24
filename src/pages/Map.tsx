@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
-import { useMapboxToken } from "@/hooks/useMapboxToken";
-import { MapboxTokenForm } from "@/components/map/MapboxTokenForm";
-import { InteractiveMap } from "@/components/map/InteractiveMap";
+import { useMapTilesToken } from "@/hooks/useMapTilesToken";
+import { MapTilesTokenForm } from "@/components/map/MapTilesTokenForm";
+import { LeafletMap } from "@/components/map/LeafletMap";
 
 export default function Map() {
-  const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapboxToken();
+  const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapTilesToken();
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +75,7 @@ export default function Map() {
 
   // Se não tem token ou está mostrando formulário, mostrar tela de configuração
   if (!isTokenSet || showTokenForm) {
-    return <MapboxTokenForm onTokenSave={handleTokenSave} />;
+    return <MapTilesTokenForm onTokenSave={handleTokenSave} />;
   }
 
   return (
@@ -267,7 +267,7 @@ export default function Map() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-full p-4">
-              <InteractiveMap
+              <LeafletMap
                 token={token}
                 mapStyle={mapStyle}
                 showLabels={showLabels}

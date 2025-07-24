@@ -101,3 +101,39 @@
 .transition-all {
   transition: all 0.2s ease-in-out;
 }
+
+/* Leaflet map styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Fix para controles do Leaflet */
+.leaflet-control-zoom a {
+  color: #374151 !important;
+  border-radius: 4px;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.leaflet-control-attribution {
+  font-size: 11px !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
