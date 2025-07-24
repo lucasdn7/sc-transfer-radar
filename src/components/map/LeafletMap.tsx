@@ -138,9 +138,12 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         ? '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
         : '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
         
-      const tileLayer = L.tileLayer(getMapTileUrl(mapStyle), {
-        attribution: attribution,
-        maxZoom: 18,
+      const tileLayer = L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=e3VWogbibNO6050syxrN', {
+      tileSize: 512,
+      zoomOffset: -1,
+      attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> contributors',
+      }).addTo(map);
+
       });
 
       tileLayer.addTo(mapInstance);
