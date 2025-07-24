@@ -164,7 +164,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       }, 30000); // 30 segundos
 
       // Marcar como carregado imediatamente após adicionar a camada
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log('Mapa carregado com sucesso');
         setIsLoaded(true);
         setIsInitializing(false);
