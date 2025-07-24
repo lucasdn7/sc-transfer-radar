@@ -116,35 +116,15 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         .filter(cls => !cls.startsWith('leaflet-'))
         .join(' ');
     }
+    
+    // Chamar a inicialização assíncrona após a limpeza
+    setTimeout(() => {
+      initializeMapAsync();
+    }, 100);
   };
 
-  useEffect(() => {
-    // Aguardar um tick para garantir que o DOM está pronto
-    const initTimer = setTimeout(() => {
-      if (!mapContainer.current) {
-        console.warn('Container não disponível, tentando novamente...');
-        return;
-      }
-      
-      // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
-      if (map.current && isLoaded && !error) {
-        console.log('Mapa já carregado, evitando re-inicialização');
-        return;
-      }
-
-      // Só inicializar se não estiver já inicializando
-      if (isInitializing) {
-        console.log('Mapa já inicializando, aguardando...');
-        return;
-      }
-
-      console.log('Iniciando processo de inicialização do mapa...');
-      initializeMap();
-    }, 50); // Pequeno delay para garantir que o DOM está pronto
-
-    return () => clearTimeout(initTimer);
-
-    const initializeMapAsync = async () => {
+  // Função assíncrona para inicialização do mapa
+  const initializeMapAsync = async () => {
     try {
       // Verificar se o container está disponível
       if (!mapContainer.current) {
@@ -368,7 +348,8 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         // Limpar o timeout quando o mapa carregar com sucesso
         clearTimeout(loadTimeout);
 
-        // Buscar processos da base de dados
+        // Buscar processos da base de dados (opcional - mapa funciona sem dados)
+        console.log('Tentando carregar dados dos processos...');
         try {
           let query: any = supabase
             .from('processes')
@@ -397,8 +378,31 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
           const processes = (Array.isArray(data) ? data : []) as any[];
 
           if (error) {
-            console.error('Erro ao buscar processos:', error);
-            console.warn('Mapa carregado sem dados dos processos devido a erro na consulta');
+            console.warn('Erro ao buscar processos:', error.message);
+            console.log('Mapa carregado sem dados dos processos - funcionando em modo básico');
+            
+            // Adicionar marcadores de exemplo para testar
+            console.log('Adicionando marcadores de exemplo...');
+            const exampleMarkers = [
+              { lat: -27.5954, lng: -48.5482, title: "Florianópolis - Exemplo", description: "Marcador de teste" },
+              { lat: -26.9194, lng: -49.0661, title: "Blumenau - Exemplo", description: "Marcador de teste" },
+              { lat: -27.0934, lng: -52.6143, title: "Chapecó - Exemplo", description: "Marcador de teste" }
+            ];
+            
+            exampleMarkers.forEach((example, index) => {
+              const marker = L.marker([example.lat, example.lng]);
+              marker.bindPopup(`
+                <div style="font-family: Inter, sans-serif;">
+                  <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">${example.title}</h3>
+                  <p style="margin: 0; font-size: 12px; color: #666;">${example.description}</p>
+                  <p style="margin: 4px 0 0 0; font-size: 11px; color: #999;">Dados de exemplo - banco não disponível</p>
+                </div>
+              `);
+              marker.addTo(mapInstance);
+              markersRef.current.push(marker);
+            });
+            
+            console.log(`${exampleMarkers.length} marcadores de exemplo adicionados`);
             return;
           }
 
@@ -554,10 +558,34 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       setIsInitializing(false);
       initializationRef.current = false; // Reset da flag de inicialização em caso de erro
     }
-    };
+  };
 
-    // Chamar a função async
-    initializeMapAsync();
+  // UseEffect para inicialização do mapa
+  useEffect(() => {
+    // Aguardar um tick para garantir que o DOM está pronto
+    const initTimer = setTimeout(() => {
+      if (!mapContainer.current) {
+        console.warn('Container não disponível, tentando novamente...');
+        return;
+      }
+      
+      // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
+      if (map.current && isLoaded && !error) {
+        console.log('Mapa já carregado, evitando re-inicialização');
+        return;
+      }
+
+      // Só inicializar se não estiver já inicializando
+      if (isInitializing) {
+        console.log('Mapa já inicializando, aguardando...');
+        return;
+      }
+
+      console.log('Iniciando processo de inicialização do mapa...');
+      initializeMap();
+    }, 50); // Pequeno delay para garantir que o DOM está pronto
+
+    return () => clearTimeout(initTimer);
   }, [token, mapStyle, statusFilter, regionFilter, searchTerm]);
 
   // UseEffect para garantir que o mapa seja redimensionado corretamente
