@@ -6,7 +6,7 @@ import { Settings, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
-import { MAP_CONFIG, getTileUrl, setupDefaultToken } from '@/utils/mapConfig';
+import { MAP_CONFIG, getTileUrl, setupDefaultToken, testMapTilesToken } from '@/utils/mapConfig';
 
 // Função para calcular a cor baseada na vigência
 const getVigenciaColor = (vigenciaDate: string) => {
@@ -99,6 +99,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
 
     initializeMap();
 
+    const initializeMapAsync = async () => {
     try {
       // Verificar se o container está disponível
       if (!mapContainer.current) {
@@ -107,24 +108,45 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         return;
       }
 
-      // Verificar se o container tem altura
-      const containerHeight = mapContainer.current.offsetHeight;
-      if (containerHeight === 0) {
-        console.warn('Container do mapa tem altura 0, tentando aguardar...');
+      // Verificar se o container tem dimensões adequadas
+      const containerRect = mapContainer.current.getBoundingClientRect();
+      console.log('Dimensões do container:', {
+        width: containerRect.width,
+        height: containerRect.height,
+        offsetHeight: mapContainer.current.offsetHeight,
+        offsetWidth: mapContainer.current.offsetWidth
+      });
+      
+      if (containerRect.height === 0 || containerRect.width === 0) {
+        console.warn('Container do mapa não tem dimensões adequadas, tentando aguardar...');
         setTimeout(() => {
-          if (mapContainer.current && mapContainer.current.offsetHeight > 0) {
-            // Tentar novamente depois que o container tiver altura
-            setIsInitializing(false);
-          } else {
-            setError('Container do mapa não tem altura. Verifique os estilos CSS.');
-            setIsInitializing(false);
+          if (mapContainer.current) {
+            const newRect = mapContainer.current.getBoundingClientRect();
+            if (newRect.height > 0 && newRect.width > 0) {
+              console.log('Container agora tem dimensões adequadas, tentando novamente...');
+              setIsInitializing(false);
+            } else {
+              setError('Container do mapa não tem altura ou largura. Verifique os estilos CSS.');
+              setIsInitializing(false);
+            }
           }
-        }, 500);
+        }, 1000);
         return;
       }
 
+      // Testar token antes de gerar URL
+      console.log('Testando token do MapTiles...');
+      const isTokenValid = await testMapTilesToken(MAPTILES_API_KEY);
+      console.log('Token válido:', isTokenValid);
+
       // Usar função utilitária para gerar URL do tile
-      const tileUrl = getTileUrl(mapStyle, MAPTILES_API_KEY);
+      // Se o token for inválido, forçar uso do OpenStreetMap
+      const tileUrl = getTileUrl(mapStyle, MAPTILES_API_KEY, !isTokenValid);
+      
+      if (!isTokenValid) {
+        console.warn('Token inválido, usando OpenStreetMap como fallback');
+        // Não mostrar como erro, apenas como informação
+      }
 
       // Criar o mapa Leaflet
       const mapInstance = L.map(mapContainer.current, {
@@ -180,10 +202,33 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         
         // Invalidar o tamanho do mapa para garantir renderização correta
         if (mapInstance) {
+          // Múltiplas tentativas para garantir o redimensionamento
           setTimeout(() => {
-            mapInstance.invalidateSize();
-            console.log('Tamanho do mapa invalidado');
+            try {
+              mapInstance.invalidateSize(true); // true = reset
+              console.log('Tamanho do mapa invalidado (tentativa 1)');
+            } catch (error) {
+              console.warn('Erro ao invalidar tamanho (tentativa 1):', error);
+            }
           }, 100);
+          
+          setTimeout(() => {
+            try {
+              mapInstance.invalidateSize(true);
+              console.log('Tamanho do mapa invalidado (tentativa 2)');
+            } catch (error) {
+              console.warn('Erro ao invalidar tamanho (tentativa 2):', error);
+            }
+          }, 500);
+          
+          setTimeout(() => {
+            try {
+              mapInstance.invalidateSize(true);
+              console.log('Tamanho do mapa invalidado (tentativa 3)');
+            } catch (error) {
+              console.warn('Erro ao invalidar tamanho (tentativa 3):', error);
+            }
+          }, 1000);
         }
         
         setIsLoaded(true);
@@ -318,12 +363,14 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         }
       }, 1000);
 
-      // Tratamento de erros mais robusto
+      // Tratamento de erros mais tolerante
       let tileErrorCount = 0;
       let tileLoadCount = 0;
+      let consecutiveErrors = 0;
       
       tileLayer.on('tileload', () => {
         tileLoadCount++;
+        consecutiveErrors = 0; // Reset consecutive errors on successful load
         if (tileLoadCount >= 3) {
           console.log('Tiles carregando com sucesso');
         }
@@ -331,11 +378,12 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
 
       tileLayer.on('tileerror', (e) => {
         tileErrorCount++;
-        console.warn(`Erro ao carregar tile ${tileErrorCount}:`, e.tile?.src);
+        consecutiveErrors++;
+        console.warn(`Erro ao carregar tile ${tileErrorCount} (consecutivos: ${consecutiveErrors}):`, e.tile?.src);
         
-        // Só mostrar erro se houver muitos tiles falhando
-        if (tileErrorCount > 3) {
-          console.error('Muitos erros de tiles, possível problema com a API');
+        // Só mostrar erro se houver muitos erros consecutivos
+        if (consecutiveErrors > 5 && tileLoadCount === 0) {
+          console.error('Muitos erros consecutivos de tiles, possível problema com a API');
           
           // Limpar o timeout quando há erro crítico
           clearTimeout(loadTimeout);
@@ -374,17 +422,37 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       setError('Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.');
       setIsInitializing(false);
     }
+    };
+
+    // Chamar a função async
+    initializeMapAsync();
   }, [token, mapStyle, statusFilter, regionFilter, searchTerm]);
 
   // UseEffect para garantir que o mapa seja redimensionado corretamente
   useEffect(() => {
     if (map.current && isLoaded) {
-      const timer = setTimeout(() => {
-        map.current?.invalidateSize();
-      }, 100);
-      return () => clearTimeout(timer);
+      const timers: NodeJS.Timeout[] = [];
+      
+      // Múltiplas tentativas de redimensionamento
+      [100, 300, 600, 1000].forEach((delay) => {
+        const timer = setTimeout(() => {
+          try {
+            if (map.current) {
+              map.current.invalidateSize(true);
+              console.log(`Redimensionamento automático (${delay}ms)`);
+            }
+          } catch (error) {
+            console.warn(`Erro no redimensionamento automático (${delay}ms):`, error);
+          }
+        }, delay);
+        timers.push(timer);
+      });
+      
+      return () => {
+        timers.forEach(timer => clearTimeout(timer));
+      };
     }
-  }, [isLoaded]);
+  }, [isLoaded, mapStyle]); // Incluir mapStyle para redimensionar quando mudar
 
   const handleRetry = () => {
     setError(null);
@@ -435,7 +503,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
 
   return (
     <div className="relative w-full h-[600px] rounded-lg overflow-hidden border">
-      <div ref={mapContainer} className="w-full h-full" />
+      <div ref={mapContainer} className="map-container w-full h-full" />
       
       {!isLoaded && (
         <div className="absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center">
