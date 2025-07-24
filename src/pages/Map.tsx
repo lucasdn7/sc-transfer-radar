@@ -238,20 +238,27 @@ export default function Map() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Legenda</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Legenda - Status de Vigência
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                <span className="text-sm">1-2 Processos</span>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
+                <span className="text-sm">Vigente (mais de 30 dias)</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
-                <span className="text-sm">3-5 Processos</span>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white shadow-sm"></div>
+                <span className="text-sm">Próximo ao vencimento (até 30 dias)</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                <span className="text-sm">6+ Processos</span>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm"></div>
+                <span className="text-sm">Vencido</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-gray-500 border-2 border-white shadow-sm"></div>
+                <span className="text-sm">Data não informada</span>
               </div>
             </CardContent>
           </Card>

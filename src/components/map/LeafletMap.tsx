@@ -7,6 +7,34 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
 
+// Função para calcular a cor baseada na vigência
+const getVigenciaColor = (vigenciaDate: string) => {
+  if (!vigenciaDate) return '#6b7280'; // Cinza para data não informada
+  
+  const today = new Date();
+  const vigencia = new Date(vigenciaDate);
+  const diffTime = vigencia.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return '#ef4444'; // Vermelho para vencidos
+  } else if (diffDays <= 30) {
+    return '#f59e0b'; // Amarelo para próximos ao vencimento (30 dias)
+  } else {
+    return '#10b981'; // Verde para vigentes
+  }
+};
+
+// Função para formatar data
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'N/A';
+  try {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  } catch {
+    return 'Data inválida';
+  }
+};
+
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -135,8 +163,8 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         }
       }, 30000); // 30 segundos
 
-      // Evento quando as tiles carregam
-      tileLayer.on('load', async () => {
+      // Marcar como carregado imediatamente após adicionar a camada
+      setTimeout(() => {
         console.log('Mapa carregado com sucesso');
         setIsLoaded(true);
         setIsInitializing(false);
@@ -151,7 +179,8 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
             .select(`
               *,
               municipalities(name),
-              status_processos(nome, cor)
+              status_processos(nome, cor),
+              regional_nuclei(name)
             `)
             .not('latitude', 'is', null)
             .not('longitude', 'is', null);
@@ -186,13 +215,14 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
           // Adicionar marcadores para cada processo
           processes.forEach((process: any) => {
             if (process.latitude && process.longitude) {
-              const statusColor = process.status_processos?.cor || '#3b82f6';
+              // Usar cor baseada na vigência em vez do status
+              const vigenciaColor = getVigenciaColor(process.vigencia_date);
               
-              // Criar ícone customizado baseado no status
+              // Criar ícone customizado baseado na vigência
               const customIcon = L.divIcon({
                 className: 'custom-div-icon',
                 html: `<div style="
-                  background-color: ${statusColor};
+                  background-color: ${vigenciaColor};
                   width: 20px;
                   height: 20px;
                   border-radius: 50%;
@@ -207,28 +237,57 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
                 icon: customIcon
               });
 
-              // Popup com informações do processo
+              // Popup com informações completas do processo
               const popupContent = `
-                <div style="min-width: 200px;">
-                  <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">
+                <div style="min-width: 250px; font-family: Inter, sans-serif;">
+                  <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
                     ${process.municipalities?.name || 'Município não informado'}
                   </h3>
-                  <p style="margin: 4px 0; font-size: 12px;">
-                    <strong>Processo:</strong> ${process.numero_processo || 'N/A'}
-                  </p>
-                  <p style="margin: 4px 0; font-size: 12px;">
-                    <strong>Status:</strong> ${process.status_processos?.nome || 'N/A'}
-                  </p>
-                  <p style="margin: 4px 0; font-size: 12px;">
-                    <strong>Valor:</strong> ${process.valor_repasse ? formatCurrency(process.valor_repasse) : 'N/A'}
-                  </p>
-                  <p style="margin: 4px 0; font-size: 12px;">
-                    <strong>Modalidade:</strong> ${process.modalidade || 'N/A'}
-                  </p>
+                  
+                  <div style="display: grid; gap: 8px;">
+                    <p style="margin: 0; font-size: 12px; display: flex; justify-content: space-between;">
+                      <strong style="color: #374151;">Processo:</strong> 
+                      <span style="color: #6b7280;">${process.process_number || 'N/A'}</span>
+                    </p>
+                    
+                    <p style="margin: 0; font-size: 12px; display: flex; justify-content: space-between;">
+                      <strong style="color: #374151;">Status:</strong> 
+                      <span style="color: #6b7280;">${process.status_processos?.nome || 'N/A'}</span>
+                    </p>
+                    
+                    <p style="margin: 0; font-size: 12px; display: flex; justify-content: space-between;">
+                      <strong style="color: #374151;">Valor (Concedente):</strong> 
+                      <span style="color: #059669; font-weight: 600;">${process.total_concedente_value ? formatCurrency(process.total_concedente_value) : 'N/A'}</span>
+                    </p>
+                    
+                    <div style="margin: 8px 0; padding: 8px; background-color: #f9fafb; border-radius: 4px; border-left: 3px solid ${vigenciaColor};">
+                      <p style="margin: 0; font-size: 12px; display: flex; justify-content: space-between;">
+                        <strong style="color: #374151;">Data de Vigência:</strong> 
+                        <span style="color: #6b7280;">${formatDate(process.vigencia_date)}</span>
+                      </p>
+                    </div>
+                    
+                    <p style="margin: 0; font-size: 12px; display: flex; justify-content: space-between;">
+                      <strong style="color: #374151;">Núcleo:</strong> 
+                      <span style="color: #6b7280;">${process.regional_nuclei?.name || 'N/A'}</span>
+                    </p>
+                  </div>
+                  
+                  <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; font-size: 11px; color: #9ca3af;">
+                      <strong>Objeto:</strong>
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #6b7280; line-height: 1.4;">
+                      ${process.object || 'Objeto não informado'}
+                    </p>
+                  </div>
                 </div>
               `;
 
-              marker.bindPopup(popupContent);
+              marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'custom-popup'
+              });
               marker.addTo(mapInstance);
               markersRef.current.push(marker);
             }
@@ -237,7 +296,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         } catch (error) {
           console.error('Erro ao carregar processos no mapa:', error);
         }
-      });
+      }, 1000);
 
       // Tratamento de erros
       let tileErrorCount = 0;
@@ -264,12 +323,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         }
       });
 
-      // Simular carregamento inicial
-      setTimeout(() => {
-        if (map.current && !error) {
-          tileLayer.fire('load');
-        }
-      }, 1000);
+
 
       return () => {
         clearTimeout(loadTimeout);
