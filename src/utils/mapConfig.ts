@@ -36,19 +36,50 @@ export const extractTokenFromUrl = (tokenOrUrl: string): string => {
 };
 
 /**
- * Gera a URL do tile baseada no estilo e token
+ * Testa se um token do MapTiles é válido fazendo uma requisição de teste
  */
-export const getTileUrl = (style: string, token: string): string => {
+export const testMapTilesToken = async (token: string): Promise<boolean> => {
+  try {
+    const extractedToken = extractTokenFromUrl(token);
+    if (!extractedToken || extractedToken.length < 10) {
+      return false;
+    }
+    
+    // Testar com uma tile específica (zoom baixo para ser rápido)
+    const testUrl = `https://api.maptiler.com/maps/streets-v2/0/0/0.png?key=${extractedToken}`;
+    const response = await fetch(testUrl);
+    return response.ok;
+  } catch (error) {
+    console.error('Erro ao testar token:', error);
+    return false;
+  }
+};
+
+/**
+ * Gera a URL do tile baseada no estilo e token com fallback inteligente
+ */
+export const getTileUrl = (style: string, token: string, forceOSM: boolean = false): string => {
   const extractedToken = extractTokenFromUrl(token);
   
-  // Se não há token válido, usar OpenStreetMap como fallback
-  if (!extractedToken || extractedToken.length < 10) {
-    console.warn('Token do MapTiles inválido, usando OpenStreetMap como fallback');
+  console.log('Gerando URL do tile:', {
+    style,
+    originalToken: token ? token.substring(0, 20) + '...' : 'não fornecido',
+    extractedToken: extractedToken ? extractedToken.substring(0, 20) + '...' : 'não extraído',
+    tokenLength: extractedToken?.length || 0,
+    forceOSM
+  });
+  
+  // Forçar OpenStreetMap se solicitado ou se token é inválido
+  if (forceOSM || !extractedToken || extractedToken.length < 10) {
+    console.warn(forceOSM ? 'Forçando uso do OpenStreetMap' : 'Token do MapTiles inválido, usando OpenStreetMap como fallback');
     return MAP_CONFIG.OSM_URL;
   }
   
   const styleKey = MAP_CONFIG.TILE_URLS[style as keyof typeof MAP_CONFIG.TILE_URLS] || MAP_CONFIG.TILE_URLS.satellite;
-  return `https://api.maptiler.com/maps/${styleKey}/{z}/{x}/{y}.png?key=${extractedToken}`;
+  const finalUrl = `https://api.maptiler.com/maps/${styleKey}/{z}/{x}/{y}.png?key=${extractedToken}`;
+  
+  console.log('URL final gerada:', finalUrl.substring(0, 100) + '...');
+  return finalUrl;
 };
 
 /**
