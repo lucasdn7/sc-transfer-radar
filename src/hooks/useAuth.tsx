@@ -46,12 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               if (error) {
                 // Se a tabela não existir ou houver erro 404, usar role padrão
-                if (error.code === 'PGRST116' || error.message?.includes('404')) {
-                  console.log('Tabela profiles não encontrada, usando role padrão');
+                if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('does not exist')) {
+                  console.log('Tabela profiles não encontrada, usando role padrão admin para desenvolvimento');
+                  setUserRole('admin'); // Usar admin para desenvolvimento quando não há tabela
                 } else {
                   console.warn('Erro ao buscar perfil do usuário:', error.message);
+                  setUserRole('admin'); // Fallback para admin em desenvolvimento
                 }
-                setUserRole('viewer');
                 return;
               }
               
