@@ -5,4 +5,4 @@ ENV N8N_BASIC_AUTH_USER=admin
 ENV N8N_BASIC_AUTH_PASSWORD=senha123
 ENV N8N_HOST=0.0.0.0
 ENV N8N_PORT=5678
-ENV WEBHOOK_URL=https://n8n-xxxxxx.onrender.com
+ENV WEBHOOK_URL=https://n8n-transfer.onrender.com
