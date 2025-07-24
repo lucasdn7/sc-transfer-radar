@@ -90,15 +90,22 @@ export function MapTilesTokenForm({ onTokenSave, onCancel, initialToken = "" }: 
           )}
 
           <div className="space-y-4">
-            <div className="rounded-lg bg-blue-50 p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Como obter sua chave API do MapTiles:</h3>
+                          <div className="rounded-lg bg-blue-50 p-4">
+              <h3 className="font-semibold text-blue-900 mb-2">Como configurar o MapTiles:</h3>
               <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
                 <li>Acesse <a href="https://cloud.maptiler.com/" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">MapTiler Cloud</a></li>
                 <li>Crie uma conta gratuita ou faça login</li>
                 <li>Vá para a seção "Account" → "Keys"</li>
-                <li>Copie sua chave API padrão ou crie uma nova</li>
-                <li>Cole a chave no campo abaixo</li>
+                <li>Copie sua chave API (apenas o código) OU a URL completa</li>
+                <li>Cole no campo abaixo</li>
               </ol>
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                <p className="text-xs text-green-800">
+                  <strong>Aceita ambos os formatos:</strong><br/>
+                  • Apenas o token: <code className="bg-white px-1 rounded">e3VWogbibNO6050syxrN</code><br/>
+                  • URL completa: <code className="bg-white px-1 rounded">https://api.maptiler.com/maps/streets-v2/{`{z}`}/{`{x}`}/{`{y}`}.png?key=e3VWogbibNO6050syxrN</code>
+                </p>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -116,19 +123,19 @@ export function MapTilesTokenForm({ onTokenSave, onCancel, initialToken = "" }: 
               <div className="space-y-2">
                 <Label htmlFor="token" className="flex items-center gap-2">
                   <Key className="h-4 w-4" />
-                  Chave API do MapTiles
+                  Chave API do MapTiles ou URL completa
                 </Label>
                 <Input
                   id="token"
-                  type="password"
-                  placeholder="Cole sua chave API do MapTiles aqui..."
+                  type="text"
+                  placeholder="Cole sua chave API ou URL completa do MapTiles aqui..."
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   disabled={isLoading || success}
-                  className="font-mono"
+                  className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Sua chave será armazenada localmente no navegador e não será compartilhada.
+                  Aceita tanto o token quanto a URL completa. Sua chave será armazenada localmente no navegador.
                 </p>
               </div>
 

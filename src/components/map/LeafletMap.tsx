@@ -6,6 +6,7 @@ import { Settings, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
+import { MAP_CONFIG, getTileUrl, setupDefaultToken } from '@/utils/mapConfig';
 
 // Função para calcular a cor baseada na vigência
 const getVigenciaColor = (vigenciaDate: string) => {
@@ -62,8 +63,12 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   const [isInitializing, setIsInitializing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // MapTiles API key do token fornecido
-  const MAPTILES_API_KEY = token;
+  // Configurar token automaticamente se necessário
+  useEffect(() => {
+    setupDefaultToken();
+  }, []);
+
+  const MAPTILES_API_KEY = token || MAP_CONFIG.DEFAULT_TOKEN;
 
   const initializeMap = () => {
     setRetryCount(prev => prev + 1);
@@ -118,39 +123,23 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         return;
       }
 
-      // Configurar estilos baseado na seleção
-      const getMapTileUrl = (style: string) => {
-        // Se não há token válido, usar OpenStreetMap como fallback
-        if (!token || token.length < 10) {
-          console.warn('Token do MapTiles não configurado ou inválido, usando OpenStreetMap como fallback');
-          return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        }
-        
-        const styleMap: { [key: string]: string } = {
-          satellite: 'satellite-v2',
-          street: 'streets-v2', 
-          terrain: 'outdoor-v2',
-          dark: 'dark-v2'
-        };
-        
-        const selectedStyle = styleMap[style] || styleMap.satellite;
-        return `https://api.maptiler.com/maps/${selectedStyle}/{z}/{x}/{y}.png?key=${MAPTILES_API_KEY}`;
-      };
+      // Usar função utilitária para gerar URL do tile
+      const tileUrl = getTileUrl(mapStyle, MAPTILES_API_KEY);
 
       // Criar o mapa Leaflet
       const mapInstance = L.map(mapContainer.current, {
-        center: [-27.5954, -48.5482], // Centro de Santa Catarina
-        zoom: 7,
+        center: MAP_CONFIG.DEFAULT_CENTER,
+        zoom: MAP_CONFIG.DEFAULT_ZOOM,
         zoomControl: true,
         attributionControl: true,
       });
 
       // Adicionar camada de tiles
-      const attribution = (!token || token.length < 10) 
+      const attribution = tileUrl.includes('openstreetmap')
         ? '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
         : '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
         
-      const tileLayer = L.tileLayer(getMapTileUrl(mapStyle), {
+      const tileLayer = L.tileLayer(tileUrl, {
         tileSize: 256,
         zoomOffset: 0,
         attribution: attribution,
@@ -177,13 +166,24 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         }
       }, 30000); // 30 segundos
 
+      // Debug: Log da configuração atual
+      console.log('Configuração do mapa:', {
+        token: token ? token.substring(0, 20) + '...' : 'usando token padrão',
+        finalKey: MAPTILES_API_KEY ? MAPTILES_API_KEY.substring(0, 20) + '...' : 'não disponível',
+        mapStyle,
+        tileUrl: tileUrl.substring(0, 100) + '...'
+      });
+
       // Marcar como carregado imediatamente após adicionar a camada
       setTimeout(async () => {
         console.log('Mapa carregado com sucesso');
         
         // Invalidar o tamanho do mapa para garantir renderização correta
         if (mapInstance) {
-          mapInstance.invalidateSize();
+          setTimeout(() => {
+            mapInstance.invalidateSize();
+            console.log('Tamanho do mapa invalidado');
+          }, 100);
         }
         
         setIsLoaded(true);
@@ -318,25 +318,40 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         }
       }, 1000);
 
-      // Tratamento de erros
+      // Tratamento de erros mais robusto
       let tileErrorCount = 0;
+      let tileLoadCount = 0;
+      
+      tileLayer.on('tileload', () => {
+        tileLoadCount++;
+        if (tileLoadCount >= 3) {
+          console.log('Tiles carregando com sucesso');
+        }
+      });
+
       tileLayer.on('tileerror', (e) => {
         tileErrorCount++;
         console.warn(`Erro ao carregar tile ${tileErrorCount}:`, e.tile?.src);
         
         // Só mostrar erro se houver muitos tiles falhando
-        if (tileErrorCount > 5) {
+        if (tileErrorCount > 3) {
           console.error('Muitos erros de tiles, possível problema com a API');
           
           // Limpar o timeout quando há erro crítico
           clearTimeout(loadTimeout);
           
-          if (e.error?.status === 401 || e.error?.status === 403) {
-            setError('Token do MapTiles inválido ou expirado. Verifique sua chave API.');
-          } else if (e.error?.status === 429) {
-            setError('Limite de requisições excedido. Tente novamente mais tarde.');
+          // Analisar o tipo de erro baseado na URL
+          const tileUrl = e.tile?.src || '';
+          if (tileUrl.includes('maptiler.com')) {
+            if (tileUrl.includes('unauthorized') || e.error?.status === 401 || e.error?.status === 403) {
+              setError('Token do MapTiles inválido ou expirado. Verifique sua chave API.');
+            } else if (e.error?.status === 429) {
+              setError('Limite de requisições excedido. Tente novamente mais tarde.');
+            } else {
+              setError('Erro ao carregar tiles do MapTiles. Verifique sua chave API e conexão.');
+            }
           } else {
-            setError('Erro ao carregar o mapa. Verifique sua chave API e conexão.');
+            setError('Erro ao carregar o mapa. Verifique sua conexão com a internet.');
           }
           
           setIsInitializing(false);
