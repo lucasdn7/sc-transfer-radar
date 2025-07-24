@@ -39,7 +39,15 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
   };
 
   useEffect(() => {
-    if (!mapContainer.current || !token || isInitializing) return;
+    if (!mapContainer.current || !token) return;
+    
+    // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
+    if (map.current && isLoaded && !error) {
+      return;
+    }
+
+    // Só inicializar se não estiver já inicializando
+    if (isInitializing) return;
 
     initializeMap();
 
@@ -98,6 +106,22 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
       map.current = mapInstance;
 
+      // Timeout para detectar problemas de carregamento
+      const loadTimeout = setTimeout(() => {
+        // Verificar se o mapa ainda existe e não foi carregado
+        if (!isLoaded && map.current && !error) {
+          console.warn('Mapa demorou muito para carregar');
+          
+          // Check network connectivity
+          if (!navigator.onLine) {
+            setError('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
+          } else {
+            setError('O mapa está demorando para carregar. Verifique sua conexão e chave API.');
+          }
+          setIsInitializing(false);
+        }
+      }, 30000); // 30 segundos
+
       // Adicionar controles de navegação
       map.current.addControl(
         new mapboxgl.NavigationControl({
@@ -114,6 +138,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
         console.log('Mapa carregado com sucesso');
         setIsLoaded(true);
         setIsInitializing(false);
+        
+        // Limpar o timeout quando o mapa carregar com sucesso
+        clearTimeout(loadTimeout);
 
         // Buscar processos da base de dados
         try {
@@ -238,6 +265,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       map.current.on('error', (e) => {
         console.error('Erro no Mapbox:', e.error);
         
+        // Limpar o timeout quando há erro
+        clearTimeout(loadTimeout);
+        
         // More specific error messages based on the error type
         if (e.error?.message?.includes('401') || e.error?.message?.includes('Unauthorized')) {
           setError('Token do Mapbox inválido ou expirado. Verifique sua chave API.');
@@ -251,21 +281,6 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
         
         setIsInitializing(false);
       });
-
-      // Timeout para detectar problemas de carregamento
-      const loadTimeout = setTimeout(() => {
-        if (!isLoaded && map.current) {
-          console.warn('Mapa demorou muito para carregar');
-          
-          // Check network connectivity
-          if (!navigator.onLine) {
-            setError('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
-          } else {
-            setError('O mapa está demorando para carregar. Verifique sua conexão e chave API.');
-          }
-          setIsInitializing(false);
-        }
-      }, 30000); // Aumentado de 15000 para 30000 (30 segundos)
 
       return () => {
         clearTimeout(loadTimeout);
