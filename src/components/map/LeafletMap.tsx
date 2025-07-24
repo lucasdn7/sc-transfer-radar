@@ -62,8 +62,8 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   const [isInitializing, setIsInitializing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // MapTiles API key - você pode configurar isso através de uma variável de ambiente
-  const MAPTILES_API_KEY = token || 'get_your_own_OpIi9ZULNHzrESv6T2vL';
+  // MapTiles API key do token fornecido
+  const MAPTILES_API_KEY = token;
 
   const initializeMap = () => {
     setRetryCount(prev => prev + 1);
@@ -95,11 +95,6 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
     initializeMap();
 
     try {
-      // Verificar se o token é válido (formato básico)
-      if (!token || token.length < 10) {
-        console.warn('Token do MapTiles não configurado ou inválido, usando OpenStreetMap como fallback');
-      }
-
       // Verificar se o container está disponível
       if (!mapContainer.current) {
         setError('Erro interno: container do mapa não encontrado.');
@@ -107,10 +102,27 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         return;
       }
 
+      // Verificar se o container tem altura
+      const containerHeight = mapContainer.current.offsetHeight;
+      if (containerHeight === 0) {
+        console.warn('Container do mapa tem altura 0, tentando aguardar...');
+        setTimeout(() => {
+          if (mapContainer.current && mapContainer.current.offsetHeight > 0) {
+            // Tentar novamente depois que o container tiver altura
+            setIsInitializing(false);
+          } else {
+            setError('Container do mapa não tem altura. Verifique os estilos CSS.');
+            setIsInitializing(false);
+          }
+        }, 500);
+        return;
+      }
+
       // Configurar estilos baseado na seleção
       const getMapTileUrl = (style: string) => {
         // Se não há token válido, usar OpenStreetMap como fallback
         if (!token || token.length < 10) {
+          console.warn('Token do MapTiles não configurado ou inválido, usando OpenStreetMap como fallback');
           return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         }
         
@@ -138,12 +150,11 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         ? '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
         : '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
         
-      const tileLayer = L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=e3VWogbibNO6050syxrN', {
-      tileSize: 512,
-      zoomOffset: -1,
-      attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> contributors',
-      }).addTo(map);
-
+      const tileLayer = L.tileLayer(getMapTileUrl(mapStyle), {
+        tileSize: 256,
+        zoomOffset: 0,
+        attribution: attribution,
+        crossOrigin: true
       });
 
       tileLayer.addTo(mapInstance);
@@ -169,6 +180,12 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       // Marcar como carregado imediatamente após adicionar a camada
       setTimeout(async () => {
         console.log('Mapa carregado com sucesso');
+        
+        // Invalidar o tamanho do mapa para garantir renderização correta
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+        }
+        
         setIsLoaded(true);
         setIsInitializing(false);
         
@@ -343,6 +360,16 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       setIsInitializing(false);
     }
   }, [token, mapStyle, statusFilter, regionFilter, searchTerm]);
+
+  // UseEffect para garantir que o mapa seja redimensionado corretamente
+  useEffect(() => {
+    if (map.current && isLoaded) {
+      const timer = setTimeout(() => {
+        map.current?.invalidateSize();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
 
   const handleRetry = () => {
     setError(null);
