@@ -35,19 +35,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Try to fetch user role from user_roles table
+          // Try to fetch user role from profiles table
           setTimeout(async () => {
             try {
-              const { data: userRoles } = await supabase
-                .from('user_roles')
-                .select(`
-                  roles(name)
-                `)
-                .eq('user_id', session.user.id)
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
                 .single();
               
-              if (userRoles?.roles) {
-                setUserRole((userRoles.roles as any).name || 'viewer');
+              if (profile?.role) {
+                setUserRole(profile.role);
               } else {
                 setUserRole('viewer');
               }

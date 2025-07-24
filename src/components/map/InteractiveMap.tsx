@@ -23,19 +23,25 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
-  useEffect(() => {
-    if (!mapContainer.current || !token || isInitializing) return;
-
-    // Limpar mapa existente
+  const initializeMap = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    setIsLoaded(false);
+    setIsInitializing(true);
+    
+    // Clear existing map
     if (map.current) {
       map.current.remove();
       map.current = null;
     }
+  };
 
-    setIsInitializing(true);
-    setError(null);
-    setIsLoaded(false);
+  useEffect(() => {
+    if (!mapContainer.current || !token || isInitializing) return;
+
+    initializeMap();
 
     try {
       // Verificar se o token é válido
@@ -45,11 +51,25 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
         return;
       }
 
+      // Verificar se o token tem o formato correto
+      if (token.length < 50) {
+        setError('Token muito curto. Verifique se copiou a chave completa do Mapbox.');
+        setIsInitializing(false);
+        return;
+      }
+
       mapboxgl.accessToken = token;
+
+      // Verificar se o container está disponível
+      if (!mapContainer.current) {
+        setError('Erro interno: container do mapa não encontrado.');
+        setIsInitializing(false);
+        return;
+      }
 
       // Verificar suporte ao WebGL
       if (!mapboxgl.supported()) {
-        setError('Seu navegador não suporta WebGL, necessário para exibir o mapa. Tente outro navegador.');
+        setError('Seu navegador não suporta WebGL, necessário para exibir o mapa. Tente atualizar seu navegador ou usar outro.');
         setIsInitializing(false);
         return;
       }
@@ -71,6 +91,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
         bearing: 0,
         antialias: true,
         failIfMajorPerformanceCaveat: false, // Permitir renderização mesmo com performance limitada
+        maxTileCacheSize: 50, // Reduzir cache para evitar problemas de memória
+        preserveDrawingBuffer: false, // Melhorar performance
+        refreshExpiredTiles: true, // Recarregar tiles expirados automaticamente
       });
 
       map.current = mapInstance;
@@ -119,6 +142,8 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
           if (error) {
             console.error('Erro ao buscar processos:', error);
+            // Don't fail the entire map if data loading fails
+            console.warn('Mapa carregado sem dados dos processos devido a erro na consulta');
             return;
           }
 
@@ -212,7 +237,18 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       // Tratamento de erros
       map.current.on('error', (e) => {
         console.error('Erro no Mapbox:', e.error);
-        setError('Erro ao carregar o mapa. Verifique sua chave API.');
+        
+        // More specific error messages based on the error type
+        if (e.error?.message?.includes('401') || e.error?.message?.includes('Unauthorized')) {
+          setError('Token do Mapbox inválido ou expirado. Verifique sua chave API.');
+        } else if (e.error?.message?.includes('network') || e.error?.message?.includes('fetch')) {
+          setError('Erro de conexão. Verifique sua internet e tente novamente.');
+        } else if (e.error?.message?.includes('style')) {
+          setError('Erro ao carregar o estilo do mapa. Tente outro estilo.');
+        } else {
+          setError('Erro ao carregar o mapa. Verifique sua chave API e conexão.');
+        }
+        
         setIsInitializing(false);
       });
 
@@ -220,10 +256,16 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       const loadTimeout = setTimeout(() => {
         if (!isLoaded && map.current) {
           console.warn('Mapa demorou muito para carregar');
-          setError('O mapa está demorando para carregar. Verifique sua conexão e chave API.');
+          
+          // Check network connectivity
+          if (!navigator.onLine) {
+            setError('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
+          } else {
+            setError('O mapa está demorando para carregar. Verifique sua conexão e chave API.');
+          }
           setIsInitializing(false);
         }
-      }, 15000);
+      }, 30000); // Aumentado de 15000 para 30000 (30 segundos)
 
       return () => {
         clearTimeout(loadTimeout);
@@ -280,13 +322,23 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-left">
               {error}
+              {retryCount > 1 && (
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Tentativa {retryCount} de carregamento
+                </div>
+              )}
             </AlertDescription>
           </Alert>
           <div className="space-y-2">
-            <Button onClick={onConfigureToken} variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
-              Reconfigurar Token
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={initializeMap} variant="outline">
+                Tentar Novamente
+              </Button>
+              <Button onClick={onConfigureToken} variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Reconfigurar Token
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground">
               Certifique-se de que sua chave API está correta e ativa.
             </p>
@@ -307,8 +359,13 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
             <div className="space-y-1">
               <p className="text-sm font-medium">Carregando mapa...</p>
               <p className="text-xs text-muted-foreground">
-                Inicializando Mapbox GL JS
+                {retryCount > 1 ? `Tentativa ${retryCount}...` : 'Inicializando Mapbox GL JS'}
               </p>
+              {retryCount > 2 && (
+                <p className="text-xs text-yellow-600">
+                  Conexão lenta detectada. Aguarde...
+                </p>
+              )}
             </div>
           </div>
         </div>
