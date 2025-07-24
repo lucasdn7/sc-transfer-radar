@@ -62,6 +62,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const initializationRef = useRef<boolean>(false); // Para controlar inicializações múltiplas
 
   // Configurar token automaticamente se necessário
   useEffect(() => {
@@ -71,33 +72,77 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
   const MAPTILES_API_KEY = token || MAP_CONFIG.DEFAULT_TOKEN;
 
   const initializeMap = () => {
+    // Evitar inicialização múltipla simultânea
+    if (initializationRef.current) {
+      console.log('Inicialização já em andamento, ignorando...');
+      return;
+    }
+    
+    initializationRef.current = true;
     setRetryCount(prev => prev + 1);
     setError(null);
     setIsLoaded(false);
     setIsInitializing(true);
     
-    // Clear existing map
+    console.log('Limpando mapa existente...');
+    
+    // Clear existing map more thoroughly
     if (map.current) {
-      map.current.remove();
+      try {
+        map.current.remove();
+        console.log('Mapa anterior removido com sucesso');
+      } catch (error) {
+        console.warn('Erro ao remover mapa anterior:', error);
+      }
       map.current = null;
     }
     
     // Clear markers
+    markersRef.current.forEach(marker => {
+      try {
+        marker.remove();
+      } catch (error) {
+        console.warn('Erro ao remover marker:', error);
+      }
+    });
     markersRef.current = [];
+    
+    // Clear any existing Leaflet containers in the element
+    if (mapContainer.current) {
+      mapContainer.current.innerHTML = '';
+      // Remove any Leaflet-added classes
+      mapContainer.current.className = mapContainer.current.className
+        .split(' ')
+        .filter(cls => !cls.startsWith('leaflet-'))
+        .join(' ');
+    }
   };
 
   useEffect(() => {
-    if (!mapContainer.current) return;
-    
-    // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
-    if (map.current && isLoaded && !error) {
-      return;
-    }
+    // Aguardar um tick para garantir que o DOM está pronto
+    const initTimer = setTimeout(() => {
+      if (!mapContainer.current) {
+        console.warn('Container não disponível, tentando novamente...');
+        return;
+      }
+      
+      // Evitar re-inicialização se o mapa já está carregado e não houve mudança significativa
+      if (map.current && isLoaded && !error) {
+        console.log('Mapa já carregado, evitando re-inicialização');
+        return;
+      }
 
-    // Só inicializar se não estiver já inicializando
-    if (isInitializing) return;
+      // Só inicializar se não estiver já inicializando
+      if (isInitializing) {
+        console.log('Mapa já inicializando, aguardando...');
+        return;
+      }
 
-    initializeMap();
+      console.log('Iniciando processo de inicialização do mapa...');
+      initializeMap();
+    }, 50); // Pequeno delay para garantir que o DOM está pronto
+
+    return () => clearTimeout(initTimer);
 
     const initializeMapAsync = async () => {
     try {
@@ -114,23 +159,46 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         width: containerRect.width,
         height: containerRect.height,
         offsetHeight: mapContainer.current.offsetHeight,
-        offsetWidth: mapContainer.current.offsetWidth
+        offsetWidth: mapContainer.current.offsetWidth,
+        clientHeight: mapContainer.current.clientHeight,
+        clientWidth: mapContainer.current.clientWidth,
+        isInDOM: document.contains(mapContainer.current)
       });
       
-      if (containerRect.height === 0 || containerRect.width === 0) {
+      // Verificar múltiplas medidas para garantir que o container está pronto
+      const hasWidth = containerRect.width > 0 || mapContainer.current.offsetWidth > 0 || mapContainer.current.clientWidth > 0;
+      const hasHeight = containerRect.height > 0 || mapContainer.current.offsetHeight > 0 || mapContainer.current.clientHeight > 0;
+      
+      if (!hasWidth || !hasHeight) {
         console.warn('Container do mapa não tem dimensões adequadas, tentando aguardar...');
-        setTimeout(() => {
-          if (mapContainer.current) {
-            const newRect = mapContainer.current.getBoundingClientRect();
-            if (newRect.height > 0 && newRect.width > 0) {
-              console.log('Container agora tem dimensões adequadas, tentando novamente...');
-              setIsInitializing(false);
-            } else {
-              setError('Container do mapa não tem altura ou largura. Verifique os estilos CSS.');
-              setIsInitializing(false);
-            }
+        
+        // Tentar aguardar um pouco mais e verificar novamente
+        let retryCount = 0;
+        const checkDimensions = () => {
+          retryCount++;
+          if (!mapContainer.current) {
+            setError('Container removido durante verificação de dimensões.');
+            setIsInitializing(false);
+            return;
           }
-        }, 1000);
+          
+          const newRect = mapContainer.current.getBoundingClientRect();
+          const newHasWidth = newRect.width > 0 || mapContainer.current.offsetWidth > 0;
+          const newHasHeight = newRect.height > 0 || mapContainer.current.offsetHeight > 0;
+          
+          if (newHasWidth && newHasHeight) {
+            console.log(`Container tem dimensões após ${retryCount} tentativas, continuando...`);
+            setIsInitializing(false); // Isso fará o useEffect tentar novamente
+          } else if (retryCount < 5) {
+            console.log(`Tentativa ${retryCount}/5: aguardando dimensões...`);
+            setTimeout(checkDimensions, 200 * retryCount); // Delay crescente
+          } else {
+            setError('Container do mapa não conseguiu obter dimensões adequadas. Verifique os estilos CSS.');
+            setIsInitializing(false);
+          }
+        };
+        
+        setTimeout(checkDimensions, 200);
         return;
       }
 
@@ -148,13 +216,75 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         // Não mostrar como erro, apenas como informação
       }
 
-      // Criar o mapa Leaflet
-      const mapInstance = L.map(mapContainer.current, {
-        center: MAP_CONFIG.DEFAULT_CENTER,
-        zoom: MAP_CONFIG.DEFAULT_ZOOM,
-        zoomControl: true,
-        attributionControl: true,
-      });
+      // Aguardar mais tempo para garantir que o DOM está estável
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Verificar novamente se o container ainda existe
+              if (!mapContainer.current) {
+          setError('Container do mapa foi removido durante a inicialização.');
+          setIsInitializing(false);
+          initializationRef.current = false;
+          return;
+        }
+
+      // Verificar se o container está no DOM
+              if (!document.contains(mapContainer.current)) {
+          console.warn('Container não está no DOM, aguardando...');
+          setTimeout(() => {
+            setIsInitializing(false);
+            initializationRef.current = false;
+          }, 500);
+          return;
+        }
+
+      console.log('Criando instância do mapa Leaflet...');
+      
+      // Garantir que o container está limpo e pronto
+      const containerElement = mapContainer.current;
+      
+      // Verificar se já existe um mapa Leaflet no container
+      if (containerElement._leaflet_id) {
+        console.warn('Container já tem um mapa Leaflet, limpando...');
+        delete containerElement._leaflet_id;
+      }
+      
+      // Criar o mapa Leaflet com verificação adicional
+      let mapInstance;
+      try {
+        mapInstance = L.map(containerElement, {
+          center: MAP_CONFIG.DEFAULT_CENTER,
+          zoom: MAP_CONFIG.DEFAULT_ZOOM,
+          zoomControl: true,
+          attributionControl: true,
+        });
+        console.log('Mapa Leaflet criado com sucesso');
+        
+        // Aguardar um pouco para garantir que a inicialização foi completa
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verificar se o mapa ainda está válido após a criação
+        if (!mapInstance || !mapInstance.getContainer()) {
+          throw new Error('Mapa criado mas container inválido');
+        }
+        
+      } catch (error) {
+        console.error('Erro ao criar mapa Leaflet:', error);
+        
+        // Tentar limpar qualquer resíduo
+        try {
+          if (containerElement._leaflet_id) {
+            delete containerElement._leaflet_id;
+          }
+          containerElement.innerHTML = '';
+        } catch (cleanupError) {
+          console.warn('Erro ao limpar após falha:', cleanupError);
+        }
+        
+        setError(`Erro ao criar instância do mapa: ${error.message}. Tente recarregar a página.`);
+        setIsInitializing(false);
+        initializationRef.current = false;
+        return;
+      }
 
       // Adicionar camada de tiles
       const attribution = tileUrl.includes('openstreetmap')
@@ -233,6 +363,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
         
         setIsLoaded(true);
         setIsInitializing(false);
+        initializationRef.current = false; // Reset da flag de inicialização
         
         // Limpar o timeout quando o mapa carregar com sucesso
         clearTimeout(loadTimeout);
@@ -421,6 +552,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
       console.error('Erro ao inicializar o mapa:', error);
       setError('Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.');
       setIsInitializing(false);
+      initializationRef.current = false; // Reset da flag de inicialização em caso de erro
     }
     };
 
@@ -458,6 +590,7 @@ export function LeafletMap({ token, mapStyle, showLabels, onConfigureToken, stat
     setError(null);
     setIsLoaded(false);
     setIsInitializing(false);
+    initializationRef.current = false; // Reset da flag para permitir nova inicialização
   };
 
   if (error) {
