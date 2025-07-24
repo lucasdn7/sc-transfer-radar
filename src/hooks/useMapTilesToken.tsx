@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MAP_CONFIG, setupDefaultToken } from '@/utils/mapConfig';
 
 export function useMapTilesToken() {
   const [token, setToken] = useState<string | null>(null);
@@ -6,15 +7,25 @@ export function useMapTilesToken() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Configurar token padrão se necessário
+    setupDefaultToken();
+    
     // Verificar se já existe um token salvo no localStorage
     try {
       const savedToken = localStorage.getItem('maptiles_api_token');
       if (savedToken && savedToken.trim() && savedToken.length > 10) {
         setToken(savedToken.trim());
         setIsTokenSet(true);
+      } else {
+        // Se não há token salvo, usar o padrão
+        setToken(MAP_CONFIG.DEFAULT_TOKEN);
+        setIsTokenSet(true);
       }
     } catch (error) {
       console.error('Erro ao carregar token do localStorage:', error);
+      // Fallback para token padrão
+      setToken(MAP_CONFIG.DEFAULT_TOKEN);
+      setIsTokenSet(true);
     } finally {
       setIsLoading(false);
     }
@@ -29,13 +40,21 @@ export function useMapTilesToken() {
         return false;
       }
 
-      if (trimmedToken.length < 10) {
+      // Extrair token da URL se necessário
+      let tokenToSave = trimmedToken;
+      const urlMatch = trimmedToken.match(/[?&]key=([^&]+)/);
+      if (urlMatch) {
+        tokenToSave = urlMatch[1];
+        console.log('Token extraído da URL:', tokenToSave);
+      }
+
+      if (tokenToSave.length < 10) {
         console.error('Token muito curto. Verifique se é um token válido do MapTiles.');
         return false;
       }
 
-      localStorage.setItem('maptiles_api_token', trimmedToken);
-      setToken(trimmedToken);
+      localStorage.setItem('maptiles_api_token', tokenToSave);
+      setToken(tokenToSave);
       setIsTokenSet(true);
       console.log('Token MapTiles salvo com sucesso');
       return true;
