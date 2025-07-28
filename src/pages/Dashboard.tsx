@@ -5,6 +5,7 @@ import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
+import { StatusProcessHorizontalCards } from "@/components/dashboard/StatusProcessHorizontalCards";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
@@ -27,6 +28,9 @@ export default function Dashboard() {
 
       {/* Barra de Progressão das Transferências */}
       <TransferProgressBar />
+
+      {/* Status horizontal dos processos */}
+      <StatusProcessHorizontalCards />
 
       {/* Seletor de Métricas */}
       {/* (removido conforme solicitado) */}
