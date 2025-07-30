@@ -395,6 +395,9 @@
 </head>
 
 <body>
+    <!-- Root element for React app -->
+    <div id="root"></div>
+    
     <!-- Widget do Chatbot -->
     <div id="chatbot-widget">
         <!-- Botão do Chat -->
@@ -711,6 +714,21 @@
         window.addEventListener('beforeunload', function() {
             // Salvar timestamp da última visita em variável temporária
             window.chatLastVisit = Date.now();
+        });
+    </script>
+    
+    <!-- Vite script for React app -->
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Fallback script to ensure React app loads -->
+    <script>
+        // Ensure the root element exists and React app loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!document.getElementById('root')) {
+                console.error('Root element not found!');
+            } else {
+                console.log('Root element found, React app should load');
+            }
         });
     </script>
 </body>
