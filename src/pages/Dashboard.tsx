@@ -1,20 +1,8 @@
 
 import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
-import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
-import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
-import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
-import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
-import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
-import { ProcessStatusOverview } from "@/components/dashboard/ProcessStatusOverview";
-import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 export default function Dashboard() {
-  const { selectedMetrics, setSelectedMetrics, metricsData, isLoading } = useDashboardMetrics();
-
-  const enabledMetrics = selectedMetrics.filter(m => m.enabled);
-
   return (
     <div className="space-y-6">
       <div>
@@ -26,20 +14,7 @@ export default function Dashboard() {
 
       <OptimizedStatsCards />
 
-      {/* Barra de Progressão das Transferências */}
-      <TransferProgressBar />
-
-      {/* Status dos Processos */}
-      <ProcessStatusOverview />
-
-      {/* Seletor de Métricas */}
-      {/* (removido conforme solicitado) */}
-
-      {/* Gráficos Personalizáveis */}
-      <DashboardCharts />
-
-      {/* <ProcessInsights /> removido para evitar duplicidade de cards */}
-
+      {/* Informações sobre o sistema */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">

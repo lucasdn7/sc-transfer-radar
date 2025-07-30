@@ -24,7 +24,14 @@ import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 class GlobalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {

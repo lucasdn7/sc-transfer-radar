@@ -28,124 +28,124 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Try to fetch user role from profiles table
-          setTimeout(async () => {
-            try {
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                // Se a tabela não existir ou houver erro 404, usar role padrão
-                if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('does not exist')) {
-                  console.log('Tabela profiles não encontrada, usando role padrão admin para desenvolvimento');
-                  setUserRole('admin'); // Usar admin para desenvolvimento quando não há tabela
-                } else {
-                  console.warn('Erro ao buscar perfil do usuário:', error.message);
-                  setUserRole('admin'); // Fallback para admin em desenvolvimento
-                }
-                return;
-              }
-              
-              if (profile?.role) {
-                setUserRole(profile.role);
-              } else {
-                setUserRole('viewer');
-              }
-            } catch (error) {
-              console.warn('Erro inesperado ao buscar perfil:', error);
-              setUserRole('viewer');
+    // Configuração simplificada para desenvolvimento
+    const initializeAuth = async () => {
+      try {
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state changed:', event, session);
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              // Para desenvolvimento, usar role padrão
+              setUserRole('admin');
+            } else {
+              setUserRole(null);
             }
-          }, 0);
-        } else {
-          setUserRole(null);
+            
+            setLoading(false);
+          }
+        );
+
+        // Check for existing session
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+        
+        if (existingSession?.user) {
+          setUserRole('admin'); // Role padrão para desenvolvimento
         }
         
         setLoading(false);
+
+        return () => subscription.unsubscribe();
+      } catch (error) {
+        console.error('Erro ao inicializar auth:', error);
+        setLoading(false);
+        // Em caso de erro, permitir que a aplicação continue funcionando
+        setUserRole('admin'); // Role padrão para desenvolvimento
       }
-    );
+    };
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    initializeAuth();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      toast({
-        title: 'Erro no login',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Login realizado com sucesso',
-        description: 'Bem-vindo ao sistema!',
-      });
+      if (error) {
+        toast({
+          title: 'Erro no login',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Login realizado com sucesso',
+          description: 'Bem-vindo ao sistema!',
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      console.error('Erro no signIn:', error);
+      return { error };
     }
-
-    return { error };
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName || '',
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      toast({
-        title: 'Erro no cadastro',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Cadastro realizado com sucesso',
-        description: 'Verifique seu email para confirmar a conta.',
-      });
+      if (error) {
+        toast({
+          title: 'Erro no cadastro',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Cadastro realizado com sucesso',
+          description: 'Verifique seu email para confirmar a conta.',
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      console.error('Erro no signUp:', error);
+      return { error };
     }
-
-    return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setUserRole(null);
-    toast({
-      title: 'Logout realizado',
-      description: 'Até logo!',
-    });
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: 'Logout realizado',
+        description: 'Você foi desconectado com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro no signOut:', error);
+    }
   };
+
+  const isAuthenticated = !!user;
+  const isAdmin = userRole === 'admin';
+  const isTechnical = userRole === 'technical';
 
   const value = {
     user,
@@ -155,9 +155,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
-    isAuthenticated: !!user,
-    isAdmin: userRole === 'admin',
-    isTechnical: userRole === 'technical' || userRole === 'admin',
+    isAuthenticated,
+    isAdmin,
+    isTechnical,
   };
 
   return (

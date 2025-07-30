@@ -58,7 +58,7 @@ export function TopHeader() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            {isAuthenticated && <NotificationCenter />}
+            <NotificationCenter />
 
             <Button
               variant="ghost"
@@ -70,14 +70,12 @@ export function TopHeader() {
             </Button>
 
             <div className="hidden md:flex items-center space-x-2">
-              {isAuthenticated && (
-                <div className="flex items-center space-x-2 mr-4">
-                  <User className="h-4 w-4 text-gray-600" />
-                  <Badge className="bg-blue-100 text-blue-800">
-                    Área Técnica
-                  </Badge>
-                </div>
-              )}
+              <div className="flex items-center space-x-2 mr-4">
+                <User className="h-4 w-4 text-gray-600" />
+                <Badge className="bg-blue-100 text-blue-800">
+                  Área Técnica
+                </Badge>
+              </div>
 
               <Button
                 variant={isAuthenticated ? "outline" : "default"}
@@ -103,108 +101,61 @@ export function TopHeader() {
       </div>
 
       {/* Navigation Bar */}
-      <nav className="border-t border-gray-200 bg-gray-50">
-        <div className="px-6">
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-1">
-            {getNavItems().map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors border-b-2",
-                  location.pathname === item.to
-                    ? "border-blue-600 text-blue-700 bg-blue-50"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-            
-            <Link
-              to="/app-settings"
-              className={cn(
-                "flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors border-b-2",
-                location.pathname === "/app-settings"
-                  ? "border-blue-600 text-blue-700 bg-blue-50"
-                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Configurações</span>
-            </Link>
-          </div>
-
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden py-2 space-y-1">
-              {getNavItems().map((item) => (
+      <nav className="hidden md:block border-t border-gray-100">
+        <div className="px-6 py-2">
+          <div className="flex space-x-8">
+            {getNavItems().map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.to;
+              
+              return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                    location.pathname === item.to
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isActive
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
                 </Link>
-              ))}
-              
-              <Link
-                to="/app-settings"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={cn(
-                  "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                  location.pathname === "/app-settings"
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                )}
-              >
-                <Settings className="h-4 w-4" />
-                <span>Configurações</span>
-              </Link>
-
-              {/* Mobile Auth */}
-              <div className="pt-2 border-t border-gray-200 mt-2">
-                {isAuthenticated && (
-                  <div className="flex items-center space-x-2 px-4 py-2 text-sm">
-                    <User className="h-4 w-4 text-gray-600" />
-                    <Badge className="bg-blue-100 text-blue-800">
-                      Área Técnica
-                    </Badge>
-                  </div>
-                )}
-                
-                <Button
-                  variant={isAuthenticated ? "outline" : "default"}
-                  size="sm"
-                  onClick={handleAuthAction}
-                  className="w-full mx-4 mt-2 flex items-center justify-center space-x-2"
-                >
-                  {isAuthenticated ? (
-                    <>
-                      <LogOut className="h-4 w-4" />
-                      <span>Sair da Área Técnica</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-4 w-4" />
-                      <span>Acessar Área Técnica</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-100">
+          <div className="px-4 py-2 space-y-1">
+            {getNavItems().map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.to;
+              
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    isActive
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

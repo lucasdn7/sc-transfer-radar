@@ -27,6 +27,16 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow-x: hidden;
+        }
+
+        #root {
+            height: 100%;
+            width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
         /* Widget Container */
@@ -34,8 +44,9 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            z-index: 10000;
+            z-index: 9999;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            pointer-events: auto;
         }
 
         /* Chat Button */
@@ -395,6 +406,9 @@
 </head>
 
 <body>
+    <!-- Root element for React app -->
+    <div id="root"></div>
+    
     <!-- Widget do Chatbot -->
     <div id="chatbot-widget">
         <!-- Botão do Chat -->
