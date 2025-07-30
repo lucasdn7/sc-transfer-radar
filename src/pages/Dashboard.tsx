@@ -1,7 +1,4 @@
 
-import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
