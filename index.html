@@ -1,33 +1,32 @@
-
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Transfer Radar SC</title>
-    <meta name="description" content="Plataforma para monitorar transferências financeiras para municípios de SC." />
-    <meta name="author" content="Lucas do Nascimento" />
-
-    <meta property="og:title" content="Transfer Radar SC" />
-    <meta property="og:description" content="Acompanhe repasses públicos de forma clara e transparente." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://transfersc.vercel.app/og-image.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@setursc" />
-    <meta name="twitter:image" content="https://transfersc.vercel.app/og-image.png" />
-
-    <!-- Widget de Chat -->
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.png" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot Widget</title>
+    <title>Transfer Radar SC</title>
+    <meta name="description" content="Plataforma para monitorar transferências financeiras para municípios de SC.">
+    <meta name="author" content="Lucas do Nascimento">
+
+    <meta property="og:title" content="Transfer Radar SC">
+    <meta property="og:description" content="Acompanhe repasses públicos de forma clara e transparente.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://transfersc.vercel.app/og-image.png">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@setursc">
+    <meta name="twitter:image" content="https://transfersc.vercel.app/og-image.png">
+
     <style>
         /* Reset e configurações base */
         * {
             box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
         /* Widget Container */
@@ -394,6 +393,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Widget do Chatbot -->
     <div id="chatbot-widget">
@@ -667,40 +667,37 @@
             elements.chatStatus.className = `status ${type}`;
         }
 
-        // Obter ID da sessão
+        // Obter ID da sessão (usando variável temporária em vez de localStorage)
         function getSessionId() {
-            let sessionId = localStorage.getItem('chatbot_session_id');
-            if (!sessionId) {
-                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('chatbot_session_id', sessionId);
+            if (!window.chatSessionId) {
+                window.chatSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             }
-            return sessionId;
+            return window.chatSessionId;
         }
 
         // Event Listeners
-        elements.chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        elements.chatInput.addEventListener('input', function() {
-            elements.sendButton.disabled = !this.value.trim();
-        });
-
-        // Fechar chat ao clicar fora
-        document.addEventListener('click', function(e) {
-            if (chatState.isOpen && 
-                !elements.chatContainer.contains(e.target) && 
-                !elements.chatButton.contains(e.target)) {
-                // toggleChat(); // Descomente se quiser fechar ao clicar fora
-            }
-        });
-
-        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Chatbot widget carregado com sucesso!');
+            
+            elements.chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            elements.chatInput.addEventListener('input', function() {
+                elements.sendButton.disabled = !this.value.trim();
+            });
+
+            // Fechar chat ao clicar fora (comentado para melhor UX)
+            // document.addEventListener('click', function(e) {
+            //     if (chatState.isOpen && 
+            //         !elements.chatContainer.contains(e.target) && 
+            //         !elements.chatButton.contains(e.target)) {
+            //         toggleChat();
+            //     }
+            // });
             
             // Mostrar notificação após alguns segundos
             setTimeout(() => {
@@ -712,10 +709,9 @@
 
         // Detectar se o usuário está saindo da página
         window.addEventListener('beforeunload', function() {
-            // Salvar estado do chat se necessário
-            localStorage.setItem('chatbot_last_visit', Date.now());
+            // Salvar timestamp da última visita em variável temporária
+            window.chatLastVisit = Date.now();
         });
     </script>
 </body>
-</html>
 </html>
