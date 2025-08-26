@@ -7,19 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
-import { useMapTilesToken } from "@/hooks/useMapTilesToken";
-import { MapTilesTokenForm } from "@/components/map/MapTilesTokenForm";
-import { LeafletMap } from "@/components/map/LeafletMap";
+import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw, Link2 } from "lucide-react";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { MapboxTokenForm } from "@/components/map/MapboxTokenForm";
+import { InteractiveMap } from "@/components/map/InteractiveMap";
 
 export default function Map() {
-  const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapTilesToken();
+  const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapboxToken();
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [mapStyle, setMapStyle] = useState("satellite");
   const [showLabels, setShowLabels] = useState(true);
   const [showTokenForm, setShowTokenForm] = useState(false);
+  const [vigenciaFilter, setVigenciaFilter] = useState<'all' | 'vigentes' | 'proximos' | 'vencidos' | 'concluidas'>('all');
+  const [onlyWithContrapartida, setOnlyWithContrapartida] = useState(false);
+  const [showConnections, setShowConnections] = useState(true);
 
   const regions = [
     "Grande Florianópolis",
@@ -75,7 +78,7 @@ export default function Map() {
 
   // Se não tem token ou está mostrando formulário, mostrar tela de configuração
   if (!isTokenSet || showTokenForm) {
-    return <MapTilesTokenForm onTokenSave={handleTokenSave} />;
+    return <MapboxTokenForm onTokenSave={handleTokenSave} />;
   }
 
   return (
@@ -146,6 +149,33 @@ export default function Map() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Vigência</Label>
+                <Select value={vigenciaFilter} onValueChange={(v) => setVigenciaFilter(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a vigência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="vigentes">Vigentes</SelectItem>
+                    <SelectItem value="proximos">Próximo ao vencimento (≤ 30 dias)</SelectItem>
+                    <SelectItem value="vencidos">Vencidas</SelectItem>
+                    <SelectItem value="concluidas">Concluídas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label>Somente com Contrapartida</Label>
+                <Button 
+                  variant={onlyWithContrapartida ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setOnlyWithContrapartida(!onlyWithContrapartida)}
+                >
+                  {onlyWithContrapartida ? 'Ativo' : 'Inativo'}
+                </Button>
+              </div>
+
               <Separator />
 
               <div className="space-y-2">
@@ -164,6 +194,16 @@ export default function Map() {
                   {searchTerm && (
                     <Badge variant="secondary" className="text-xs">
                       Busca: {searchTerm}
+                    </Badge>
+                  )}
+                  {vigenciaFilter !== 'all' && (
+                    <Badge variant="secondary" className="text-xs">
+                      Vigência: {vigenciaFilter}
+                    </Badge>
+                  )}
+                  {onlyWithContrapartida && (
+                    <Badge variant="secondary" className="text-xs">
+                      Contrapartida: Sim
                     </Badge>
                   )}
                 </div>
@@ -205,6 +245,17 @@ export default function Map() {
                 </Button>
               </div>
 
+              <div className="flex items-center justify-between">
+                <Label>Conectar por Município</Label>
+                <Button 
+                  variant={showConnections ? "default" : "outline"} 
+                  size="sm"
+                  onClick={() => setShowConnections(!showConnections)}
+                >
+                  <Link2 className="h-4 w-4" />
+                </Button>
+              </div>
+
               <Separator />
 
               <div className="space-y-2">
@@ -240,13 +291,17 @@ export default function Map() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Legenda - Status de Vigência
+                Legenda - Status por Cor
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div>
+                <span className="text-sm">Concluídas</span>
+              </div>
+              <div className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
-                <span className="text-sm">Vigente (mais de 30 dias)</span>
+                <span className="text-sm">Vigentes (mais de 30 dias)</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white shadow-sm"></div>
@@ -255,10 +310,6 @@ export default function Map() {
               <div className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow-sm"></div>
                 <span className="text-sm">Vencido</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full bg-gray-500 border-2 border-white shadow-sm"></div>
-                <span className="text-sm">Data não informada</span>
               </div>
             </CardContent>
           </Card>
@@ -274,7 +325,7 @@ export default function Map() {
               </CardTitle>
             </CardHeader>
             <CardContent className="h-full p-4">
-              <LeafletMap
+              <InteractiveMap
                 token={token}
                 mapStyle={mapStyle}
                 showLabels={showLabels}
@@ -282,6 +333,9 @@ export default function Map() {
                 statusFilter={selectedStatus}
                 regionFilter={selectedRegion}
                 searchTerm={searchTerm}
+                vigenciaFilter={vigenciaFilter}
+                onlyWithContrapartida={onlyWithContrapartida}
+                showConnections={showConnections}
               />
             </CardContent>
           </Card>

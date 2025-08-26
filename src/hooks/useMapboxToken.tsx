@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYXNkbjciLCJhIjoiY21jbnBwNzJmMDlhdjJqcHVycGRsbjc2NiJ9.lu2XuiJgoNsI-3FFeLdvtg';
+
 export function useMapboxToken() {
   const [token, setToken] = useState<string | null>(null);
   const [isTokenSet, setIsTokenSet] = useState(false);
@@ -12,9 +14,16 @@ export function useMapboxToken() {
       if (savedToken && savedToken.trim() && savedToken.startsWith('pk.')) {
         setToken(savedToken.trim());
         setIsTokenSet(true);
+      } else {
+        // Fallback para o token padrão fornecido
+        setToken(DEFAULT_MAPBOX_TOKEN);
+        setIsTokenSet(true);
       }
     } catch (error) {
       console.error('Erro ao carregar token do localStorage:', error);
+      // Fallback para o token padrão
+      setToken(DEFAULT_MAPBOX_TOKEN);
+      setIsTokenSet(true);
     } finally {
       setIsLoading(false);
     }

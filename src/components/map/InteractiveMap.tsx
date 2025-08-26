@@ -15,9 +15,12 @@ interface InteractiveMapProps {
   statusFilter?: string;
   regionFilter?: string;
   searchTerm?: string;
+  vigenciaFilter?: 'all' | 'vigentes' | 'proximos' | 'vencidos' | 'concluidas';
+  onlyWithContrapartida?: boolean;
+  showConnections?: boolean;
 }
 
-export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, statusFilter, regionFilter, searchTerm }: InteractiveMapProps) {
+export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, statusFilter, regionFilter, searchTerm, vigenciaFilter = 'all', onlyWithContrapartida = false, showConnections = true }: InteractiveMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -133,6 +136,26 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       // Adicionar controle de escala
       map.current.addControl(new mapboxgl.ScaleControl());
 
+      // Funções auxiliares
+      const getVigenciaStatus = (vigenciaDate?: string, isFinished?: boolean) => {
+        if (isFinished) return 'concluidas';
+        if (!vigenciaDate) return 'vigentes';
+        const today = new Date();
+        const date = new Date(vigenciaDate);
+        const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return 'vencidos';
+        if (diffDays <= 30) return 'proximos';
+        return 'vigentes';
+      };
+
+      const getMarkerColor = (vigenciaDate?: string, isFinished?: boolean) => {
+        if (isFinished) return '#3b82f6'; // azul para concluídas
+        const status = getVigenciaStatus(vigenciaDate, false);
+        if (status === 'vencidos') return '#ef4444';
+        if (status === 'proximos') return '#f59e0b';
+        return '#10b981';
+      };
+
       // Evento quando o mapa carrega
       map.current.on('load', async () => {
         console.log('Mapa carregado com sucesso');
@@ -162,16 +185,28 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
           if (searchTerm) {
             query = query.ilike('municipalities.name', `%${searchTerm}%`);
           }
+          if (onlyWithContrapartida) {
+            query = query.gt('total_proponente_value', 0);
+          }
           const result = await query as any;
           const data = result.data;
           const error = result.error;
-          const processes = (Array.isArray(data) ? data : []) as any[];
+          let processes = (Array.isArray(data) ? data : []) as any[];
 
           if (error) {
             console.error('Erro ao buscar processos:', error);
             // Don't fail the entire map if data loading fails
             console.warn('Mapa carregado sem dados dos processos devido a erro na consulta');
             return;
+          }
+
+          // Filtrar por vigência conforme seleção (pós-consulta)
+          if (vigenciaFilter && vigenciaFilter !== 'all') {
+            processes = processes.filter((p) => {
+              const isFinished = (p.status_processos && 'nome' in p.status_processos) ? String(p.status_processos.nome).toLowerCase().includes('final') : false;
+              const status = getVigenciaStatus(p.vigencia_date, isFinished);
+              return status === vigenciaFilter;
+            });
           }
 
           console.log('Processos encontrados para o mapa:', processes?.length || 0);
@@ -186,16 +221,14 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
                   <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Município:</strong> ${(process.municipalities && 'name' in process.municipalities) ? process.municipalities.name : 'N/A'}</p>
                   <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Valor:</strong> ${formatCurrency(process.total_portaria_value)}</p>
                   <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Status:</strong> ${process.status_processos?.nome || 'N/A'}</p>
+                  <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Vigência:</strong> ${process.vigencia_date ? new Date(process.vigencia_date).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                  <p style="margin: 0 0 0 0; font-size: 12px;"><strong>Contrapartida:</strong> ${formatCurrency(process.total_proponente_value || 0)}</p>
                 </div>
               `);
 
-              // Definir cor do marcador baseado no valor
-              let markerColor = '#10b981'; // Verde para valores menores
-              if (process.total_portaria_value > 1000000) {
-                markerColor = '#ef4444'; // Vermelho para valores altos
-              } else if (process.total_portaria_value > 500000) {
-                markerColor = '#f59e0b'; // Amarelo para valores médios
-              }
+              // Definir cor do marcador baseado na vigência/conclusão
+              const isFinished = (process.status_processos && 'nome' in process.status_processos) ? String(process.status_processos.nome).toLowerCase().includes('final') : false;
+              const markerColor = getMarkerColor(process.vigencia_date, isFinished);
 
               new mapboxgl.Marker({
                 color: markerColor,
@@ -208,53 +241,51 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
           });
 
           // Conectar processos do mesmo município com linhas
-          const municipalityGroups = processes?.reduce((groups: any, process) => {
-            const municipalityName = (process.municipalities && 'name' in process.municipalities) ? process.municipalities.name : undefined;
-            if (municipalityName && process.latitude && process.longitude) {
-              if (!groups[municipalityName]) {
-                groups[municipalityName] = [];
+          if (showConnections) {
+            const municipalityGroups = processes?.reduce((groups: any, process) => {
+              const municipalityName = (process.municipalities && 'name' in process.municipalities) ? process.municipalities.name : undefined;
+              if (municipalityName && process.latitude && process.longitude) {
+                if (!groups[municipalityName]) {
+                  groups[municipalityName] = [];
+                }
+                groups[municipalityName].push(process);
               }
-              groups[municipalityName].push(process);
-            }
-            return groups;
-          }, {});
+              return groups;
+            }, {});
 
-          // Adicionar linhas conectando processos do mesmo município
-          Object.entries(municipalityGroups || {}).forEach(([municipalityName, municipalityProcesses]: [string, any]) => {
-            if (municipalityProcesses.length > 1) {
-              const coordinates = municipalityProcesses.map((p: any) => [p.longitude, p.latitude]);
-              
-              const sourceId = `municipality-connections-${municipalityName.replace(/\s+/g, '-')}`;
-              const layerId = `municipality-lines-${municipalityName.replace(/\s+/g, '-')}`;
-              
-              map.current!.addSource(sourceId, {
-                type: 'geojson',
-                data: {
-                  type: 'Feature',
-                  properties: {},
-                  geometry: {
-                    type: 'LineString',
-                    coordinates: coordinates
+            Object.entries(municipalityGroups || {}).forEach(([municipalityName, municipalityProcesses]: [string, any]) => {
+              if (municipalityProcesses.length > 1) {
+                const coordinates = municipalityProcesses.map((p: any) => [p.longitude, p.latitude]);
+                const sourceId = `municipality-connections-${municipalityName.replace(/\s+/g, '-')}`;
+                const layerId = `municipality-lines-${municipalityName.replace(/\s+/g, '-')}`;
+                map.current!.addSource(sourceId, {
+                  type: 'geojson',
+                  data: {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                      type: 'LineString',
+                      coordinates: coordinates
+                    }
                   }
-                }
-              });
-
-              map.current!.addLayer({
-                id: layerId,
-                type: 'line',
-                source: sourceId,
-                layout: {
-                  'line-join': 'round',
-                  'line-cap': 'round'
-                },
-                paint: {
-                  'line-color': '#3b82f6',
-                  'line-width': 2,
-                  'line-opacity': 0.6
-                }
-              });
-            }
-          });
+                });
+                map.current!.addLayer({
+                  id: layerId,
+                  type: 'line',
+                  source: sourceId,
+                  layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                  },
+                  paint: {
+                    'line-color': '#3b82f6',
+                    'line-width': 2,
+                    'line-opacity': 0.6
+                  }
+                });
+              }
+            });
+          }
 
         } catch (error) {
           console.error('Erro ao carregar processos no mapa:', error);
@@ -295,7 +326,7 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       setError('Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.');
       setIsInitializing(false);
     }
-  }, [token, mapStyle, statusFilter, regionFilter, searchTerm]);
+  }, [token, mapStyle, statusFilter, regionFilter, searchTerm, vigenciaFilter, onlyWithContrapartida, showConnections]);
 
   // Atualizar visibilidade dos rótulos
   useEffect(() => {
