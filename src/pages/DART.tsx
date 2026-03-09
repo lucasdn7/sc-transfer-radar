@@ -84,7 +84,7 @@ export default function DART() {
 
   const debouncedSearch = useDebouncedValue(searchTerm, 400);
 
-  const { data: municipalities, isLoading, error } = useQuery<Municipality[]>({
+  const { data: municipalities, isLoading, error } = useQuery({
     queryKey: ["dart-municipalities", debouncedSearch],
     queryFn: async () => {
       let query = supabase
