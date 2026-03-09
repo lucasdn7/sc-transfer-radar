@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -96,6 +96,45 @@ export type Database = {
           },
         ]
       }
+      chatbot_analytics: {
+        Row: {
+          avg_response_time_ms: number | null
+          created_at: string | null
+          date: string
+          error_count: number | null
+          id: number
+          most_common_questions: string[] | null
+          satisfaction_avg: number | null
+          total_messages: number | null
+          unique_sessions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          created_at?: string | null
+          date?: string
+          error_count?: number | null
+          id?: number
+          most_common_questions?: string[] | null
+          satisfaction_avg?: number | null
+          total_messages?: number | null
+          unique_sessions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          created_at?: string | null
+          date?: string
+          error_count?: number | null
+          id?: number
+          most_common_questions?: string[] | null
+          satisfaction_avg?: number | null
+          total_messages?: number | null
+          unique_sessions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           categoria: string | null
@@ -142,6 +181,135 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversation_logs: {
+        Row: {
+          created_at: string | null
+          feedback_text: string | null
+          id: number
+          metadata: Json | null
+          question: string
+          relevant_results: number | null
+          response: string
+          response_time_ms: number | null
+          satisfaction_rating: number | null
+          session_id: string | null
+          sources_count: number | null
+          user_agent: string | null
+          user_ip: unknown
+        }
+        Insert: {
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: number
+          metadata?: Json | null
+          question: string
+          relevant_results?: number | null
+          response: string
+          response_time_ms?: number | null
+          satisfaction_rating?: number | null
+          session_id?: string | null
+          sources_count?: number | null
+          user_agent?: string | null
+          user_ip?: unknown
+        }
+        Update: {
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: number
+          metadata?: Json | null
+          question?: string
+          relevant_results?: number | null
+          response?: string
+          response_time_ms?: number | null
+          satisfaction_rating?: number | null
+          session_id?: string | null
+          sources_count?: number | null
+          user_agent?: string | null
+          user_ip?: unknown
+        }
+        Relationships: []
+      }
+      dart_verificacoes: {
+        Row: {
+          cnpj: string
+          dart_validade: string | null
+          detalhes: string | null
+          id: number
+          municipality_id: number
+          origem: string | null
+          status: string
+          verificado_em: string | null
+        }
+        Insert: {
+          cnpj: string
+          dart_validade?: string | null
+          detalhes?: string | null
+          id?: number
+          municipality_id: number
+          origem?: string | null
+          status: string
+          verificado_em?: string | null
+        }
+        Update: {
+          cnpj?: string
+          dart_validade?: string | null
+          detalhes?: string | null
+          id?: number
+          municipality_id?: number
+          origem?: string | null
+          status?: string
+          verificado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dart_verificacoes_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dart_verificacoes_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dart_municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dart_verificacoes_lote: {
+        Row: {
+          erros: number | null
+          finalizado_em: string | null
+          id: number
+          iniciado_em: string | null
+          irregulares: number | null
+          origem: string | null
+          regulares: number | null
+          total: number | null
+        }
+        Insert: {
+          erros?: number | null
+          finalizado_em?: string | null
+          id?: number
+          iniciado_em?: string | null
+          irregulares?: number | null
+          origem?: string | null
+          regulares?: number | null
+          total?: number | null
+        }
+        Update: {
+          erros?: number | null
+          finalizado_em?: string | null
+          id?: number
+          iniciado_em?: string | null
+          irregulares?: number | null
+          origem?: string | null
+          regulares?: number | null
+          total?: number | null
+        }
+        Relationships: []
       }
       document_categories: {
         Row: {
@@ -230,6 +398,42 @@ export type Database = {
           },
         ]
       }
+      dynamic_faq: {
+        Row: {
+          answer: string
+          created_at: string | null
+          id: number
+          is_active: boolean | null
+          last_used: string | null
+          question: string
+          question_variations: string[] | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          last_used?: string | null
+          question: string
+          question_variations?: string[] | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          last_used?: string | null
+          question?: string
+          question_variations?: string[] | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string | null
@@ -273,6 +477,13 @@ export type Database = {
             columns: ["municipio_id"]
             isOneToOne: false
             referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dart_municipios"
             referencedColumns: ["id"]
           },
         ]
@@ -328,10 +539,64 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          id: number
+          is_active: boolean | null
+          metadata: Json | null
+          priority: number | null
+          search_vector: unknown
+          source_type: string | null
+          source_url: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          search_vector?: unknown
+          source_type?: string | null
+          source_url?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          id?: number
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          search_vector?: unknown
+          source_type?: string | null
+          source_url?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       municipalities: {
         Row: {
           cnpj: string
           created_at: string
+          dart_details: Json | null
+          dart_detalhes: string | null
+          dart_last_checked_at: string | null
+          dart_status: string | null
+          dart_validade: string | null
+          dart_verificado_em: string | null
           email: string | null
           id: number
           mayor_name: string | null
@@ -347,6 +612,12 @@ export type Database = {
         Insert: {
           cnpj: string
           created_at?: string
+          dart_details?: Json | null
+          dart_detalhes?: string | null
+          dart_last_checked_at?: string | null
+          dart_status?: string | null
+          dart_validade?: string | null
+          dart_verificado_em?: string | null
           email?: string | null
           id?: number
           mayor_name?: string | null
@@ -362,6 +633,12 @@ export type Database = {
         Update: {
           cnpj?: string
           created_at?: string
+          dart_details?: Json | null
+          dart_detalhes?: string | null
+          dart_last_checked_at?: string | null
+          dart_status?: string | null
+          dart_validade?: string | null
+          dart_verificado_em?: string | null
           email?: string | null
           id?: number
           mayor_name?: string | null
@@ -589,6 +866,38 @@ export type Database = {
           },
         ]
       }
+      process_favorites: {
+        Row: {
+          created_at: string
+          id: number
+          process_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          process_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          process_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_favorites_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_history: {
         Row: {
           change_description: string
@@ -666,78 +975,32 @@ export type Database = {
           },
         ]
       }
-      process_favorites: {
-        Row: {
-          id: number
-          user_id: string
-          process_id: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: number
-          user_id: string
-          process_id: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: number
-          user_id?: string
-          process_id?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "process_favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "process_favorites_process_id_fkey"
-            columns: ["process_id"]
-            isOneToOne: false
-            referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       process_technical_notes: {
         Row: {
-          id: number
-          user_id: string
-          process_id: number
-          notes: string
           created_at: string
+          id: number
+          notes: string
+          process_id: number
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: number
-          user_id: string
-          process_id: number
-          notes?: string
           created_at?: string
+          id?: number
+          notes?: string
+          process_id: number
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: number
-          user_id?: string
-          process_id?: number
-          notes?: string
           created_at?: string
+          id?: number
+          notes?: string
+          process_id?: number
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "process_technical_notes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "process_technical_notes_process_id_fkey"
             columns: ["process_id"]
@@ -817,6 +1080,13 @@ export type Database = {
             columns: ["municipality_id"]
             isOneToOne: false
             referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dart_municipios"
             referencedColumns: ["id"]
           },
           {
@@ -1140,10 +1410,98 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      dashboard_analytics: {
+        Row: {
+          avg_response_time_ms: number | null
+          date: string | null
+          error_count: number | null
+          messages_per_session: number | null
+          satisfaction_avg: number | null
+          total_messages: number | null
+          unique_sessions: number | null
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          date?: string | null
+          error_count?: number | null
+          messages_per_session?: never
+          satisfaction_avg?: number | null
+          total_messages?: number | null
+          unique_sessions?: number | null
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          date?: string | null
+          error_count?: number | null
+          messages_per_session?: never
+          satisfaction_avg?: number | null
+          total_messages?: number | null
+          unique_sessions?: number | null
+        }
+        Relationships: []
+      }
+      vw_dart_municipios: {
+        Row: {
+          cnpj: string | null
+          dart_descricao: string | null
+          dart_detalhes: string | null
+          dart_status: string | null
+          dart_validade: string | null
+          dart_verificado_em: string | null
+          horas_desde_verificacao: number | null
+          id: number | null
+          name: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          dart_descricao?: never
+          dart_detalhes?: string | null
+          dart_status?: string | null
+          dart_validade?: string | null
+          dart_verificado_em?: string | null
+          horas_desde_verificacao?: never
+          id?: number | null
+          name?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          dart_descricao?: never
+          dart_detalhes?: string | null
+          dart_status?: string | null
+          dart_validade?: string | null
+          dart_verificado_em?: string | null
+          horas_desde_verificacao?: never
+          id?: number | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      atualizar_dart: {
+        Args: {
+          p_detalhes?: string
+          p_municipality_id: number
+          p_origem?: string
+          p_status: string
+          p_validade: string
+        }
+        Returns: undefined
+      }
+      cleanup_old_logs: { Args: never; Returns: undefined }
+      get_chatbot_stats: { Args: never; Returns: Json }
+      search_knowledge_base: {
+        Args: { limit_results?: number; search_query: string }
+        Returns: {
+          category: string
+          content: string
+          id: number
+          priority: number
+          relevance_score: number
+          title: string
+        }[]
+      }
+      update_daily_analytics: { Args: never; Returns: undefined }
     }
     Enums: {
       backup_status: "processando" | "concluido" | "erro"
