@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 
 // ============================================================
 // ⚠️ SUBSTITUA pela URL do seu webhook N8N
-const N8N_WEBHOOK_URL = "https://SEU_N8N/webhook/dart-verificar";
+const N8N_WEBHOOK_URL = "https://casludn.app.n8n.cloud/workflow/ZQYBHF0zsQyjjWNd?projectId=8nkBT3fiip11fryy";
 // ============================================================
 
 type DartStatus = "regular" | "irregular" | "pending" | "error" | "checking";
