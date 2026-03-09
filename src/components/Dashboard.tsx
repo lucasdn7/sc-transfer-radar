@@ -22,7 +22,7 @@ import { EnhancedStatsCards } from "@/components/dashboard/EnhancedStatsCards";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { EnhancedCharts } from "@/components/dashboard/EnhancedCharts";
 import { CustomizableDashboardCharts } from "@/components/dashboard/CustomizableDashboardCharts";
-import { ProcessChart, RegionChart } from "@/components/dashboard/Charts";
+
 import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { 
@@ -485,7 +485,7 @@ export function Dashboard() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ProcessChart />
+          <CustomizableDashboardCharts processes={displayStats?.processes || stats?.processes || []} regionalData={displayStats?.regionalData || stats?.regionalData || []} />
         </div>
         <div className="lg:col-span-1">
           <StatusDistribution />
@@ -495,10 +495,6 @@ export function Dashboard() {
       <ProcessInsights />
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <RegionChart 
-          regionalData={displayStats?.regionalData || stats?.regionalData || []} 
-          processes={displayStats?.processes || stats?.processes || []}
-        />
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Sobre o Sistema</h3>

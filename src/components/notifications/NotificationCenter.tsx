@@ -92,14 +92,11 @@ export function NotificationCenter() {
                   >
                     <div className="pt-1">{getNotificationIcon(notification.type)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{notification.title || 'Notificação'}</div>
+                      <div className="font-medium truncate">{'Notificação'}</div>
                       <div className="text-xs text-gray-700 truncate">{notification.message}</div>
                       <div className="text-xs text-gray-500 mt-1">
                         {new Date(notification.created_at).toLocaleString('pt-BR')}
                       </div>
-                      {notification.link && (
-                        <a href={notification.link} className="text-xs text-blue-600 underline" target="_blank" rel="noopener noreferrer">Ver mais</a>
-                      )}
                     </div>
                     {!notification.is_read && (
                       <Button size="icon" variant="ghost" onClick={() => markAsRead(notification.id)} title="Marcar como lida">
