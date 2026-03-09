@@ -24,6 +24,7 @@ const sidebarItems = [
   { name: "Timeline", href: "/process-timeline", icon: Clock },
   { name: "Calendário", href: "/process-calendar", icon: Calendar },
   { name: "Municípios", href: "/municipalities", icon: Building },
+  { name: "DART", href: "/dart", icon: ClipboardCheck },
   { name: "Núcleos Regionais", href: "/regional-nuclei", icon: MapPin },
   { name: "Documentação", href: "/documents", icon: BookOpen },
   { name: "Mapa", href: "/map", icon: Map },
