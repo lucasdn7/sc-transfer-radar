@@ -23,6 +23,7 @@ import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
+import DART from "./pages/DART";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
                   <Route path="/technical-auth" element={<TechnicalAuth />} />
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="*" element={<NotFound />} />
+                  <Route path="/dart" element={<DART />} />
                 </Routes>
               </AppLayout>
             </BrowserRouter>
