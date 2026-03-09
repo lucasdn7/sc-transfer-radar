@@ -485,7 +485,7 @@ export function Dashboard() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <CustomizableDashboardCharts />
+          <CustomizableDashboardCharts processes={displayStats?.processes || stats?.processes || []} regionalData={displayStats?.regionalData || stats?.regionalData || []} />
         </div>
         <div className="lg:col-span-1">
           <StatusDistribution />
