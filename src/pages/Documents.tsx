@@ -204,7 +204,7 @@ export default function Documents() {
                           {document.title}
                           {!document.is_public && <span title="Restrito" className="ml-1 text-blue-400"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.26L20 9.27l-5 3.64L16.18 21 12 17.27 7.82 21 9 12.91l-5-3.64 5.91-.01z"/></svg></span>}
                         </td>
-                        <td className="border px-2 py-1">{document.document_categories?.name || document.category_name || 'Sem categoria'}</td>
+                        <td className="border px-2 py-1">{(document as any).document_categories?.name || 'Sem categoria'}</td>
                         <td className="border px-2 py-1">{document.description}</td>
                         <td className="border px-2 py-1">{document.created_at ? new Date(document.created_at).toLocaleDateString('pt-BR') : '-'}</td>
                         <td className="border px-2 py-1"><FileTypeTag fileName={document.file_name} /></td>

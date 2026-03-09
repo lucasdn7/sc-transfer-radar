@@ -91,7 +91,7 @@ async function applyMigration() {
     for (const command of commands) {
       if (command.trim()) {
         console.log('Executando:', command.substring(0, 50) + '...');
-        const { error } = await supabase.rpc('exec_sql', { sql: command + ';' });
+        const { error } = await (supabase.rpc as any)('exec_sql', { sql: command + ';' });
         
         if (error) {
           console.error('Erro ao executar comando:', error);

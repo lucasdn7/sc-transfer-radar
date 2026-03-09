@@ -22,7 +22,7 @@ import { EnhancedStatsCards } from "@/components/dashboard/EnhancedStatsCards";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { EnhancedCharts } from "@/components/dashboard/EnhancedCharts";
 import { CustomizableDashboardCharts } from "@/components/dashboard/CustomizableDashboardCharts";
-import { ProcessChart, RegionChart } from "@/components/dashboard/Charts";
+
 import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { 

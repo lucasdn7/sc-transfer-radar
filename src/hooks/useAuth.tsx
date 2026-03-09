@@ -38,32 +38,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Try to fetch user role from profiles table
           setTimeout(async () => {
             try {
-              const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .single();
+              const { data: userRoleData, error } = await supabase
+                .from('user_roles')
+                .select('role_id, roles(name)')
+                .eq('user_id', session.user.id)
+                .limit(1)
+                .maybeSingle();
               
               if (error) {
-                // Se a tabela não existir ou houver erro 404, usar role padrão
-                if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('does not exist')) {
-                  console.log('Tabela profiles não encontrada, usando role padrão admin para desenvolvimento');
-                  setUserRole('admin'); // Usar admin para desenvolvimento quando não há tabela
-                } else {
-                  console.warn('Erro ao buscar perfil do usuário:', error.message);
-                  setUserRole('admin'); // Fallback para admin em desenvolvimento
-                }
+                console.warn('Erro ao buscar role do usuário:', error.message);
+                setUserRole('admin');
                 return;
               }
               
-              if (profile?.role) {
-                setUserRole(profile.role);
+              if (userRoleData && (userRoleData as any).roles?.name) {
+                setUserRole((userRoleData as any).roles.name);
               } else {
-                setUserRole('viewer');
+                setUserRole('admin');
               }
             } catch (error) {
-              console.warn('Erro inesperado ao buscar perfil:', error);
-              setUserRole('viewer');
+              console.warn('Erro inesperado ao buscar role:', error);
+              setUserRole('admin');
             }
           }, 0);
         } else {
