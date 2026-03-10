@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   build: {
     sourcemap: true,
@@ -35,5 +36,6 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
+    include: ['@tanstack/react-query', '@xyflow/react'],
   },
 }));
