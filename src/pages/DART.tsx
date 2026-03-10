@@ -122,28 +122,51 @@ export default function DART() {
   }) || [];
 
   // Verificar um município
-  async function verificarUm(m: Municipality) {
-    setCheckingIds((prev) => new Set(prev).add(m.id));
-    try {
-      const resp = await fetch(N8N_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ municipality_id: m.id, cnpj: m.cnpj, name: m.name }),
-      });
-      if (!resp.ok) throw new Error(`Webhook retornou ${resp.status}`);
-      const resultado = await resp.json();
-      await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
-      toast({
-        title: m.name,
-        description: `Status: ${resultado.status === "regular" ? "Regular ✓" : "Irregular ✗"}`,
-        variant: resultado.status === "regular" ? "default" : "destructive",
-      });
-    } catch (err: any) {
-      toast({ title: "Erro ao verificar", description: err.message, variant: "destructive" });
-    } finally {
-      setCheckingIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
-    }
+async function verificarUm(m: Municipality) {
+  setCheckingIds((prev) => new Set(prev).add(m.id));
+  try {
+    // Dispara o webhook (resposta imediata — N8N processa em background)
+    const resp = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ municipality_id: m.id, cnpj: m.cnpj, name: m.name }),
+    });
+    if (!resp.ok) throw new Error(`Webhook retornou ${resp.status}`);
+
+    toast({ title: m.name, description: "Verificação iniciada, aguarde..." });
+
+    // Polling: tenta 6x a cada 5s até o Supabase ter o resultado
+    let tentativas = 0;
+    const intervalo = setInterval(async () => {
+      tentativas++;
+      const { data } = await supabase
+        .from("municipalities")
+        .select("dart_status, dart_validade, dart_verificado_em")
+        .eq("id", m.id)
+        .single();
+
+      const foiAtualizado = data?.dart_verificado_em &&
+        new Date(data.dart_verificado_em) > new Date(Date.now() - 60000);
+
+      if (foiAtualizado || tentativas >= 6) {
+        clearInterval(intervalo);
+        await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
+        setCheckingIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
+        if (data?.dart_status) {
+          toast({
+            title: m.name,
+            description: `Status: ${data.dart_status === "regular" ? "Regular ✓" : "Irregular ✗"}`,
+            variant: data.dart_status === "regular" ? "default" : "destructive",
+          });
+        }
+      }
+    }, 5000);
+
+  } catch (err: any) {
+    toast({ title: "Erro ao verificar", description: err.message, variant: "destructive" });
+    setCheckingIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
   }
+}
 
   // Verificar todos
   async function verificarTodos() {
