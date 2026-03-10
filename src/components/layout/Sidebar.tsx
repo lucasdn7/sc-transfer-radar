@@ -30,6 +30,7 @@ const sidebarItems = [
   { name: "Núcleos Regionais", href: "/regional-nuclei", icon: MapPin },
   { name: "Documentação", href: "/documents", icon: BookOpen },
   { name: "Mapa", href: "/map", icon: Map },
+  { name: "Fluxograma", href: "/fluxograma", icon: GitBranch },
   { name: "Relatórios", href: "/reports", icon: BarChart3 },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];

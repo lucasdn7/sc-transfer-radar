@@ -84,6 +84,7 @@ const App = () => (
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="*" element={<NotFound />} />
                   <Route path="/dart" element={<DART />} />
+                  <Route path="/fluxograma" element={<Flowchart />} />
                 </Routes>
               </AppLayout>
             </BrowserRouter>

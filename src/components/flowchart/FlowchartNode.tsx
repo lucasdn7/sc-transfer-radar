@@ -89,7 +89,7 @@ function FlowNodeComponent({ data }: NodeProps & FlowNodeComponentProps) {
 }
 
 function StartEndNode({ data }: NodeProps) {
-  const nodeData = data as FlowNodeData;
+  const nodeData = data as unknown as FlowNodeData;
   const isStart = nodeData.type === 'start';
 
   return (
