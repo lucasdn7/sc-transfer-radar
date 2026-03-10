@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import DART from "./pages/DART";
+import Flowchart from "./pages/Flowchart";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
                   <Route path="/favorites" element={<Favorites />} />
                   <Route path="*" element={<NotFound />} />
                   <Route path="/dart" element={<DART />} />
+                  <Route path="/fluxograma" element={<Flowchart />} />
                 </Routes>
               </AppLayout>
             </BrowserRouter>
