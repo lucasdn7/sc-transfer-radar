@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -91,7 +91,7 @@ export default function Flowchart() {
     setSelectedNodeId(nodeId);
   }, []);
 
-  const initialNodes = useMemo(() => {
+  const flowNodes = useMemo(() => {
     const nodes = buildNodes();
     return nodes.map((n) => ({
       ...n,
@@ -104,15 +104,16 @@ export default function Flowchart() {
     }));
   }, [counts, highlightedNodeId, handleNodeClick]);
 
-  const initialEdges = useMemo(() => buildEdges(), []);
+  const flowEdges = useMemo(() => buildEdges(), []);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
+  const [edges, , onEdgesChange] = useEdgesState(flowEdges);
 
-  // Sync nodes when data changes
-  useMemo(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+  // Sync nodes when data changes - useEffect instead of useMemo
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setNodes(flowNodes);
+  }, [flowNodes]);
 
   // Vigencia calculation
   const vigenciaDays = useMemo(() => {
