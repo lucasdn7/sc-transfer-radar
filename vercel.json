@@ -1,7 +1,7 @@
 {
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "functions": {
+    "api/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
