@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import DART from "./pages/DART";
+import Flowchart from "./pages/Flowchart";
 
 const queryClient = new QueryClient();
 
