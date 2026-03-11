@@ -202,6 +202,12 @@ export function useDashboardStats() {
           municipiosPrimeiraParcela
         };
 
+        // Contratos assinados
+        const contratosAssinados = processes.filter((p: any) => p.contrato_assinado === true).length;
+        const valorContratos = processes
+          .filter((p: any) => p.contrato_assinado === true)
+          .reduce((sum: number, p: any) => sum + (p.total_concedente_value || 0), 0);
+
         return {
           totalProcesses,
           totalValue,
