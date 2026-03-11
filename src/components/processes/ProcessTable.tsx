@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star } from "lucide-react";
+import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star, FileCheck } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
