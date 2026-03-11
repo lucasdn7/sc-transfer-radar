@@ -1,0 +1,1 @@
+ALTER TABLE public.processes ADD COLUMN IF NOT EXISTS contrato_assinado boolean NOT NULL DEFAULT false;
