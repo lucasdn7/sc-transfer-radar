@@ -53,7 +53,7 @@ export function TransferProgressBar() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Status das Transferências</CardTitle>
+          <CardTitle className="text-lg">Status das Transferências (Portarias publicadas no DOE)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
