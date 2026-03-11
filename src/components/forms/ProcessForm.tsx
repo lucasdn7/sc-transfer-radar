@@ -57,6 +57,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [regionalNuclei, setRegionalNuclei] = useState<{ id: number; name: string }[]>([]);
   const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
   const [currentParcels, setCurrentParcels] = useState<Parcel[]>([]);
+  const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<ProcessFormData>({
