@@ -243,7 +243,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         latitude: data.latitude || null,
         longitude: data.longitude || null,
         link_plataforma_governo: data.link_plataforma_governo || null,
-      };
+        contrato_assinado: contratoAssinado,
+      } as any;
 
       console.log('Dados do processo preparados:', processData);
 
