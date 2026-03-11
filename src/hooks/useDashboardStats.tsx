@@ -44,6 +44,7 @@ export function useDashboardStats() {
               total_concedente_value,
               municipality_id, 
               status_id,
+              contrato_assinado,
               municipalities (name),
               regional_nuclei (name, acronym),
               status_processos (nome, cor),
