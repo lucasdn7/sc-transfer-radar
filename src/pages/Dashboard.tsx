@@ -1,19 +1,16 @@
 
 import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
-import { StatusDistribution } from "@/components/dashboard/StatusDistribution";
 import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { ProcessStatusOverview } from "@/components/dashboard/ProcessStatusOverview";
+import { ContractStatusOverview } from "@/components/dashboard/ContractStatusOverview";
+import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 export default function Dashboard() {
   const { selectedMetrics, setSelectedMetrics, metricsData, isLoading } = useDashboardMetrics();
-
-  const enabledMetrics = selectedMetrics.filter(m => m.enabled);
 
   return (
     <div className="space-y-6">
@@ -24,21 +21,29 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <OptimizedStatsCards />
+      <CollapsibleCard id="stats-cards">
+        <OptimizedStatsCards />
+      </CollapsibleCard>
 
       {/* Barra de Progressão das Transferências */}
-      <TransferProgressBar />
+      <CollapsibleCard id="transfer-progress">
+        <TransferProgressBar />
+      </CollapsibleCard>
 
       {/* Status dos Processos */}
-      <ProcessStatusOverview />
+      <CollapsibleCard id="process-status">
+        <ProcessStatusOverview />
+      </CollapsibleCard>
 
-      {/* Seletor de Métricas */}
-      {/* (removido conforme solicitado) */}
+      {/* Status dos Contratos Firmados */}
+      <CollapsibleCard id="contract-status">
+        <ContractStatusOverview />
+      </CollapsibleCard>
 
       {/* Gráficos Personalizáveis */}
-      <DashboardCharts />
-
-      {/* <ProcessInsights /> removido para evitar duplicidade de cards */}
+      <CollapsibleCard id="dashboard-charts">
+        <DashboardCharts />
+      </CollapsibleCard>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
