@@ -585,6 +585,24 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               )}
             </div>
 
+            {/* Checkbox Contrato Assinado */}
+            <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="contrato_assinado"
+                  checked={contratoAssinado}
+                  onCheckedChange={(checked) => setContratoAssinado(!!checked)}
+                  className="h-5 w-5"
+                />
+                <Label htmlFor="contrato_assinado" className="text-base font-semibold cursor-pointer">
+                  Contrato Assinado
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-8">
+                Marque se o contrato deste processo já foi assinado
+              </p>
+            </div>
+
             {/* Seção de gestão de parcelas */}
             <div className="mt-6">
               <ParcelManager
