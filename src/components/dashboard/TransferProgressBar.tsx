@@ -74,7 +74,7 @@ export function TransferProgressBar() {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
-          <span>Status das Transferências</span>
+          <span>Status das Transferências (Portarias publicadas no DOE)</span>
           <span className="text-sm font-normal text-gray-500">
             {stats.percentualRepassado.toFixed(1)}% concluído
           </span>
