@@ -19,6 +19,8 @@ interface DashboardStats {
     municipiosRepasseConcluido: number;
     municipiosPrimeiraParcela: number;
   };
+  contratosAssinados: number;
+  valorContratos: number;
   processes?: Array<any>;
   lastUpdated: string;
 }
