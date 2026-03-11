@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,6 +57,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [regionalNuclei, setRegionalNuclei] = useState<{ id: number; name: string }[]>([]);
   const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
   const [currentParcels, setCurrentParcels] = useState<Parcel[]>([]);
+  const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<ProcessFormData>({
@@ -241,7 +243,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         latitude: data.latitude || null,
         longitude: data.longitude || null,
         link_plataforma_governo: data.link_plataforma_governo || null,
-      };
+        contrato_assinado: contratoAssinado,
+      } as any;
 
       console.log('Dados do processo preparados:', processData);
 
@@ -580,6 +583,24 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               {errors.link_plataforma_governo && (
                 <p className="text-sm text-red-600">{errors.link_plataforma_governo.message}</p>
               )}
+            </div>
+
+            {/* Checkbox Contrato Assinado */}
+            <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="contrato_assinado"
+                  checked={contratoAssinado}
+                  onCheckedChange={(checked) => setContratoAssinado(!!checked)}
+                  className="h-5 w-5"
+                />
+                <Label htmlFor="contrato_assinado" className="text-base font-semibold cursor-pointer">
+                  Contrato Assinado
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-8">
+                Marque se o contrato deste processo já foi assinado
+              </p>
             </div>
 
             {/* Seção de gestão de parcelas */}

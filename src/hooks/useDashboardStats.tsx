@@ -19,6 +19,8 @@ interface DashboardStats {
     municipiosRepasseConcluido: number;
     municipiosPrimeiraParcela: number;
   };
+  contratosAssinados: number;
+  valorContratos: number;
   processes?: Array<any>;
   lastUpdated: string;
 }
@@ -42,6 +44,7 @@ export function useDashboardStats() {
               total_concedente_value,
               municipality_id, 
               status_id,
+              contrato_assinado,
               municipalities (name),
               regional_nuclei (name, acronym),
               status_processos (nome, cor),
@@ -199,6 +202,12 @@ export function useDashboardStats() {
           municipiosPrimeiraParcela
         };
 
+        // Contratos assinados
+        const contratosAssinados = processes.filter((p: any) => p.contrato_assinado === true).length;
+        const valorContratos = processes
+          .filter((p: any) => p.contrato_assinado === true)
+          .reduce((sum: number, p: any) => sum + (p.total_concedente_value || 0), 0);
+
         return {
           totalProcesses,
           totalValue,
@@ -209,6 +218,8 @@ export function useDashboardStats() {
           regionalData,
           executionStats,
           repasseStats,
+          contratosAssinados,
+          valorContratos,
           processes,
           lastUpdated: new Date().toISOString()
         };
@@ -231,6 +242,8 @@ export function useDashboardStats() {
             municipiosRepasseConcluido: 0,
             municipiosPrimeiraParcela: 0,
           },
+          contratosAssinados: 0,
+          valorContratos: 0,
           processes: [],
           lastUpdated: new Date().toISOString()
         };

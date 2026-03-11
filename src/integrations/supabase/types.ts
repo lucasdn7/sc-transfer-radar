@@ -1013,6 +1013,7 @@ export type Database = {
       processes: {
         Row: {
           address: string | null
+          contrato_assinado: boolean
           created_at: string
           id: number
           last_tramitacao: string | null
@@ -1034,6 +1035,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          contrato_assinado?: boolean
           created_at?: string
           id?: number
           last_tramitacao?: string | null
@@ -1055,6 +1057,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          contrato_assinado?: boolean
           created_at?: string
           id?: number
           last_tramitacao?: string | null

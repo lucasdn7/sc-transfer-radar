@@ -119,46 +119,25 @@ export function OptimizedStatsCards() {
     }
   ];
 
-  // Cards de insights
-  const totalProcesses = stats?.totalProcesses || 0;
-  const completed = stats?.executionStats?.completed || 0;
-  const inProgress = stats?.executionStats?.inProgress || 0;
-  const notStarted = stats?.executionStats?.notStarted || 0;
-  const completionRate = totalProcesses > 0 ? (completed / totalProcesses) * 100 : 0;
-  const executionRate = totalProcesses > 0 ? (inProgress / totalProcesses) * 100 : 0;
-  const notStartedRate = totalProcesses > 0 ? (notStarted / totalProcesses) * 100 : 0;
+  // Cards de contratos assinados
+  const contratosAssinados = stats?.contratosAssinados || 0;
+  const valorContratos = stats?.valorContratos || 0;
   const insightsCards = [
     {
-      title: "Taxa de Conclusão",
-      value: `${completionRate.toFixed(1)}%`,
-      change: `${completed} de ${totalProcesses} processos concluídos\n(Apenas status 'Executado' ou 'Finalizado')`,
+      title: "Contratos Assinados",
+      value: contratosAssinados.toLocaleString('pt-BR'),
+      change: "Processos com contrato assinado",
       trend: "up" as const,
-      icon: BarChart3,
-      color: "text-blue-700"
-    },
-    {
-      title: "Em Execução",
-      value: `${executionRate.toFixed(1)}%`,
-      change: `${inProgress} processos em andamento\n(Contrato assinado, Em pagamento, Termo de aditivo, Prestação de contas)`,
-      trend: "neutral" as const,
-      icon: TrendingUp,
-      color: "text-yellow-700"
-    },
-    {
-      title: "A Iniciar",
-      value: `${notStartedRate.toFixed(1)}%`,
-      change: `${notStarted} processos a iniciar\n(Nenhuma etapa executiva iniciada)`,
-      trend: "neutral" as const,
       icon: FileText,
-      color: "text-gray-700"
+      color: "text-emerald-700"
     },
     {
-      title: "Valor Médio",
-      value: formatCurrency(totalProcesses > 0 ? (stats?.totalValue || 0) / totalProcesses : 0),
-      change: "Valor médio por processo",
-      trend: "neutral" as const,
+      title: "Valores dos Contratos",
+      value: formatCurrency(valorContratos),
+      change: "Soma dos valores concedente dos contratos",
+      trend: "up" as const,
       icon: DollarSign,
-      color: "text-green-700"
+      color: "text-blue-700"
     }
   ];
 

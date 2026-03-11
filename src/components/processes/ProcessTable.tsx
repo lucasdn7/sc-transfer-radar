@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star } from "lucide-react";
+import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star, FileCheck } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -120,12 +120,20 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={getStatusColor(process.status_processos?.nome || '')}
-                      >
-                        {process.status_processos?.nome || 'Não definido'}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className={getStatusColor(process.status_processos?.nome || '')}
+                        >
+                          {process.status_processos?.nome || 'Não definido'}
+                        </Badge>
+                        {process.contrato_assinado && (
+                          <Badge className="bg-emerald-600 text-white border-emerald-700 text-[10px] w-fit">
+                            <FileCheck className="h-3 w-3 mr-1" />
+                            Contrato Assinado
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium text-green-600">
