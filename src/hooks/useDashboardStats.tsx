@@ -218,6 +218,8 @@ export function useDashboardStats() {
           regionalData,
           executionStats,
           repasseStats,
+          contratosAssinados,
+          valorContratos,
           processes,
           lastUpdated: new Date().toISOString()
         };
