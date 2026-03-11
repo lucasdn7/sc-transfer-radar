@@ -242,6 +242,8 @@ export function useDashboardStats() {
             municipiosRepasseConcluido: 0,
             municipiosPrimeiraParcela: 0,
           },
+          contratosAssinados: 0,
+          valorContratos: 0,
           processes: [],
           lastUpdated: new Date().toISOString()
         };
