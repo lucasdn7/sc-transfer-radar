@@ -45,7 +45,8 @@ export function Dashboard() {
     year: "",
     regionalNucleus: "",
     status: "",
-    period: null as Date | null
+    period: null as Date | null,
+    contratoAssinado: false
   });
 
   const { data: stats, isLoading } = useDashboardStats();
