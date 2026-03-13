@@ -230,6 +230,12 @@ export function ProcessFilters({
                 <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('municipality', '')} />
               </Badge>
             )}
+            {filters?.contratoAssinado && (
+              <Badge variant="secondary">
+                Contratos Assinados
+                <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('contratoAssinado', false)} />
+              </Badge>
+            )}
           </div>
         )}
       </CardContent>
