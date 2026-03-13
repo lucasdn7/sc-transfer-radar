@@ -143,6 +143,18 @@ export function DashboardFilters({
               </PopoverContent>
             </Popover>
           </div>
+
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md border hover:bg-accent transition-colors h-8 px-3">
+              <input
+                type="checkbox"
+                checked={filters.contratoAssinado || false}
+                onChange={(e) => updateFilter('contratoAssinado', e.target.checked)}
+                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+              />
+              <span className="text-xs font-medium whitespace-nowrap">Contratos Assinados</span>
+            </label>
+          </div>
         </div>
       </CardContent>
     </Card>
