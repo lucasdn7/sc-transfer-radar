@@ -41,7 +41,8 @@ export function DashboardFilters({
       year: "",
       regionalNucleus: "",
       status: "",
-      period: null
+      period: null,
+      contratoAssinado: false
     });
   };
 
