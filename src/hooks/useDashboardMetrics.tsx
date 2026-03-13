@@ -18,7 +18,7 @@ interface ProcessMetrics {
   }>;
 }
 
-export function useDashboardMetrics() {
+export function useDashboardMetrics(contratoAssinadoFilter: boolean = false) {
   const [selectedMetrics, setSelectedMetrics] = useState<MetricOption[]>([
     {
       key: "valor_total_portaria",
