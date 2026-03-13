@@ -16,6 +16,7 @@ interface DashboardFiltersProps {
     regionalNucleus: string;
     status: string;
     period: Date | null;
+    contratoAssinado: boolean;
   };
   onFiltersChange: (filters: any) => void;
   regionalNuclei: Array<{ id: number; name: string; acronym: string }>;
