@@ -28,7 +28,8 @@ export function ProcessList() {
     minValue: "",
     maxValue: "",
     deadline: null as Date | null,
-    vigenciaStatus: 'all' as string // novo filtro
+    vigenciaStatus: 'all' as string,
+    contratoAssinado: false
   });
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -75,6 +76,10 @@ export function ProcessList() {
         query = query.gte('vigencia_date', todayStr);
       } else if (advancedFilters.vigenciaStatus === 'proximos') {
         query = query.gte('vigencia_date', todayStr).lte('vigencia_date', plus30Str);
+      }
+      // Filtro de contratos assinados
+      if (advancedFilters.contratoAssinado) {
+        query = query.eq('contrato_assinado', true);
       }
 
       const { data, error, count } = await query;

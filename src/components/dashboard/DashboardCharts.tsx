@@ -27,8 +27,8 @@ const CHART_TYPES = [
   { key: "pie", label: "Pizza" },
 ];
 
-export function DashboardCharts() {
-  const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics();
+export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAssinadoFilter?: boolean }) {
+  const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics(contratoAssinadoFilter);
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");

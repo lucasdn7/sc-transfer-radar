@@ -25,6 +25,11 @@ export default function Dashboard() {
         <OptimizedStatsCards />
       </CollapsibleCard>
 
+      {/* Status dos Contratos Firmados */}
+      <CollapsibleCard id="contract-status">
+        <ContractStatusOverview />
+      </CollapsibleCard>
+
       {/* Barra de Progressão das Transferências */}
       <CollapsibleCard id="transfer-progress">
         <TransferProgressBar />
@@ -33,11 +38,6 @@ export default function Dashboard() {
       {/* Status dos Processos */}
       <CollapsibleCard id="process-status">
         <ProcessStatusOverview />
-      </CollapsibleCard>
-
-      {/* Status dos Contratos Firmados */}
-      <CollapsibleCard id="contract-status">
-        <ContractStatusOverview />
       </CollapsibleCard>
 
       {/* Gráficos Personalizáveis */}

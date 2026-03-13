@@ -45,7 +45,8 @@ export function Dashboard() {
     year: "",
     regionalNucleus: "",
     status: "",
-    period: null as Date | null
+    period: null as Date | null,
+    contratoAssinado: false
   });
 
   const { data: stats, isLoading } = useDashboardStats();
@@ -104,6 +105,10 @@ export function Dashboard() {
 
       if (filters.status) {
         query = query.eq('status_processos.nome', filters.status);
+      }
+
+      if (filters.contratoAssinado) {
+        query = query.eq('contrato_assinado', true);
       }
 
       const { data, error } = await query;

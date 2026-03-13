@@ -25,7 +25,8 @@ interface ProcessFiltersProps {
     minValue: string;
     maxValue: string;
     deadline: Date | null;
-    vigenciaStatus?: string; // novo filtro
+    vigenciaStatus?: string;
+    contratoAssinado?: boolean;
   };
   onFiltersChange?: (filters: any) => void;
 }
@@ -58,13 +59,15 @@ export function ProcessFilters({
         regionalNucleus: "",
         minValue: "",
         maxValue: "",
-        deadline: null
+        deadline: null,
+        vigenciaStatus: 'all',
+        contratoAssinado: false
       });
     }
   };
 
   const hasActiveFilters = searchTerm || statusFilter !== "all" || 
-    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline));
+    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline || filters.contratoAssinado));
 
   return (
     <Card>
@@ -93,7 +96,7 @@ export function ProcessFilters({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filtros básicos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">Buscar processo</label>
             <Input
@@ -117,6 +120,19 @@ export function ProcessFilters({
               </SelectContent>
             </Select>
           </div>
+          {filters && (
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md border hover:bg-accent transition-colors h-10 px-3">
+                <input
+                  type="checkbox"
+                  checked={filters.contratoAssinado || false}
+                  onChange={(e) => handleFilterChange('contratoAssinado', e.target.checked)}
+                  className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium">Contratos Assinados</span>
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Filtros avançados */}
@@ -212,6 +228,12 @@ export function ProcessFilters({
               <Badge variant="secondary">
                 Município: {filters.municipality}
                 <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('municipality', '')} />
+              </Badge>
+            )}
+            {filters?.contratoAssinado && (
+              <Badge variant="secondary">
+                Contratos Assinados
+                <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('contratoAssinado', false)} />
               </Badge>
             )}
           </div>

@@ -16,6 +16,7 @@ interface DashboardFiltersProps {
     regionalNucleus: string;
     status: string;
     period: Date | null;
+    contratoAssinado: boolean;
   };
   onFiltersChange: (filters: any) => void;
   regionalNuclei: Array<{ id: number; name: string; acronym: string }>;
@@ -40,7 +41,8 @@ export function DashboardFilters({
       year: "",
       regionalNucleus: "",
       status: "",
-      period: null
+      period: null,
+      contratoAssinado: false
     });
   };
 
@@ -72,7 +74,7 @@ export function DashboardFilters({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Ano</label>
             <Select value={filters.year} onValueChange={(value) => updateFilter('year', value)}>
@@ -140,6 +142,18 @@ export function DashboardFilters({
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md border hover:bg-accent transition-colors h-8 px-3">
+              <input
+                type="checkbox"
+                checked={filters.contratoAssinado || false}
+                onChange={(e) => updateFilter('contratoAssinado', e.target.checked)}
+                className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+              />
+              <span className="text-xs font-medium whitespace-nowrap">Contratos Assinados</span>
+            </label>
           </div>
         </div>
       </CardContent>
