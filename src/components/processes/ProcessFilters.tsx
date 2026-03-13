@@ -67,7 +67,7 @@ export function ProcessFilters({
   };
 
   const hasActiveFilters = searchTerm || statusFilter !== "all" || 
-    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline));
+    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline || filters.contratoAssinado));
 
   return (
     <Card>
