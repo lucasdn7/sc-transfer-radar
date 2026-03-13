@@ -77,6 +77,10 @@ export function ProcessList() {
       } else if (advancedFilters.vigenciaStatus === 'proximos') {
         query = query.gte('vigencia_date', todayStr).lte('vigencia_date', plus30Str);
       }
+      // Filtro de contratos assinados
+      if (advancedFilters.contratoAssinado) {
+        query = query.eq('contrato_assinado', true);
+      }
 
       const { data, error, count } = await query;
       if (error) throw error;
