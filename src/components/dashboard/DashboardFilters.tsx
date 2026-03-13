@@ -74,7 +74,7 @@ export function DashboardFilters({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Ano</label>
             <Select value={filters.year} onValueChange={(value) => updateFilter('year', value)}>
