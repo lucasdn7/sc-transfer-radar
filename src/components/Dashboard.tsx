@@ -107,6 +107,10 @@ export function Dashboard() {
         query = query.eq('status_processos.nome', filters.status);
       }
 
+      if (filters.contratoAssinado) {
+        query = query.eq('contrato_assinado', true);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
 
