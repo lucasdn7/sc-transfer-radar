@@ -60,9 +60,9 @@ export function useDashboardMetrics(contratoAssinadoFilter: boolean = false) {
 
   // Buscar dados dos processos
   const { data: processesData } = useQuery({
-    queryKey: ['dashboard-metrics-processes'],
+    queryKey: ['dashboard-metrics-processes', contratoAssinadoFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('processes')
         .select(`
           total_portaria_value,
@@ -70,6 +70,7 @@ export function useDashboardMetrics(contratoAssinadoFilter: boolean = false) {
           total_proponente_value,
           licitado_value,
           created_at,
+          contrato_assinado,
           municipalities (name),
           regional_nuclei (name),
           process_parcels (
@@ -78,8 +79,14 @@ export function useDashboardMetrics(contratoAssinadoFilter: boolean = false) {
           )
         `);
       
+      if (contratoAssinadoFilter) {
+        query = query.eq('contrato_assinado', true);
+      }
+
+      const { data, error } = await query;
+      
       if (error) throw error;
-      return data as ProcessMetrics[];
+      return data as (ProcessMetrics & { contrato_assinado: boolean })[];
     },
     staleTime: 5 * 60 * 1000,
   });
