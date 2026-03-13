@@ -28,7 +28,8 @@ export function ProcessList() {
     minValue: "",
     maxValue: "",
     deadline: null as Date | null,
-    vigenciaStatus: 'all' as string // novo filtro
+    vigenciaStatus: 'all' as string,
+    contratoAssinado: false
   });
   const [page, setPage] = useState(1);
   const pageSize = 20;
