@@ -59,7 +59,9 @@ export function ProcessFilters({
         regionalNucleus: "",
         minValue: "",
         maxValue: "",
-        deadline: null
+        deadline: null,
+        vigenciaStatus: 'all',
+        contratoAssinado: false
       });
     }
   };
