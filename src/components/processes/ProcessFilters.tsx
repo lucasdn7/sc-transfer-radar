@@ -25,7 +25,8 @@ interface ProcessFiltersProps {
     minValue: string;
     maxValue: string;
     deadline: Date | null;
-    vigenciaStatus?: string; // novo filtro
+    vigenciaStatus?: string;
+    contratoAssinado?: boolean;
   };
   onFiltersChange?: (filters: any) => void;
 }
