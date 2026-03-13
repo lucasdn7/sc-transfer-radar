@@ -96,7 +96,7 @@ export function ProcessFilters({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filtros básicos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-medium mb-2 block">Buscar processo</label>
             <Input
@@ -120,6 +120,19 @@ export function ProcessFilters({
               </SelectContent>
             </Select>
           </div>
+          {filters && (
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-md border hover:bg-accent transition-colors h-10 px-3">
+                <input
+                  type="checkbox"
+                  checked={filters.contratoAssinado || false}
+                  onChange={(e) => handleFilterChange('contratoAssinado', e.target.checked)}
+                  className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                />
+                <span className="text-sm font-medium">Contratos Assinados</span>
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Filtros avançados */}
