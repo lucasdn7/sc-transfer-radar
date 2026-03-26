@@ -10,10 +10,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Settings as SettingsIcon, Users, Bell, Database } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+
+  const initialTab = searchParams.get('tab');
+  const validTabs = ['general', 'users', 'notifications', 'database'];
+  const [activeTab, setActiveTab] = useState(
+    initialTab && validTabs.includes(initialTab) ? initialTab : 'general'
+  );
 
   const { data: configurations = [], isLoading } = useQuery({
     queryKey: ['configurations'],
@@ -112,7 +120,7 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-gray-900">Configurações do Sistema</h1>
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
