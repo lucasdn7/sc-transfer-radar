@@ -60,7 +60,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
   const { toast } = useToast();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<ProcessFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, control, trigger } = useForm<ProcessFormData>({
     defaultValues: initialData ? {
       process_number: initialData.process_number || '',
       object: initialData.object || '',
@@ -527,11 +527,16 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vigencia_date">Data de Vigência *</Label>
+                <Label htmlFor="vigencia_date">
+                  Data de Vigência {contratoAssinado ? '*' : ''}
+                </Label>
                 <Input
                   id="vigencia_date"
                   type="date"
-                  {...register('vigencia_date', { required: 'Campo obrigatório' })}
+                  {...register('vigencia_date', {
+                    validate: (value) =>
+                      !contratoAssinado || !!value || 'Campo obrigatório ao marcar "Contrato Assinado"'
+                  })}
                 />
                 {errors.vigencia_date && (
                   <p className="text-sm text-red-600">{errors.vigencia_date.message}</p>
@@ -591,7 +596,10 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 <Checkbox
                   id="contrato_assinado"
                   checked={contratoAssinado}
-                  onCheckedChange={(checked) => setContratoAssinado(!!checked)}
+                  onCheckedChange={(checked) => {
+                    setContratoAssinado(!!checked);
+                    trigger('vigencia_date');
+                  }}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="contrato_assinado" className="text-base font-semibold cursor-pointer">
