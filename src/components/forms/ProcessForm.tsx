@@ -221,6 +221,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     
     try {
       console.log('Iniciando salvamento do processo:', data);
+      const vigenciaDate = contratoAssinado ? data.vigencia_date : null;
       
       const municipalityId = await findOrCreateMunicipality(data.municipality_name);
       const regionalNucleusId = data.regional_nucleus_name ? 
@@ -238,7 +239,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         total_concedente_value: data.total_concedente_value,
         total_proponente_value: data.total_proponente_value,
         licitado_value: data.licitado_value || null,
-        vigencia_date: data.vigencia_date,
+        vigencia_date: vigenciaDate,
         address: data.address || null,
         latitude: data.latitude || null,
         longitude: data.longitude || null,
@@ -332,7 +333,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
           total_concedente_value: data.total_concedente_value,
           total_proponente_value: data.total_proponente_value,
           licitado_value: data.licitado_value,
-          vigencia_date: data.vigencia_date,
+          vigencia_date: vigenciaDate || '',
           status_id: statusId,
           municipality_id: municipalityId,
           regional_nucleus_id: regionalNucleusId,
