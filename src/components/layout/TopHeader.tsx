@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User, Shield, Menu, X, Home, FileText, Building, MapPin, BarChart3, Settings } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { ExpiringContractsReportButton } from "@/components/layout/ExpiringContractsReportButton";
 
 const publicNavItems = [
   { to: "/", icon: Home, label: "Dashboard" },
@@ -59,6 +60,7 @@ export function TopHeader() {
 
           <div className="flex items-center space-x-4">
             {isAuthenticated && <NotificationCenter />}
+            <ExpiringContractsReportButton />
 
             <Button
               variant="ghost"
@@ -170,6 +172,10 @@ export function TopHeader() {
                 <Settings className="h-4 w-4" />
                 <span>Configurações</span>
               </Link>
+
+              <div className="px-4 py-2">
+                <ExpiringContractsReportButton />
+              </div>
 
               {/* Mobile Auth */}
               <div className="pt-2 border-t border-gray-200 mt-2">
