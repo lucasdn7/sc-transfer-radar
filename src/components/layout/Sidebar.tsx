@@ -15,7 +15,8 @@ import {
   BookOpen,
   Star,
   ClipboardCheck,
-  GitBranch
+  GitBranch,
+  BellRing
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,6 +63,17 @@ export function Sidebar() {
               </Link>
             </Button>
           ))}
+
+          <Button
+            variant="default"
+            className="justify-start"
+            asChild
+          >
+            <Link to="/settings?tab=notifications">
+              <BellRing className="mr-2 h-4 w-4" />
+              Gerar Notificações de Vencimento
+            </Link>
+          </Button>
           
           {/* Item Favoritos - visível apenas para área técnica */}
           {userRole === "technical" && (
