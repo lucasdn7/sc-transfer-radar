@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ExternalLink, FileText } from "lucide-react";
+import { ArrowRight, ExternalLink, FileText } from "lucide-react";
 import { useProcessStatusCount, ProcessStatusCount } from "@/hooks/useProcessStatusCount";
 
 interface ProcessStatusModalProps {
@@ -87,12 +87,19 @@ function ProcessStatusModal({ status, isOpen, onClose }: ProcessStatusModalProps
 export function ProcessStatusOverview() {
   const { data: statusCounts, isLoading } = useProcessStatusCount();
   const [selectedStatus, setSelectedStatus] = useState<ProcessStatusCount | null>(null);
+  const processFlowText = "A ordem dos status representa o fluxo do processo";
+  const processFlowDirection = "Publicação na portaria ⟶⟶⟶ Finalizado";
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Status dos Processos</CardTitle>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>{processFlowText}</span>
+            <ArrowRight className="w-4 h-4 flex-shrink-0" />
+          </p>
+          <p className="text-xs text-muted-foreground">{processFlowDirection}</p>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse">
@@ -112,6 +119,11 @@ export function ProcessStatusOverview() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Status dos Processos</CardTitle>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>{processFlowText}</span>
+            <ArrowRight className="w-4 h-4 flex-shrink-0" />
+          </p>
+          <p className="text-xs text-muted-foreground">{processFlowDirection}</p>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-gray-500">
@@ -127,10 +139,17 @@ export function ProcessStatusOverview() {
     <>
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Status dos Processos
-          </CardTitle>
+          <div className="space-y-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Status dos Processos
+            </CardTitle>
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span>{processFlowText}</span>
+              <ArrowRight className="w-4 h-4 flex-shrink-0" />
+            </p>
+            <p className="text-xs text-muted-foreground">{processFlowDirection}</p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex gap-3 overflow-x-auto pb-2">
