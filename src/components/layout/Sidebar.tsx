@@ -39,6 +39,9 @@ const sidebarItems = [
 export function Sidebar() {
   const location = useLocation();
   const { userRole } = useAuth();
+  const handleContractsDueClick = () => {
+    // TODO: implementar ação de vencimentos de contratos.
+  };
 
   return (
     <div className="flex h-full flex-col border-r bg-muted/10">
@@ -67,12 +70,10 @@ export function Sidebar() {
           <Button
             variant="default"
             className="justify-start"
-            asChild
+            onClick={handleContractsDueClick}
           >
-            <Link to="/settings?tab=notifications">
               <BellRing className="mr-2 h-4 w-4" />
-              Gerar Notificações de Vencimento
-            </Link>
+              Vencimentos de Contratos
           </Button>
           
           {/* Item Favoritos - visível apenas para área técnica */}
