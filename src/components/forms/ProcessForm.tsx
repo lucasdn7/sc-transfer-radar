@@ -60,7 +60,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
   const { toast } = useToast();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch, control, trigger } = useForm<ProcessFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<ProcessFormData>({
     defaultValues: initialData ? {
       process_number: initialData.process_number || '',
       object: initialData.object || '',
@@ -181,37 +181,22 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     }
   };
 
-  const findOrCreateStatus = async (statusName: string) => {
+  const findStatusId = async (statusName: string) => {
     try {
-      // Primeiro, tenta encontrar o status existente
-      const { data: existingStatus } = await supabase
+      const { data: existingStatus, error } = await supabase
         .from('status_processos')
         .select('id')
-        .ilike('nome', statusName)
+        .eq('nome', statusName)
+        .eq('ativo', true)
         .single();
 
-      if (existingStatus) {
-        return existingStatus.id;
+      if (error || !existingStatus) {
+        throw new Error('Selecione um status válido da lista.');
       }
 
-      // Se não existe, cria um novo status
-      const nextOrder = statuses.length > 0 ? Math.max(...statuses.map(s => s.ordem || 0)) + 1 : 1;
-      const { data: newStatus, error } = await supabase
-        .from('status_processos')
-        .insert([{
-          nome: statusName,
-          descricao: `Status criado automaticamente: ${statusName}`,
-          ordem: nextOrder,
-          ativo: true,
-          cor: '#6b7280'
-        }])
-        .select('id')
-        .single();
-
-      if (error) throw error;
-      return newStatus.id;
+      return existingStatus.id;
     } catch (error) {
-      console.error('Erro ao encontrar/criar status:', error);
+      console.error('Erro ao buscar status:', error);
       throw error;
     }
   };
@@ -225,7 +210,8 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       const municipalityId = await findOrCreateMunicipality(data.municipality_name);
       const regionalNucleusId = data.regional_nucleus_name ? 
         await findOrCreateRegionalNucleus(data.regional_nucleus_name) : null;
-      const statusId = await findOrCreateStatus(data.status_name);
+      const statusId = await findStatusId(data.status_name);
+      const normalizedVigenciaDate = contratoAssinado && data.vigencia_date ? data.vigencia_date : null;
 
       const processData = {
         process_number: data.process_number,
@@ -238,7 +224,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         total_concedente_value: data.total_concedente_value,
         total_proponente_value: data.total_proponente_value,
         licitado_value: data.licitado_value || null,
-        vigencia_date: data.vigencia_date,
+        vigencia_date: normalizedVigenciaDate,
         address: data.address || null,
         latitude: data.latitude || null,
         longitude: data.longitude || null,
@@ -332,7 +318,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
           total_concedente_value: data.total_concedente_value,
           total_proponente_value: data.total_proponente_value,
           licitado_value: data.licitado_value,
-          vigencia_date: data.vigencia_date,
+          vigencia_date: normalizedVigenciaDate,
           status_id: statusId,
           municipality_id: municipalityId,
           regional_nucleus_id: regionalNucleusId,
@@ -454,17 +440,25 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
             <div className="space-y-2">
               <Label htmlFor="status_name">Status *</Label>
-              <Input
-                id="status_name"
+              <Select
+                value={watch('status_name') || undefined}
+                onValueChange={(value) => setValue('status_name', value, { shouldValidate: true })}
+              >
+                <SelectTrigger id="status_name">
+                  <SelectValue placeholder="Selecione o status do processo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.id} value={status.nome}>
+                      {status.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="hidden"
                 {...register('status_name', { required: 'Campo obrigatório' })}
-                placeholder="Digite o status do processo"
-                list="status-list"
               />
-              <datalist id="status-list">
-                {statuses.map((status) => (
-                  <option key={status.id} value={status.nome} />
-                ))}
-              </datalist>
               {errors.status_name && (
                 <p className="text-sm text-red-600">{errors.status_name.message}</p>
               )}
@@ -598,6 +592,9 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                   checked={contratoAssinado}
                   onCheckedChange={(checked) => {
                     setContratoAssinado(!!checked);
+                    if (!checked) {
+                      setValue('vigencia_date', '', { shouldValidate: true });
+                    }
                     trigger('vigencia_date');
                   }}
                   className="h-5 w-5"
