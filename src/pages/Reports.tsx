@@ -226,11 +226,35 @@ export default function Reports() {
     }
   }
 
+  function formatCurrencyForPDF(value: any) {
+    if (value === null || value === undefined || value === '') return '';
+
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return value;
+
+    return `R$${numericValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  function isCurrencyPDFColumn(field: string, title: string) {
+    const normalizedText = `${field} ${title}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return ['valor', 'value', 'saldo', 'licitado'].some(keyword => normalizedText.includes(keyword));
+  }
+
   function exportToPDF(data: any[], fileName: string, fields: string[]) {
     try {
       const filtered = filterFields(data, fields);
       const columns = fields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
-      const rows = filtered.map(obj => fields.map(col => obj[col]));
+      const currencyColumns = fields.map((field, index) => isCurrencyPDFColumn(field, columns[index]));
+      const rows = filtered.map(obj => fields.map((col, index) => (
+        currencyColumns[index] ? formatCurrencyForPDF(obj[col]) : obj[col]
+      )));
       // Usar orientação paisagem
       const doc = new jsPDF({ orientation: 'landscape' });
       autoTable(doc, { head: [columns], body: rows });
