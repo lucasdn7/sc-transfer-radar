@@ -14,6 +14,7 @@ import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { useProcesses } from '@/hooks/useProcesses';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -71,7 +72,7 @@ const REPORT_FIELDS: Record<string, string[]> = {
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({});
-  const [municipality, setMunicipality] = useState('all');
+  const [municipality, setMunicipality] = useState<string[]>([]);
   const [nucleus, setNucleus] = useState('all');
   const [reportType, setReportType] = useState('');
   const [showFieldSelector, setShowFieldSelector] = useState(false);
@@ -128,11 +129,28 @@ export default function Reports() {
     dateTo: dateRange.to,
   });
 
+  const selectedMunicipalityLabel = useMemo(() => {
+    if (municipality.length === 0) return 'Todos os municípios';
+    if (municipality.length === 1) {
+      return allMunicipalities.find((m: any) => String(m.id) === municipality[0])?.name || '1 município selecionado';
+    }
+    return `${municipality.length} municípios selecionados`;
+  }, [allMunicipalities, municipality]);
+
+  const toggleMunicipality = (municipalityId: string) => {
+    setMunicipality(prev => (
+      prev.includes(municipalityId)
+        ? prev.filter(id => id !== municipalityId)
+        : [...prev, municipalityId]
+    ));
+  };
+
   // --- FILTRAGEM E ORDENAÇÃO DOS DADOS ---
   const filteredData = useMemo(() => {
     let data = [...processesData];
-    if (municipality !== 'all') {
-      data = data.filter(p => p.municipality_id === Number(municipality));
+    if (municipality.length > 0) {
+      const selectedMunicipalityIds = municipality.map(Number);
+      data = data.filter(p => selectedMunicipalityIds.includes(p.municipality_id));
     }
     if (nucleus !== 'all') {
       data = data.filter(p => p.regional_nucleus_id === Number(nucleus));
@@ -208,11 +226,35 @@ export default function Reports() {
     }
   }
 
+  function formatCurrencyForPDF(value: any) {
+    if (value === null || value === undefined || value === '') return '';
+
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return value;
+
+    return `R$${numericValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  function isCurrencyPDFColumn(field: string, title: string) {
+    const normalizedText = `${field} ${title}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return ['valor', 'value', 'saldo', 'licitado'].some(keyword => normalizedText.includes(keyword));
+  }
+
   function exportToPDF(data: any[], fileName: string, fields: string[]) {
     try {
       const filtered = filterFields(data, fields);
       const columns = fields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
-      const rows = filtered.map(obj => fields.map(col => obj[col]));
+      const currencyColumns = fields.map((field, index) => isCurrencyPDFColumn(field, columns[index]));
+      const rows = filtered.map(obj => fields.map((col, index) => (
+        currencyColumns[index] ? formatCurrencyForPDF(obj[col]) : obj[col]
+      )));
       // Usar orientação paisagem
       const doc = new jsPDF({ orientation: 'landscape' });
       autoTable(doc, { head: [columns], body: rows });
@@ -387,17 +429,47 @@ export default function Reports() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Município</label>
-              <Select value={municipality} onValueChange={setMunicipality}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um município" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os municípios</SelectItem>
-                  {allMunicipalities.map((m: any) => (
-                    <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start font-normal">
+                    <span className="truncate">{selectedMunicipalityLabel}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
+                  <div className="max-h-72 overflow-y-auto space-y-1">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => setMunicipality([])}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') setMunicipality([]);
+                      }}
+                    >
+                      <Checkbox checked={municipality.length === 0} />
+                      <span>Todos os municípios</span>
+                    </div>
+                    {allMunicipalities.map((m: any) => {
+                      const municipalityId = String(m.id);
+                      return (
+                        <div
+                          key={m.id}
+                          role="button"
+                          tabIndex={0}
+                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                          onClick={() => toggleMunicipality(municipalityId)}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') toggleMunicipality(municipalityId);
+                          }}
+                        >
+                          <Checkbox checked={municipality.includes(municipalityId)} />
+                          <span>{m.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Núcleo Regional</label>

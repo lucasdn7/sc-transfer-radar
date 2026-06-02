@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface UseProcessesFilters {
   searchTerm?: string;
-  municipality?: string;
+  municipality?: string | string[];
   nucleus?: string;
   dateFrom?: Date;
   dateTo?: Date;
@@ -26,7 +26,11 @@ export function useProcesses({ searchTerm = '', municipality = 'all', nucleus = 
       if (searchTerm) {
         query = query.or(`process_number.ilike.%${searchTerm}%,object.ilike.%${searchTerm}%,municipalities.name.ilike.%${searchTerm}%`);
       }
-      if (municipality && municipality !== 'all') {
+      if (Array.isArray(municipality)) {
+        if (municipality.length > 0) {
+          query = query.in('municipality_id', municipality.map(Number));
+        }
+      } else if (municipality && municipality !== 'all') {
         query = query.eq('municipality_id', Number(municipality));
       }
       if (nucleus && nucleus !== 'all') {
