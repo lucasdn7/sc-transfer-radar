@@ -1,25 +1,26 @@
-
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Home, 
-  BarChart3, 
-  FileText, 
-  Building, 
-  MapPin, 
-  Map, 
-  Settings, 
+import {
+  Home,
+  BarChart3,
+  FileText,
+  Building,
+  MapPin,
+  Map,
+  Settings,
   Calendar,
   Clock,
   BookOpen,
   Star,
   ClipboardCheck,
   GitBranch,
-  BellRing
+  BellRing,
+  Shield,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 const sidebarItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -44,43 +45,57 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex h-full flex-col border-r bg-muted/10">
-      <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
-          <MapPin className="h-6 w-6" />
-          <span>GEINFRA</span>
+    <aside className="flex h-full flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-colors duration-200">
+      <div className="flex h-20 items-center border-b border-border px-4">
+        <Link to="/" className="flex min-w-0 items-center gap-3 font-semibold">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-card text-[var(--accent-green)]">
+            <Shield className="h-5 w-5" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-bold text-sidebar-foreground">Transfer Radar</span>
+            <span className="block truncate text-xs font-medium text-muted-foreground">Santa Catarina</span>
+          </span>
         </Link>
       </div>
+
       <ScrollArea className="flex-1">
-        <div className="flex flex-col gap-2 p-4 lg:p-6">
-          {sidebarItems.map((item) => (
-            <Button
-              key={item.name}
-              variant={location.pathname === item.href ? "secondary" : "ghost"}
-              className="justify-start"
-              asChild
-            >
-              <Link to={item.href}>
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.name}
-              </Link>
-            </Button>
-          ))}
+        <nav className="flex flex-col gap-1.5 p-3">
+          {sidebarItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Button
+                key={item.name}
+                variant="ghost"
+                className={cn(
+                  "h-10 justify-start rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground",
+                  isActive && "border border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)] hover:bg-[var(--accent-green-muted)] hover:text-[var(--accent-green)]"
+                )}
+                asChild
+              >
+                <Link to={item.href}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              </Button>
+            );
+          })}
 
           <Button
             variant="default"
-            className="justify-start"
+            className="mt-2 h-10 justify-start rounded-xl bg-[var(--accent-green)] px-3 text-sm font-semibold text-black hover:bg-[var(--accent-green)]/90"
             onClick={handleContractsDueClick}
           >
-              <BellRing className="mr-2 h-4 w-4" />
-              Vencimentos de Contratos
+            <BellRing className="mr-2 h-4 w-4" />
+            Vencimentos de Contratos
           </Button>
-          
-          {/* Item Favoritos - visível apenas para área técnica */}
+
           {userRole === "technical" && (
             <Button
-              variant={location.pathname === "/favorites" ? "secondary" : "ghost"}
-              className="justify-start"
+              variant="ghost"
+              className={cn(
+                "h-10 justify-start rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground",
+                location.pathname === "/favorites" && "border border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)]"
+              )}
               asChild
             >
               <Link to="/favorites">
@@ -89,17 +104,24 @@ export function Sidebar() {
               </Link>
             </Button>
           )}
-          
-          <Separator className="my-4" />
-          
-          <Button variant="ghost" className="justify-start" asChild>
+
+          <Separator className="my-3" />
+
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-10 justify-start rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground",
+              location.pathname === "/app-settings" && "border border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)]"
+            )}
+            asChild
+          >
             <Link to="/app-settings">
               <Settings className="mr-2 h-4 w-4" />
               Config. Aplicação
             </Link>
           </Button>
-        </div>
+        </nav>
       </ScrollArea>
-    </div>
+    </aside>
   );
 }

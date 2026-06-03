@@ -13,22 +13,22 @@ interface StatCardProps {
   color?: string;
 }
 
-function StatCard({ title, value, change, trend, icon: Icon, color = "text-blue-600" }: StatCardProps) {
+function StatCard({ title, value, change, trend, icon: Icon, color = "text-[var(--accent-green)]" }: StatCardProps) {
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:border-[var(--accent-green)]/40 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="metric-label">
           {title}
         </CardTitle>
         <Icon className={`h-5 w-5 ${color}`} />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="metric-value">{value}</div>
         {change && (
           <div className="flex items-center text-xs text-muted-foreground mt-1">
-            {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3 text-green-500" />}
-            {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3 text-red-500" />}
-            <span className={trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-red-500' : ''}>
+            {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3 text-[var(--accent-green)]" />}
+            {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3 text-[var(--accent-red)]" />}
+            <span className={trend === 'up' ? 'text-[var(--accent-green)]' : trend === 'down' ? 'text-[var(--accent-red)]' : ''}>
               {change}
             </span>
           </div>
@@ -59,7 +59,7 @@ export function OptimizedStatsCards() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600">Erro ao carregar estatísticas</p>
+        <p className="text-[var(--accent-red)]">Erro ao carregar estatísticas</p>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export function OptimizedStatsCards() {
       change: "Dados atualizados em tempo real",
       trend: 'neutral' as const,
       icon: FileText,
-      color: "text-blue-600"
+      color: "text-[var(--accent-green)]"
     },
     {
       title: "Valor Total Transferido",
@@ -79,7 +79,7 @@ export function OptimizedStatsCards() {
       change: "Investimento em Santa Catarina",
       trend: 'up' as const,
       icon: DollarSign,
-      color: "text-green-600"
+      color: "text-[var(--accent-green)]"
     },
     {
       title: "Municípios Beneficiados",
@@ -87,7 +87,7 @@ export function OptimizedStatsCards() {
       change: "Municípios ativos no programa",
       trend: 'neutral' as const,
       icon: Building,
-      color: "text-purple-600"
+      color: "text-[var(--accent-amber)]"
     },
     {
       title: "Núcleos Regionais",
@@ -95,7 +95,7 @@ export function OptimizedStatsCards() {
       change: "Cobertura estadual completa",
       trend: 'neutral' as const,
       icon: MapPin,
-      color: "text-orange-600"
+      color: "text-[var(--accent-amber)]"
     }
   ];
 
@@ -107,7 +107,7 @@ export function OptimizedStatsCards() {
       change: "Valor repassado igual ao concedente",
       trend: "up" as const,
       icon: TrendingUp,
-      color: "text-green-700"
+      color: "text-[var(--accent-green)]"
     },
     {
       title: "Municípios com 1ª Parcela Paga (Parcial)",
@@ -115,7 +115,7 @@ export function OptimizedStatsCards() {
       change: "Já receberam parte do valor, mas ainda há saldo a repassar",
       trend: "neutral" as const,
       icon: TrendingDown,
-      color: "text-yellow-600"
+      color: "text-[var(--accent-amber)]"
     }
   ];
 
@@ -129,7 +129,7 @@ export function OptimizedStatsCards() {
       change: "Processos com contrato assinado",
       trend: "up" as const,
       icon: FileText,
-      color: "text-emerald-700"
+      color: "text-[var(--accent-green)]"
     },
     {
       title: "Valores dos Contratos",
@@ -137,7 +137,7 @@ export function OptimizedStatsCards() {
       change: "Soma dos valores concedente dos contratos",
       trend: "up" as const,
       icon: DollarSign,
-      color: "text-blue-700"
+      color: "text-[var(--accent-green)]"
     }
   ];
 

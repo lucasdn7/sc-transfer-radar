@@ -6,6 +6,25 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transfer Radar SC</title>
+
+    <script>
+      (function () {
+        try {
+          var storedTheme = localStorage.getItem('app-theme');
+          var theme = storedTheme === 'dark' || storedTheme === 'light'
+            ? storedTheme
+            : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.classList.remove('light', 'dark');
+          document.documentElement.classList.add(theme);
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch (error) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      })();
+    </script>
     <meta name="description" content="Plataforma para monitorar transferências financeiras para municípios de SC." />
     <meta name="author" content="Lucas do Nascimento" />
 

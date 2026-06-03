@@ -15,10 +15,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral das transferências financeiras do Estado de SC para os municípios
-        </p>
+        <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+          <p className="metric-label mb-3">Visão geral</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Seu painel de transferências quer te contar uns segredos...</h1>
+          <p className="mt-3 max-w-3xl text-muted-foreground">
+            Visão geral das transferências financeiras do Estado de SC para os municípios
+          </p>
+        </div>
       </div>
 
       <CollapsibleCard id="stats-cards">
@@ -46,14 +49,14 @@ export default function Dashboard() {
       </CollapsibleCard>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Sobre o Sistema</h3>
-            <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <h3 className="text-lg font-semibold text-foreground">Sobre o Sistema</h3>
+            <div className="h-8 w-8 rounded-full bg-[var(--accent-green)] flex items-center justify-center">
               <span className="text-white text-sm font-bold">SC</span>
             </div>
           </div>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-sm text-muted-foreground">
             <p>
               O Transfer Radar é o sistema oficial de monitoramento das transferências 
               financeiras do Estado de Santa Catarina para os municípios.
@@ -62,8 +65,8 @@ export default function Dashboard() {
               Desenvolvido pela GEINFRA/SETUR, oferece transparência e controle 
               sobre os recursos públicos investidos em infraestrutura municipal.
             </p>
-            <div className="pt-3 border-t border-blue-200">
-              <p className="text-xs text-blue-600 font-medium">
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs text-[var(--accent-green)] font-medium">
                 Portal desenvolvido pela GEINFRA/SETUR - Governo do Estado de SC
               </p>
             </div>
