@@ -8,6 +8,7 @@ import { LogIn, LogOut, User, Shield, Menu, X, Home, FileText, Building, MapPin,
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ExpiringContractsReportButton } from "@/components/layout/ExpiringContractsReportButton";
+import { ThemeToggle } from "./ThemeToggle";
 
 const publicNavItems = [
   { to: "/", icon: Home, label: "Dashboard" },
@@ -46,20 +47,21 @@ export function TopHeader() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-[var(--bg-surface)] backdrop-blur-xl transition-colors duration-200">
       {/* Main Header */}
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-blue-600" />
+            <Shield className="h-8 w-8 text-[var(--accent-green)]" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Transfer Radar SC</h1>
-              <p className="text-xs text-gray-600">Sistema de Transferências Financeiras</p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Transfer Radar SC</h1>
+              <p className="text-xs text-muted-foreground">Sistema de Transferências Financeiras</p>
             </div>
           </Link>
 
           <div className="flex items-center space-x-4">
             {isAuthenticated && <NotificationCenter />}
+            <ThemeToggle />
             <ExpiringContractsReportButton />
 
             <Button
@@ -74,8 +76,8 @@ export function TopHeader() {
             <div className="hidden md:flex items-center space-x-2">
               {isAuthenticated && (
                 <div className="flex items-center space-x-2 mr-4">
-                  <User className="h-4 w-4 text-gray-600" />
-                  <Badge className="bg-blue-100 text-blue-800">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <Badge className="border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)]">
                     Área Técnica
                   </Badge>
                 </div>
@@ -105,7 +107,7 @@ export function TopHeader() {
       </div>
 
       {/* Navigation Bar */}
-      <nav className="border-t border-gray-200 bg-gray-50">
+      <nav className="border-t border-border bg-background/60">
         <div className="px-6">
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-1">
@@ -116,8 +118,8 @@ export function TopHeader() {
                 className={cn(
                   "flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors border-b-2",
                   location.pathname === item.to
-                    ? "border-blue-600 text-blue-700 bg-blue-50"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    ? "rounded-full border-[var(--accent-green)] bg-[var(--accent-green)] text-black"
+                    : "rounded-full border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <item.icon className="h-4 w-4" />
@@ -130,8 +132,8 @@ export function TopHeader() {
               className={cn(
                 "flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors border-b-2",
                 location.pathname === "/app-settings"
-                  ? "border-blue-600 text-blue-700 bg-blue-50"
-                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  ? "rounded-full border-[var(--accent-green)] bg-[var(--accent-green)] text-black"
+                  : "rounded-full border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
               <Settings className="h-4 w-4" />
@@ -150,8 +152,8 @@ export function TopHeader() {
                   className={cn(
                     "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
                     location.pathname === item.to
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      ? "bg-[var(--accent-green)] text-black"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -165,8 +167,8 @@ export function TopHeader() {
                 className={cn(
                   "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
                   location.pathname === "/app-settings"
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    ? "bg-[var(--accent-green)] text-black"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -181,8 +183,8 @@ export function TopHeader() {
               <div className="pt-2 border-t border-gray-200 mt-2">
                 {isAuthenticated && (
                   <div className="flex items-center space-x-2 px-4 py-2 text-sm">
-                    <User className="h-4 w-4 text-gray-600" />
-                    <Badge className="bg-blue-100 text-blue-800">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <Badge className="border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)]">
                       Área Técnica
                     </Badge>
                   </div>

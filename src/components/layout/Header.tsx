@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User, Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { TestGoogleSheetsButton } from "./TestGoogleSheetsButton";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -25,7 +26,7 @@ export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-[var(--bg-surface)] px-4 py-3 backdrop-blur-xl transition-colors duration-200 md:left-[212px] md:px-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {onMenuToggle && (
@@ -40,10 +41,10 @@ export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
           )}
           
           <Link to="/" className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-blue-600" />
+            <Shield className="h-8 w-8 text-[var(--accent-green)]" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Transfer Radar SC</h1>
-              <p className="text-xs text-gray-600">Sistema de Transferências Financeiras</p>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Transfer Radar SC</h1>
+              <p className="text-xs text-muted-foreground">Sistema de Transferências Financeiras</p>
             </div>
           </Link>
         </div>
@@ -53,14 +54,16 @@ export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
             <>
               <NotificationCenter />
               <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-gray-600" />
-                <Badge className="bg-blue-100 text-blue-800">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <Badge className="border-emerald-400/20 bg-[var(--accent-green-muted)] text-[var(--accent-green)]">
                   Área Técnica
                 </Badge>
               </div>
               <TestGoogleSheetsButton />
             </>
           )}
+
+          <ThemeToggle />
 
           <Button
             variant={isAuthenticated ? "outline" : "default"}
