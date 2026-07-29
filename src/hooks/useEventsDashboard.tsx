@@ -11,7 +11,8 @@ type EventDashboardRow = Record<string, any> & {
   data_final?: string | null;
   valor_concedente?: number | string | null;
   valor_proponente?: number | string | null;
-  municipio_id?: number | null;
+  municipio_id?: number | string | null;
+  nucleo_origem_id?: number | string | null;
 };
 
 type MunicipalityLookup = {
@@ -37,6 +38,7 @@ type EventDashboardItem = {
   transferredValue: number;
   proponentValue: number;
   municipalityId: number | null;
+  regionalNucleusId: number | null;
   municipalityName: string;
   regionalNucleusName: string;
   raw: EventDashboardRow;
@@ -54,14 +56,20 @@ const asNumber = (value: unknown) => {
   return 0;
 };
 
+const asId = (value: unknown) => {
+  const parsed = asNumber(value);
+  return parsed > 0 ? parsed : null;
+};
+
 const normalizeEvent = (
   event: EventDashboardRow,
   municipalitiesById: Map<number, MunicipalityLookup>,
   regionalNucleiById: Map<number, RegionalNucleusLookup>,
 ): EventDashboardItem => {
-  const municipalityId = firstDefined(event.municipio_id, event.municipality_id) || null;
+  const municipalityId = asId(firstDefined(event.municipio_id, event.municipality_id));
+  const regionalNucleusId = asId(firstDefined(event.nucleo_origem_id, event.regional_nucleus_id));
   const municipality = municipalityId ? municipalitiesById.get(municipalityId) : undefined;
-  const regionalNucleus = municipality?.regional_nucleus_id ? regionalNucleiById.get(municipality.regional_nucleus_id) : undefined;
+  const regionalNucleus = regionalNucleusId ? regionalNucleiById.get(regionalNucleusId) : undefined;
 
   return {
     id: event.id,
@@ -74,6 +82,7 @@ const normalizeEvent = (
     transferredValue: asNumber(event.valor_concedente),
     proponentValue: asNumber(event.valor_proponente),
     municipalityId,
+    regionalNucleusId,
     municipalityName: firstDefined(municipality?.name, event.municipio, event.municipio_nome, event.nome_municipio) || "Não definido",
     regionalNucleusName: firstDefined(regionalNucleus?.name, event.nucleo_regional, event.nucleo_regional_nome, event.nome_nucleo_regional, event.nucleo) || "Não definido",
     raw: event,
@@ -109,7 +118,7 @@ export function useEventsDashboard() {
       const eventRows = (eventsData || []) as EventDashboardRow[];
       const municipalityIds = Array.from(new Set(
         eventRows
-          .map(event => firstDefined(event.municipio_id, event.municipality_id))
+          .map(event => asId(firstDefined(event.municipio_id, event.municipality_id)))
           .filter((id): id is number => typeof id === "number")
       ));
 
@@ -123,8 +132,8 @@ export function useEventsDashboard() {
       }
 
       const regionalNucleusIds = Array.from(new Set(
-        municipalities
-          .map(municipality => municipality.regional_nucleus_id)
+        eventRows
+          .map(event => asId(firstDefined(event.nucleo_origem_id, event.regional_nucleus_id)))
           .filter((id): id is number => typeof id === "number")
       ));
 
@@ -152,8 +161,8 @@ export function useEventsDashboard() {
         name: year.toString(),
         value: events.filter(event => event.year === year).length,
       }));
-      const activeMunicipalities = new Set(events.map(event => event.municipalityId || event.municipalityName).filter(Boolean));
-      const activeRegionalNuclei = new Set(events.map(event => event.regionalNucleusName).filter(name => name && name !== "Não definido"));
+      const activeMunicipalities = new Set(events.map(event => event.municipalityId || event.municipalityName).filter(value => value && value !== "Não definido"));
+      const activeRegionalNuclei = new Set(events.map(event => event.regionalNucleusId || event.regionalNucleusName).filter(value => value && value !== "Não definido"));
 
       return {
         events,
