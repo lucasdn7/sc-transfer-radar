@@ -1,52 +1,82 @@
 
 import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
-import { ProcessInsights } from "@/components/dashboard/ProcessInsights";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
-import { DashboardMetricsSelector } from "@/components/dashboard/DashboardMetricsSelector";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { ProcessStatusOverview } from "@/components/dashboard/ProcessStatusOverview";
 import { ContractStatusOverview } from "@/components/dashboard/ContractStatusOverview";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
-import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { EventStatsCards } from "@/components/dashboard/EventStatsCards";
+import { EventDashboardCharts } from "@/components/dashboard/EventDashboardCharts";
+import { EventCalendar } from "@/components/dashboard/EventCalendar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 export default function Dashboard() {
-  const { selectedMetrics, setSelectedMetrics, metricsData, isLoading } = useDashboardMetrics();
+  const [dashboardMode, setDashboardMode] = useState<"obras" | "eventos">("obras");
 
   return (
     <div className="space-y-6">
       <div>
         <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
-          <p className="metric-label mb-3">Visão geral</p>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Seu painel de transferências quer te contar uns segredos...</h1>
-          <p className="mt-3 max-w-3xl text-muted-foreground">
-            Visão geral das transferências financeiras do Estado de SC para os municípios
-          </p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="metric-label mb-3">Visão geral</p>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Seu painel de transferências quer te contar uns segredos...</h1>
+              <p className="mt-3 max-w-3xl text-muted-foreground">
+                Visão geral das transferências financeiras do Estado de SC para os municípios
+              </p>
+            </div>
+            <Tabs value={dashboardMode} onValueChange={(value) => setDashboardMode(value as "obras" | "eventos")}>
+              <TabsList aria-label="Alternar visão do dashboard">
+                <TabsTrigger value="obras">Obras</TabsTrigger>
+                <TabsTrigger value="eventos">Eventos</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </div>
 
-      <CollapsibleCard id="stats-cards">
-        <OptimizedStatsCards />
-      </CollapsibleCard>
+      {dashboardMode === "obras" ? (
+        <>
+          <CollapsibleCard id="stats-cards">
+            <OptimizedStatsCards />
+          </CollapsibleCard>
 
-      {/* Status dos Contratos Firmados */}
-      <CollapsibleCard id="contract-status">
-        <ContractStatusOverview />
-      </CollapsibleCard>
+          {/* Status dos Contratos Firmados */}
+          <CollapsibleCard id="contract-status">
+            <ContractStatusOverview />
+          </CollapsibleCard>
 
-      {/* Barra de Progressão das Transferências */}
-      <CollapsibleCard id="transfer-progress">
-        <TransferProgressBar />
-      </CollapsibleCard>
+          {/* Barra de Progressão das Transferências */}
+          <CollapsibleCard id="transfer-progress">
+            <TransferProgressBar />
+          </CollapsibleCard>
 
-      {/* Status dos Processos */}
-      <CollapsibleCard id="process-status">
-        <ProcessStatusOverview />
-      </CollapsibleCard>
+          {/* Status dos Processos */}
+          <CollapsibleCard id="process-status">
+            <ProcessStatusOverview />
+          </CollapsibleCard>
 
-      {/* Gráficos Personalizáveis */}
-      <CollapsibleCard id="dashboard-charts">
-        <DashboardCharts />
-      </CollapsibleCard>
+          {/* Gráficos Personalizáveis */}
+          <CollapsibleCard id="dashboard-charts">
+            <DashboardCharts />
+          </CollapsibleCard>
+        </>
+      ) : (
+        <>
+          <CollapsibleCard id="event-stats-cards">
+            <EventStatsCards />
+          </CollapsibleCard>
+
+          <CollapsibleCard id="event-dashboard-charts">
+            <EventDashboardCharts />
+          </CollapsibleCard>
+
+          <CollapsibleCard id="event-calendar">
+            <EventCalendar />
+          </CollapsibleCard>
+        </>
+      )}
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6">
