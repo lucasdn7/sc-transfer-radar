@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEventsDashboard, type EventDashboardRow } from "@/hooks/useEventsDashboard";
+import { useEventsDashboard, type EventDashboardItem } from "@/hooks/useEventsDashboard";
 import { formatCurrency } from "@/utils/processUtils";
 
 export function EventCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<EventDashboardRow | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventDashboardItem | null>(null);
   const { data, isLoading, error } = useEventsDashboard();
 
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -34,7 +34,7 @@ export function EventCalendar() {
 
   const getEventsForDay = (day: number) => {
     const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split("T")[0];
-    return (data?.events || []).filter(event => event.data_evento === dateStr);
+    return (data?.events || []).filter(event => event.date === dateStr);
   };
 
   if (error) {
@@ -69,8 +69,8 @@ export function EventCalendar() {
                 <div className="space-y-1">
                   {isLoading ? null : dayEvents.map(event => (
                     <button key={event.id} className="w-full text-left text-xs p-1 rounded cursor-pointer transition-colors bg-purple-500 text-white hover:opacity-80" onClick={() => setSelectedEvent(event)}>
-                      <div className="font-medium truncate">{event.nome}</div>
-                      <div className="truncate opacity-90">{event.municipalities?.name || "N/A"}</div>
+                      <div className="font-medium truncate">{event.name}</div>
+                      <div className="truncate opacity-90">{event.municipalityName}</div>
                     </button>
                   ))}
                 </div>
@@ -84,13 +84,13 @@ export function EventCalendar() {
           <Card className="w-full max-w-md shadow-2xl">
             <CardHeader><CardTitle>Detalhes do Evento</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              <div><b>Nome:</b> {selectedEvent.nome}</div>
-              <div><b>Tipo de repasse:</b> {selectedEvent.objeto}</div>
-              <div><b>Valor:</b> {formatCurrency(selectedEvent.valor_concedente || 0)}</div>
-              <div><b>Município:</b> {selectedEvent.municipalities?.name || "N/A"}</div>
-              <div><b>Núcleo regional:</b> {selectedEvent.municipalities?.regional_nuclei?.name || "N/A"}</div>
-              <div><b>Data:</b> {new Date(`${selectedEvent.data_evento}T00:00:00`).toLocaleDateString("pt-BR")}</div>
-              <div><b>Processo:</b> {selectedEvent.numero_processo || "N/A"}</div>
+              <div><b>Nome:</b> {selectedEvent.name}</div>
+              <div><b>Tipo de repasse:</b> {selectedEvent.repasseType}</div>
+              <div><b>Valor:</b> {formatCurrency(selectedEvent.transferredValue)}</div>
+              <div><b>Município:</b> {selectedEvent.municipalityName}</div>
+              <div><b>Núcleo regional:</b> {selectedEvent.regionalNucleusName}</div>
+              <div><b>Data:</b> {selectedEvent.date ? new Date(`${selectedEvent.date}T00:00:00`).toLocaleDateString("pt-BR") : "N/A"}</div>
+              <div><b>Processo:</b> {selectedEvent.processNumber || "N/A"}</div>
             </CardContent>
             <div className="flex justify-end p-4 pt-0"><Button onClick={() => setSelectedEvent(null)}>Fechar</Button></div>
           </Card>
