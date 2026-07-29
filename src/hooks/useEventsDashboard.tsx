@@ -6,7 +6,9 @@ type EventDashboardRow = Record<string, any> & {
   nome?: string | null;
   numero_processo?: string | null;
   objeto?: string | null;
-  data_evento?: string | null;
+  ano?: number | string | null;
+  data_inicio?: string | null;
+  data_final?: string | null;
   valor_concedente?: number | string | null;
   valor_proponente?: number | string | null;
   municipio_id?: number | null;
@@ -29,7 +31,9 @@ type EventDashboardItem = {
   name: string;
   processNumber: string | null;
   repasseType: string;
-  date: string | null;
+  year: number | null;
+  startDate: string | null;
+  endDate: string | null;
   transferredValue: number;
   proponentValue: number;
   municipalityId: number | null;
@@ -64,7 +68,9 @@ const normalizeEvent = (
     name: firstDefined(event.nome, event.name, event.titulo, event.title) || "Evento sem nome",
     processNumber: firstDefined(event.numero_processo, event.process_number, event.processo, event.numeroProcesso) || null,
     repasseType: firstDefined(event.tipo_repasse, event.tipo_de_repasse, event.tipo, event.objeto, event.categoria) || "Não definido",
-    date: firstDefined(event.data_evento, event.data, event.date, event.event_date) || null,
+    year: asNumber(event.ano) || null,
+    startDate: event.data_inicio || null,
+    endDate: event.data_final || null,
     transferredValue: asNumber(event.valor_concedente),
     proponentValue: asNumber(event.valor_proponente),
     municipalityId,
@@ -74,7 +80,7 @@ const normalizeEvent = (
   };
 };
 
-const getYear = (date: string | null) => (date ? new Date(`${date}T00:00:00`).getFullYear().toString() : "Sem data");
+const DASHBOARD_YEARS = [2023, 2024, 2025, 2026];
 
 const groupEvents = (events: EventDashboardItem[], getKey: (event: EventDashboardItem) => string) => {
   const grouped = events.reduce((acc, event) => {
@@ -135,7 +141,17 @@ export function useEventsDashboard() {
       const regionalNucleiById = new Map(regionalNuclei.map(regionalNucleus => [regionalNucleus.id, regionalNucleus]));
       const events = eventRows
         .map(event => normalizeEvent(event, municipalitiesById, regionalNucleiById))
-        .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+        .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""));
+      const valueByYear = DASHBOARD_YEARS.map(year => ({
+        name: year.toString(),
+        value: events
+          .filter(event => event.year === year)
+          .reduce((sum, event) => sum + event.transferredValue, 0),
+      }));
+      const eventsByYear = DASHBOARD_YEARS.map(year => ({
+        name: year.toString(),
+        value: events.filter(event => event.year === year).length,
+      }));
       const activeMunicipalities = new Set(events.map(event => event.municipalityId || event.municipalityName).filter(Boolean));
       const activeRegionalNuclei = new Set(events.map(event => event.regionalNucleusName).filter(name => name && name !== "Não definido"));
 
@@ -148,7 +164,8 @@ export function useEventsDashboard() {
           regionalNucleiCount: activeRegionalNuclei.size,
         },
         byRepasseType: groupEvents(events, event => event.repasseType),
-        byYear: groupEvents(events, event => getYear(event.date)).sort((a, b) => Number(a.name) - Number(b.name)),
+        valueByYear,
+        eventsByYear,
       };
     },
     staleTime: 5 * 60 * 1000,

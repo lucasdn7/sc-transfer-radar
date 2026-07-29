@@ -5,6 +5,19 @@ import { Button } from "@/components/ui/button";
 import { useEventsDashboard, type EventDashboardItem } from "@/hooks/useEventsDashboard";
 import { formatCurrency } from "@/utils/processUtils";
 
+const parseDate = (date: string | null) => date ? new Date(`${date}T00:00:00`) : null;
+
+const formatDate = (date: string | null) => date ? new Date(`${date}T00:00:00`).toLocaleDateString("pt-BR") : "N/A";
+
+const getTooltip = (event: EventDashboardItem) => [
+  event.name,
+  `Município: ${event.municipalityName}`,
+  `Processo: ${event.processNumber || "N/A"}`,
+  `Valor: ${formatCurrency(event.transferredValue)}`,
+  `Data de início: ${formatDate(event.startDate)}`,
+  `Data de término: ${formatDate(event.endDate)}`,
+].join("\n");
+
 export function EventCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<EventDashboardItem | null>(null);
@@ -33,8 +46,12 @@ export function EventCalendar() {
   };
 
   const getEventsForDay = (day: number) => {
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split("T")[0];
-    return (data?.events || []).filter(event => event.date === dateStr);
+    const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    return (data?.events || []).filter(event => {
+      const startDate = parseDate(event.startDate);
+      const endDate = parseDate(event.endDate);
+      return startDate && endDate && dayDate >= startDate && dayDate <= endDate;
+    });
   };
 
   if (error) {
@@ -68,7 +85,7 @@ export function EventCalendar() {
                 <div className={`text-sm font-medium mb-1 ${isToday ? "text-blue-600" : "text-gray-900"}`}>{day}</div>
                 <div className="space-y-1">
                   {isLoading ? null : dayEvents.map(event => (
-                    <button key={event.id} className="w-full text-left text-xs p-1 rounded cursor-pointer transition-colors bg-purple-500 text-white hover:opacity-80" onClick={() => setSelectedEvent(event)}>
+                    <button key={event.id} title={getTooltip(event)} className="w-full text-left text-xs p-1 rounded cursor-pointer transition-colors bg-purple-500 text-white hover:opacity-80" onClick={() => setSelectedEvent(event)}>
                       <div className="font-medium truncate">{event.name}</div>
                       <div className="truncate opacity-90">{event.municipalityName}</div>
                     </button>
@@ -89,7 +106,8 @@ export function EventCalendar() {
               <div><b>Valor:</b> {formatCurrency(selectedEvent.transferredValue)}</div>
               <div><b>Município:</b> {selectedEvent.municipalityName}</div>
               <div><b>Núcleo regional:</b> {selectedEvent.regionalNucleusName}</div>
-              <div><b>Data:</b> {selectedEvent.date ? new Date(`${selectedEvent.date}T00:00:00`).toLocaleDateString("pt-BR") : "N/A"}</div>
+              <div><b>Data de início:</b> {formatDate(selectedEvent.startDate)}</div>
+              <div><b>Data de término:</b> {formatDate(selectedEvent.endDate)}</div>
               <div><b>Processo:</b> {selectedEvent.processNumber || "N/A"}</div>
             </CardContent>
             <div className="flex justify-end p-4 pt-0"><Button onClick={() => setSelectedEvent(null)}>Fechar</Button></div>

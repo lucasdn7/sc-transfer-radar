@@ -2,16 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useEventsDashboard } from "@/hooks/useEventsDashboard";
 
-function EventBarChart({ data }: { data: Array<{ name: string; processos: number; value: number }> }) {
+function EventBarChart({ data, label }: { data: Array<{ name: string; value: number }>; label: string }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name" />
         <YAxis />
-        <Tooltip formatter={(value, name) => [typeof value === "number" ? value.toLocaleString("pt-BR") : value, name === "value" ? "Valor transferido" : "Processos"]} />
-        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Valor transferido" />
-        <Bar dataKey="processos" fill="#10b981" radius={[4, 4, 0, 0]} name="Processos" />
+        <Tooltip formatter={(value) => [typeof value === "number" ? value.toLocaleString("pt-BR") : value, label]} />
+        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name={label} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -28,11 +27,11 @@ export function EventDashboardCharts() {
     <div className="space-y-6">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Eventos por Tipo de Repasse</CardTitle>
+          <CardTitle className="text-lg font-semibold">Valor Total por Ano</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full h-[350px]">
-            {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.byRepasseType || []} />}
+            {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.valueByYear || []} label="Valor total" />}
           </div>
         </CardContent>
       </Card>
@@ -43,7 +42,7 @@ export function EventDashboardCharts() {
         </CardHeader>
         <CardContent>
           <div className="w-full h-[350px]">
-            {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.byYear || []} />}
+            {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.eventsByYear || []} label="Eventos" />}
           </div>
         </CardContent>
       </Card>
