@@ -51,9 +51,9 @@ export function TotalStatsCards() {
   }
 
   const statsData = [
-    { title: "Total Repassado", value: formatCurrency(data?.stats.totalRepassed || 0), change: "Obras pagas + eventos concedidos", icon: DollarSign, color: "text-[var(--accent-green)]" },
+    { title: "Total Repassado", value: formatCurrency(data?.stats.totalRepassed || 0), change: "Obras pagas + eventos pagos", icon: DollarSign, color: "text-[var(--accent-green)]" },
     { title: "Contratos Assinados", value: data?.stats.signedContracts.toLocaleString("pt-BR") || "0", change: "Obras assinadas + eventos", icon: FileCheck, color: "text-[var(--accent-green)]" },
-    { title: "Falta Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Concedente total menos repassado", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
+    { title: "Falta Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Obras assinadas pendentes + eventos não pagos", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
     { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: Building, color: "text-[var(--accent-amber)]" },
     { title: "Total de Processos", value: data?.stats.totalProcesses.toLocaleString("pt-BR") || "0", change: "Obras + eventos", icon: FileText, color: "text-[var(--accent-green)]" },
     { title: "Núcleos Atendidos", value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: MapPin, color: "text-[var(--accent-amber)]" },

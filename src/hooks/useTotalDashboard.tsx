@@ -62,6 +62,7 @@ export function useTotalDashboard() {
         const regionalNucleusId = asId(event.nucleo_origem_id);
         return {
           value: asNumber(event.valor_concedente),
+          paid: event.foi_pago === true,
           year: asNumber(event.ano) || null,
           municipalityKey: dashboardEntityKey("municipio", municipalityId, (municipalityId ? eventMunicipalities.get(municipalityId)?.name : undefined) || event.municipio_nome),
           nucleusKey: isSponsorshipOrigin(event.nucleo_origem_texto) ? null : dashboardEntityKey("nucleo", regionalNucleusId, (regionalNucleusId ? eventNuclei.get(regionalNucleusId)?.name : undefined) || event.nucleo_origem_texto),
@@ -69,16 +70,18 @@ export function useTotalDashboard() {
         };
       });
 
-      const totalRepassedProcesses = processes.reduce((sum, process) => {
+      const signedProcesses = processes.filter(process => process.contrato_assinado === true);
+      const totalRepassedProcesses = signedProcesses.reduce((sum, process) => {
         const paid = (process.process_parcels || [])
           .filter((parcel: any) => parcel.payment_date)
           .reduce((parcelSum: number, parcel: any) => parcelSum + asNumber(parcel.value), 0);
         return sum + paid;
       }, 0);
-      const totalConcedenteProcesses = processes.reduce((sum, process) => sum + asNumber(process.total_concedente_value), 0);
-      const totalConcedenteEvents = eventItems.reduce((sum, event) => sum + event.value, 0);
-      const totalRepassed = totalRepassedProcesses + totalConcedenteEvents;
-      const totalGranted = totalConcedenteProcesses + totalConcedenteEvents;
+      const totalConcedenteSignedProcesses = signedProcesses.reduce((sum, process) => sum + asNumber(process.total_concedente_value), 0);
+      const totalRepassedEvents = eventItems.filter(event => event.paid).reduce((sum, event) => sum + event.value, 0);
+      const pendingEvents = eventItems.filter(event => !event.paid).reduce((sum, event) => sum + event.value, 0);
+      const pendingProcesses = totalConcedenteSignedProcesses - totalRepassedProcesses;
+      const totalRepassed = totalRepassedProcesses + totalRepassedEvents;
 
       const municipalityKeys = new Set<string>();
       const nucleusKeys = new Set<string>();
@@ -100,15 +103,16 @@ export function useTotalDashboard() {
       }));
 
       const municipalitiesByYear = YEARS.map(year => {
-        const keys = new Set<string>();
+        const processKeys = new Set<string>();
         processes.filter(process => yearFromDate(process.vigencia_date) === year).forEach(process => {
           const key = dashboardEntityKey("municipio", process.municipality_id, process.municipalities?.name);
-          if (key) keys.add(key);
+          if (key) processKeys.add(key);
         });
+        const eventKeys = new Set<string>();
         eventItems.filter(event => event.year === year).forEach(event => {
-          if (event.municipalityKey) keys.add(event.municipalityKey);
+          if (event.municipalityKey) eventKeys.add(event.municipalityKey);
         });
-        return { name: year.toString(), value: keys.size };
+        return { name: year.toString(), obras: processKeys.size, eventos: eventKeys.size };
       });
 
       const countsByYear = YEARS.map(year => ({
@@ -117,24 +121,26 @@ export function useTotalDashboard() {
         eventos: eventItems.filter(event => event.year === year).length,
       }));
 
-      const valuesByNucleusMap = new Map<string, { name: string; value: number }>();
+      const valuesByNucleusMap = new Map<string, { name: string; obras: number; eventos: number }>();
       processes.forEach(process => {
         const key = dashboardEntityKey("nucleo", process.regional_nucleus_id, process.regional_nuclei?.name);
         if (!key) return;
         const name = process.regional_nuclei?.name || "Não definido";
-        valuesByNucleusMap.set(key, { name, value: (valuesByNucleusMap.get(key)?.value || 0) + asNumber(process.total_concedente_value) });
+        const current = valuesByNucleusMap.get(key) || { name, obras: 0, eventos: 0 };
+        valuesByNucleusMap.set(key, { ...current, obras: current.obras + asNumber(process.total_concedente_value) });
       });
       eventItems.forEach(event => {
         if (!event.nucleusKey) return;
         const name = event.nucleusName || "Não definido";
-        valuesByNucleusMap.set(event.nucleusKey, { name, value: (valuesByNucleusMap.get(event.nucleusKey)?.value || 0) + event.value });
+        const current = valuesByNucleusMap.get(event.nucleusKey) || { name, obras: 0, eventos: 0 };
+        valuesByNucleusMap.set(event.nucleusKey, { ...current, eventos: current.eventos + event.value });
       });
 
       return {
         stats: {
           totalRepassed,
           signedContracts: processes.filter(process => process.contrato_assinado === true).length + eventRows.length,
-          pendingTransfer: Math.max(totalGranted - totalRepassed, 0),
+          pendingTransfer: Math.max(pendingProcesses, 0) + pendingEvents,
           municipalitiesCount: municipalityKeys.size,
           totalProcesses: processes.length + eventRows.length,
           regionalNucleiCount: nucleusKeys.size,
@@ -142,7 +148,7 @@ export function useTotalDashboard() {
         valuesByYear,
         municipalitiesByYear,
         countsByYear,
-        valuesByNucleus: Array.from(valuesByNucleusMap.values()).sort((a, b) => b.value - a.value),
+        valuesByNucleus: Array.from(valuesByNucleusMap.values()).sort((a, b) => (b.obras + b.eventos) - (a.obras + a.eventos)),
       };
     },
     staleTime: 5 * 60 * 1000,
