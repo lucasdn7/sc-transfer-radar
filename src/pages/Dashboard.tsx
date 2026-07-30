@@ -8,11 +8,13 @@ import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import { EventStatsCards } from "@/components/dashboard/EventStatsCards";
 import { EventDashboardCharts } from "@/components/dashboard/EventDashboardCharts";
 import { EventCalendar } from "@/components/dashboard/EventCalendar";
+import { TotalStatsCards } from "@/components/dashboard/TotalStatsCards";
+import { TotalDashboardCharts } from "@/components/dashboard/TotalDashboardCharts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 
 export default function Dashboard() {
-  const [dashboardMode, setDashboardMode] = useState<"obras" | "eventos">("obras");
+  const [dashboardMode, setDashboardMode] = useState<"obras" | "eventos" | "total">("obras");
 
   return (
     <div className="space-y-6">
@@ -26,10 +28,11 @@ export default function Dashboard() {
                 Visão geral das transferências financeiras do Estado de SC para os municípios
               </p>
             </div>
-            <Tabs value={dashboardMode} onValueChange={(value) => setDashboardMode(value as "obras" | "eventos")}>
+            <Tabs value={dashboardMode} onValueChange={(value) => setDashboardMode(value as "obras" | "eventos" | "total")}>
               <TabsList aria-label="Alternar visão do dashboard">
                 <TabsTrigger value="obras">Obras</TabsTrigger>
                 <TabsTrigger value="eventos">Eventos</TabsTrigger>
+                <TabsTrigger value="total">Total</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -62,7 +65,7 @@ export default function Dashboard() {
             <DashboardCharts />
           </CollapsibleCard>
         </>
-      ) : (
+      ) : dashboardMode === "eventos" ? (
         <>
           <CollapsibleCard id="event-stats-cards">
             <EventStatsCards />
@@ -74,6 +77,16 @@ export default function Dashboard() {
 
           <CollapsibleCard id="event-calendar">
             <EventCalendar />
+          </CollapsibleCard>
+        </>
+      ) : (
+        <>
+          <CollapsibleCard id="total-stats-cards">
+            <TotalStatsCards />
+          </CollapsibleCard>
+
+          <CollapsibleCard id="total-dashboard-charts">
+            <TotalDashboardCharts />
           </CollapsibleCard>
         </>
       )}

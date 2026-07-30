@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdentityUtils";
 
 type EventDashboardRow = Record<string, any> & {
   id: number;
@@ -13,6 +14,8 @@ type EventDashboardRow = Record<string, any> & {
   valor_proponente?: number | string | null;
   municipio_id?: number | string | null;
   nucleo_origem_id?: number | string | null;
+  municipio_nome?: string | null;
+  nucleo_origem_texto?: string | null;
 };
 
 type MunicipalityLookup = {
@@ -83,8 +86,8 @@ const normalizeEvent = (
     proponentValue: asNumber(event.valor_proponente),
     municipalityId,
     regionalNucleusId,
-    municipalityName: firstDefined(municipality?.name, event.municipio, event.municipio_nome, event.nome_municipio) || "Não definido",
-    regionalNucleusName: firstDefined(regionalNucleus?.name, event.nucleo_regional, event.nucleo_regional_nome, event.nome_nucleo_regional, event.nucleo) || "Não definido",
+    municipalityName: firstDefined(municipality?.name, event.municipio_nome, event.municipio, event.nome_municipio) || "Não definido",
+    regionalNucleusName: firstDefined(regionalNucleus?.name, event.nucleo_origem_texto, event.nucleo_regional, event.nucleo_regional_nome, event.nome_nucleo_regional, event.nucleo) || "Não definido",
     raw: event,
   };
 };
@@ -161,8 +164,8 @@ export function useEventsDashboard() {
         name: year.toString(),
         value: events.filter(event => event.year === year).length,
       }));
-      const activeMunicipalities = new Set(events.map(event => event.municipalityId || event.municipalityName).filter(value => value && value !== "Não definido"));
-      const activeRegionalNuclei = new Set(events.map(event => event.regionalNucleusId || event.regionalNucleusName).filter(value => value && value !== "Não definido"));
+      const activeMunicipalities = new Set(events.map(event => dashboardEntityKey("municipio", event.municipalityId, event.municipalityName)).filter(Boolean));
+      const activeRegionalNuclei = new Set(events.map(event => isSponsorshipOrigin(event.regionalNucleusName) ? null : dashboardEntityKey("nucleo", event.regionalNucleusId, event.regionalNucleusName)).filter(Boolean));
 
       return {
         events,
