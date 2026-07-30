@@ -19,23 +19,26 @@ export function TransferProgressBar() {
       // Buscar todos os processos
       const { data: processes, error: processError } = await supabase
         .from('processes')
-        .select('id, total_concedente_value, total_proponente_value');
+        .select('id, total_concedente_value, total_proponente_value, contrato_assinado');
 
       if (processError) throw processError;
+
+      const signedProcessIds = processes?.filter(p => p.contrato_assinado === true).map(p => p.id) || [];
 
       // Buscar todas as parcelas pagas
       const { data: parcels, error: parcelError } = await supabase
         .from('process_parcels')
-        .select('value, payment_date')
+        .select('process_id, value, payment_date')
         .not('payment_date', 'is', null);
 
       if (parcelError) throw parcelError;
 
       // Calcular estatísticas
-      const totalConcedente = processes?.reduce((sum, p) => sum + (p.total_concedente_value || 0), 0) || 0;
+      const totalConcedente = processes?.filter(p => p.contrato_assinado === true).reduce((sum, p) => sum + (p.total_concedente_value || 0), 0) || 0;
       const totalProponente = processes?.reduce((sum, p) => sum + (p.total_proponente_value || 0), 0) || 0;
       const valorRepassado = parcels?.reduce((sum, p) => sum + (p.value || 0), 0) || 0;
-      const saldoARepassar = totalConcedente - valorRepassado;
+      const valorRepassadoContratos = parcels?.filter(p => signedProcessIds.includes(p.process_id)).reduce((sum, p) => sum + (p.value || 0), 0) || 0;
+      const saldoARepassar = totalConcedente - valorRepassadoContratos;
       const percentualRepassado = totalConcedente > 0 ? (valorRepassado / totalConcedente) * 100 : 0;
 
       return {

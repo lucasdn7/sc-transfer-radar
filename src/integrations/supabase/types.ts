@@ -438,6 +438,7 @@ export type Database = {
         Row: {
           created_at: string | null
           data_evento: string
+          foi_pago: boolean | null
           id: number
           municipio_id: number | null
           nome: string
@@ -450,6 +451,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           data_evento: string
+          foi_pago?: boolean | null
           id?: number
           municipio_id?: number | null
           nome: string
@@ -462,6 +464,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           data_evento?: string
+          foi_pago?: boolean | null
           id?: number
           municipio_id?: number | null
           nome?: string
