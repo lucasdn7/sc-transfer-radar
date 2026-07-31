@@ -69,6 +69,20 @@ export function EventStatsCards() {
       color: "text-[var(--accent-green)]",
     },
     {
+      title: "Contratos Assinados",
+      value: data?.stats.totalContratosAssinados.toLocaleString("pt-BR") || "0",
+      change: "Eventos com contrato assinado",
+      icon: FileText,
+      color: "text-[var(--accent-green)]",
+    },
+    {
+      title: "Valores dos Contratos",
+      value: formatCurrency(data?.stats.valorContratosAssinados || 0),
+      change: "Valor concedente dos contratos",
+      icon: DollarSign,
+      color: "text-[var(--accent-green)]",
+    },
+    {
       title: "Processos com Repasse Concluído",
       value: formatCurrency(data?.stats.processosRepasseConcluido || 0),
       change: "Eventos pagos",
