@@ -57,6 +57,8 @@ export type EventDashboardSummary = {
   totalContratosAssinados: number;
 };
 
+const isArchivedContract = (value: unknown) => value === "arquivado";
+
 const asNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -159,7 +161,7 @@ export function useEventsDashboard() {
 
       const municipalitiesById = new Map(municipalities.map(municipality => [municipality.id, municipality]));
       const regionalNucleiById = new Map(regionalNuclei.map(regionalNucleus => [regionalNucleus.id, regionalNucleus]));
-      const activeEventRows = eventRows.filter(event => event.contrato_assinado !== "arquivado");
+      const activeEventRows = eventRows.filter(event => !isArchivedContract(event.contrato_assinado));
       const events = activeEventRows
         .map(event => normalizeEvent(event, municipalitiesById, regionalNucleiById))
         .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""));

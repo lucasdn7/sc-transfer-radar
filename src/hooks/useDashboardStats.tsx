@@ -2,6 +2,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const isArchivedContract = (value: unknown) => value === "arquivado";
+
 interface DashboardStats {
   totalProcesses: number;
   totalValue: number;
@@ -84,7 +86,7 @@ export function useDashboardStats() {
           throw regionalNucleiResult.error;
         }
 
-        const processes = processesResult.data || [];
+        const processes = (processesResult.data || []).filter((process: any) => !isArchivedContract(process.contrato_assinado));
         const municipalities = municipalitiesResult.data || [];
         const regionalNuclei = regionalNucleiResult.data || [];
         const statusList = statusResult.data || [];

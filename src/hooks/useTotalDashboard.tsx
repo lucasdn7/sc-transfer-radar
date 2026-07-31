@@ -4,6 +4,8 @@ import { dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdenti
 
 const YEARS = [2023, 2024, 2025, 2026];
 
+const isArchivedContract = (value: unknown) => value === "arquivado";
+
 const asNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -45,8 +47,8 @@ export function useTotalDashboard() {
       if (eventsResult.error) throw eventsResult.error;
       if (summaryResult.error) throw summaryResult.error;
 
-      const processes = (processesResult.data || []) as any[];
-      const eventRows = ((eventsResult.data || []) as any[]).filter(event => event.contrato_assinado !== "arquivado");
+      const processes = ((processesResult.data || []) as any[]).filter(process => !isArchivedContract(process.contrato_assinado));
+      const eventRows = ((eventsResult.data || []) as any[]).filter(event => !isArchivedContract(event.contrato_assinado));
       const summary = summaryResult.data;
       const eventMunicipalityIds = Array.from(new Set(eventRows.map(event => asId(event.municipio_id)).filter((id): id is number => typeof id === "number")));
       const eventNucleusIds = Array.from(new Set(eventRows.map(event => asId(event.nucleo_origem_id)).filter((id): id is number => typeof id === "number")));

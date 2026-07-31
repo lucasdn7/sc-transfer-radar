@@ -26,6 +26,8 @@ const toNumber = (value: unknown) => {
 
 const clampPercent = (value: number) => Math.min(Math.max(value, 0), 100);
 
+const isArchivedContract = (value: unknown) => value === "arquivado";
+
 export function TransferProgressBar() {
   const { data: stats, isLoading } = useQuery<TransferStats>({
     queryKey: ['transfer-progress'],
@@ -43,7 +45,7 @@ export function TransferProgressBar() {
       if (processesResult.error) throw processesResult.error;
       if (parcelsResult.error) throw parcelsResult.error;
 
-      const processes = processesResult.data || [];
+      const processes = (processesResult.data || []).filter(process => !isArchivedContract(process.contrato_assinado));
       const paidParcels = parcelsResult.data || [];
       const totalPortarias = processes.reduce((sum, process) => sum + toNumber(process.total_concedente_value), 0);
       const valorContratosAssinados = processes
