@@ -59,6 +59,8 @@ export type EventDashboardSummary = {
 
 const isArchivedContract = (value: unknown) => value === "arquivado";
 
+const isPaidEvent = (value: unknown) => value === true || value === "sim";
+
 const asNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -179,9 +181,9 @@ export function useEventsDashboard() {
       const activeRegionalNuclei = new Set(events.map(event => isSponsorshipOrigin(event.regionalNucleusName) ? null : dashboardEntityKey("nucleo", event.regionalNucleusId, event.regionalNucleusName)).filter(Boolean));
 
       const totalPortarias = activeEventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
-      const valorPago = activeEventRows
-        .filter(event => event.foi_pago === true)
-        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const paidEventRows = activeEventRows.filter(event => isPaidEvent(event.foi_pago));
+      const valorPago = paidEventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const processosPrimeiraParcela = paidEventRows.length;
       const totalContratoConsiderado = activeEventRows
         .filter(event => event.contrato_assinado === "sim" || event.contrato_assinado === "não")
         .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
@@ -198,7 +200,7 @@ export function useEventsDashboard() {
           saldoARepassar: valorContratosAssinados - valorPago,
           totalContratosAssinados: activeEventRows.filter(event => event.contrato_assinado === "sim").length,
           processosRepasseConcluido: valorPago,
-          municipiosPrimeiraParcela: valorPago,
+          municipiosPrimeiraParcela: processosPrimeiraParcela,
           pctContratosAssinadosPorValor: valorContratosAssinados > 0 ? (valorPago / valorContratosAssinados) * 100 : 0,
           pctPortariaPaga: totalContratoConsiderado > 0 ? (valorPago / totalContratoConsiderado) * 100 : 0,
           valorContratosAssinados,

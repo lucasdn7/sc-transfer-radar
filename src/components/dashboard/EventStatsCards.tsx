@@ -34,7 +34,7 @@ export function EventStatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
@@ -76,9 +76,9 @@ export function EventStatsCards() {
       color: "text-[var(--accent-green)]",
     },
     {
-      title: "Municípios com 1ª parcela paga",
-      value: formatCurrency(data?.stats.municipiosPrimeiraParcela || 0),
-      change: "Mesmo critério de eventos pagos",
+      title: "Processos com a 1ª parcela paga",
+      value: data?.stats.municipiosPrimeiraParcela.toLocaleString("pt-BR") || "0",
+      change: "Eventos pagos",
       icon: TrendingDown,
       color: "text-[var(--accent-amber)]",
     },
@@ -96,11 +96,18 @@ export function EventStatsCards() {
       icon: MapPin,
       color: "text-[var(--accent-amber)]",
     },
+    {
+      title: "Saldo a repassar",
+      value: formatCurrency(data?.stats.saldoARepassar || 0),
+      change: "Contratos assinados menos eventos pagos",
+      icon: TrendingDown,
+      color: "text-[var(--accent-amber)]",
+    },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
       </div>
 
