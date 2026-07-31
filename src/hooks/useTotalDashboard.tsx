@@ -46,7 +46,7 @@ export function useTotalDashboard() {
       if (summaryResult.error) throw summaryResult.error;
 
       const processes = (processesResult.data || []) as any[];
-      const eventRows = (eventsResult.data || []) as any[];
+      const eventRows = ((eventsResult.data || []) as any[]).filter(event => event.contrato_assinado !== "arquivado");
       const summary = summaryResult.data;
       const eventMunicipalityIds = Array.from(new Set(eventRows.map(event => asId(event.municipio_id)).filter((id): id is number => typeof id === "number")));
       const eventNucleusIds = Array.from(new Set(eventRows.map(event => asId(event.nucleo_origem_id)).filter((id): id is number => typeof id === "number")));
@@ -78,6 +78,12 @@ export function useTotalDashboard() {
 
       const totalPortariasProcesses = processes.reduce((sum, process) => sum + asNumber(process.total_concedente_value), 0);
       const signedProcesses = processes.filter(process => process.contrato_assinado === true);
+      const totalRepassedSignedProcesses = signedProcesses.reduce((sum, process) => {
+        const paid = (process.process_parcels || [])
+          .filter((parcel: any) => parcel.payment_date)
+          .reduce((parcelSum: number, parcel: any) => parcelSum + asNumber(parcel.value), 0);
+        return sum + paid;
+      }, 0);
       const totalRepassedProcesses = processes.reduce((sum, process) => {
         const paid = (process.process_parcels || [])
           .filter((parcel: any) => parcel.payment_date)
@@ -89,8 +95,8 @@ export function useTotalDashboard() {
       const totalRepassedEvents = eventRows.filter(event => event.foi_pago === true).reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
       const totalPortarias = totalPortariasProcesses + totalPortariasEvents;
       const totalRepassed = totalRepassedProcesses + totalRepassedEvents;
-      const totalContratoConsiderado = totalPortariasProcesses + eventRows
-        .filter(event => event.contrato_assinado === "sim" || event.contrato_assinado === "não")
+      const totalContratoConsiderado = totalConcedenteSignedProcesses + eventRows
+        .filter(event => event.contrato_assinado === "sim")
         .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
       const valorContratosAssinados = totalConcedenteSignedProcesses + eventRows
         .filter(event => event.contrato_assinado === "sim")
@@ -162,13 +168,14 @@ export function useTotalDashboard() {
       return {
         stats: {
           totalRepassed,
+          totalRepassedContratosAssinados: totalRepassedSignedProcesses + totalRepassedEvents,
           signedContracts: processes.filter(process => process.contrato_assinado === true).length + eventRows.filter(event => event.contrato_assinado === "sim").length,
-          pendingTransfer: totalPortarias - totalRepassed,
+          pendingTransfer: totalContratoConsiderado - (totalRepassedSignedProcesses + totalRepassedEvents),
           valorTotalContratoAssinado: valorContratosAssinados,
           totalPortarias,
           processosRepasseConcluido,
           processosPrimeiraParcela,
-          pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? (valorContratosAssinados / totalContratoConsiderado) * 100 : 0,
+          pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? ((totalRepassedSignedProcesses + totalRepassedEvents) / totalContratoConsiderado) * 100 : 0,
           totalContratoConsiderado,
           municipalitiesCount: municipalityKeys.size,
           totalProcesses: asNumber(summary?.total_processos),

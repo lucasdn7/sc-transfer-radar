@@ -170,13 +170,15 @@ export function useDashboardStats() {
         // Indicadores de repasse por processo
         let processosRepasseConcluido = 0;
         let processosPrimeiraParcela = 0;
-        let valorRepassado = 0;
+        let valorRepassadoContratosAssinados = 0;
 
         processes.forEach((process: any) => {
           const parcels = process.process_parcels || [];
           const paidParcels = parcels.filter((parcel: any) => parcel.payment_date);
           const paidValue = paidParcels.reduce((sum: number, parcel: any) => sum + (parcel.value || 0), 0);
-          valorRepassado += paidValue;
+          if (process.contrato_assinado === true) {
+            valorRepassadoContratosAssinados += paidValue;
+          }
 
           if (parcels.length > 0 && paidParcels.length === parcels.length) {
             processosRepasseConcluido++;
@@ -192,14 +194,13 @@ export function useDashboardStats() {
           municipiosPrimeiraParcela: processosPrimeiraParcela
         };
 
-        const saldoARepassar = totalValue - valorRepassado;
-
         // Contratos assinados
         const contratosAssinados = processes.filter((p: any) => p.contrato_assinado === true).length;
         const valorContratos = processes
           .filter((p: any) => p.contrato_assinado === true)
           .reduce((sum: number, p: any) => sum + (p.total_concedente_value || 0), 0);
-        const pctContratosAssinadosPorValor = totalValue > 0 ? (valorContratos / totalValue) * 100 : 0;
+        const pctContratosAssinadosPorValor = valorContratos > 0 ? (valorRepassadoContratosAssinados / valorContratos) * 100 : 0;
+        const saldoARepassar = valorContratos - valorRepassadoContratosAssinados;
 
         return {
           totalProcesses,
