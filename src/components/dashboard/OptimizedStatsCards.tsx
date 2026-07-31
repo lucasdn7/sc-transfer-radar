@@ -126,7 +126,7 @@ export function OptimizedStatsCards() {
     {
       title: "Saldo a Repassar",
       value: formatCurrency(stats?.saldoARepassar || 0),
-      change: "Total das portarias menos parcelas pagas",
+      change: "Contratos assinados menos parcelas pagas",
       trend: "down" as const,
       icon: TrendingDown,
       color: "text-[var(--accent-amber)]"
