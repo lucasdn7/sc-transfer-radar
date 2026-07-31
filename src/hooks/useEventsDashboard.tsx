@@ -49,6 +49,14 @@ type EventDashboardItem = {
 
 const firstDefined = <T,>(...values: Array<T | null | undefined>) => values.find(value => value !== null && value !== undefined && value !== "") as T | undefined;
 
+export type EventDashboardSummary = {
+  valorContratoAssinado: number;
+  valorRepassado: number;
+  saldoARepassar: number;
+  totalProcesses: number;
+  totalContratosAssinados: number;
+};
+
 const asNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -112,11 +120,21 @@ export function useEventsDashboard() {
   return useQuery({
     queryKey: ["dashboard-events"],
     queryFn: async () => {
-      const { data: eventsData, error: eventsError } = await supabase
-        .from("events")
-        .select("*");
+      const [eventsResult, summaryResult] = await Promise.all([
+        supabase
+          .from("events")
+          .select("*"),
+        (supabase as any)
+          .from("vw_dashboard_eventos")
+          .select("valor_contrato_assinado, valor_repassado, saldo_a_repassar, total_processos, total_contratos_assinados")
+          .maybeSingle(),
+      ]);
 
-      if (eventsError) throw eventsError;
+      if (eventsResult.error) throw eventsResult.error;
+      if (summaryResult.error) throw summaryResult.error;
+
+      const eventsData = eventsResult.data;
+      const summary = summaryResult.data;
 
       const eventRows = (eventsData || []) as EventDashboardRow[];
       const municipalityIds = Array.from(new Set(
@@ -170,8 +188,11 @@ export function useEventsDashboard() {
       return {
         events,
         stats: {
-          totalProcesses: events.length,
-          transferredValue: events.reduce((sum, event) => sum + event.transferredValue, 0),
+          totalProcesses: asNumber(summary?.total_processos),
+          transferredValue: asNumber(summary?.valor_contrato_assinado),
+          valorRepassado: asNumber(summary?.valor_repassado),
+          saldoARepassar: asNumber(summary?.saldo_a_repassar),
+          totalContratosAssinados: asNumber(summary?.total_contratos_assinados),
           municipalitiesCount: activeMunicipalities.size,
           regionalNucleiCount: activeRegionalNuclei.size,
         },
