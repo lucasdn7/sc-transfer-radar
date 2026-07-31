@@ -49,6 +49,14 @@ type EventDashboardItem = {
 
 const firstDefined = <T,>(...values: Array<T | null | undefined>) => values.find(value => value !== null && value !== undefined && value !== "") as T | undefined;
 
+export type EventDashboardSummary = {
+  valorContratoAssinado: number;
+  valorRepassado: number;
+  saldoARepassar: number;
+  totalProcesses: number;
+  totalContratosAssinados: number;
+};
+
 const asNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -112,7 +120,7 @@ export function useEventsDashboard() {
   return useQuery({
     queryKey: ["dashboard-events"],
     queryFn: async () => {
-      const { data: eventsData, error: eventsError } = await supabase
+      const { data: eventsData, error: eventsError } = await (supabase as any)
         .from("events")
         .select("*");
 
@@ -167,11 +175,30 @@ export function useEventsDashboard() {
       const activeMunicipalities = new Set(events.map(event => dashboardEntityKey("municipio", event.municipalityId, event.municipalityName)).filter(Boolean));
       const activeRegionalNuclei = new Set(events.map(event => isSponsorshipOrigin(event.regionalNucleusName) ? null : dashboardEntityKey("nucleo", event.regionalNucleusId, event.regionalNucleusName)).filter(Boolean));
 
+      const totalPortarias = eventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const valorPago = eventRows
+        .filter(event => event.foi_pago === true)
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const totalContratoConsiderado = eventRows
+        .filter(event => event.contrato_assinado === "sim" || event.contrato_assinado === "não")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const valorContratosAssinados = eventRows
+        .filter(event => event.contrato_assinado === "sim")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+
       return {
         events,
         stats: {
-          totalProcesses: events.length,
-          transferredValue: events.reduce((sum, event) => sum + event.transferredValue, 0),
+          totalProcesses: eventRows.length,
+          transferredValue: totalPortarias,
+          valorRepassado: valorPago,
+          saldoARepassar: totalPortarias - valorPago,
+          totalContratosAssinados: eventRows.filter(event => event.contrato_assinado === "sim").length,
+          processosRepasseConcluido: valorPago,
+          municipiosPrimeiraParcela: valorPago,
+          pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? (valorContratosAssinados / totalContratoConsiderado) * 100 : 0,
+          valorContratosAssinados,
+          totalContratoConsiderado,
           municipalitiesCount: activeMunicipalities.size,
           regionalNucleiCount: activeRegionalNuclei.size,
         },

@@ -74,9 +74,9 @@ export function OptimizedStatsCards() {
       color: "text-[var(--accent-green)]"
     },
     {
-      title: "Valor Total Transferido",
+      title: "Total das Portarias",
       value: formatCurrency(stats?.totalValue || 0),
-      change: "Investimento em Santa Catarina",
+      change: "Soma dos valores concedentes",
       trend: 'up' as const,
       icon: DollarSign,
       color: "text-[var(--accent-green)]"
@@ -102,17 +102,17 @@ export function OptimizedStatsCards() {
   // Cards de repasse
   const repasseCards = [
     {
-      title: "Municípios com Repasse Concluído",
+      title: "Processos com Repasse Concluído",
       value: stats?.repasseStats?.municipiosRepasseConcluido?.toLocaleString('pt-BR') || '0',
-      change: "Valor repassado igual ao concedente",
+      change: "Processos com todas as parcelas pagas",
       trend: "up" as const,
       icon: TrendingUp,
       color: "text-[var(--accent-green)]"
     },
     {
-      title: "Municípios com 1ª Parcela Paga (Parcial)",
+      title: "Processos com 1ª Parcela Paga (Parcial)",
       value: stats?.repasseStats?.municipiosPrimeiraParcela?.toLocaleString('pt-BR') || '0',
-      change: "Já receberam parte do valor, mas ainda há saldo a repassar",
+      change: "Processos com pagamento parcial e saldo a repassar",
       trend: "neutral" as const,
       icon: TrendingDown,
       color: "text-[var(--accent-amber)]"
@@ -122,11 +122,22 @@ export function OptimizedStatsCards() {
   // Cards de contratos assinados
   const contratosAssinados = stats?.contratosAssinados || 0;
   const valorContratos = stats?.valorContratos || 0;
+  const saldoCards: StatCardProps[] = [
+    {
+      title: "Saldo a Repassar",
+      value: formatCurrency(stats?.saldoARepassar || 0),
+      change: "Total das portarias menos parcelas pagas",
+      trend: "down" as const,
+      icon: TrendingDown,
+      color: "text-[var(--accent-amber)]"
+    }
+  ];
+
   const insightsCards = [
     {
       title: "Contratos Assinados",
       value: contratosAssinados.toLocaleString('pt-BR'),
-      change: "Processos com contrato assinado",
+      change: `${(stats?.pctContratosAssinadosPorValor || 0).toFixed(1)}% do valor total das portarias`,
       trend: "up" as const,
       icon: FileText,
       color: "text-[var(--accent-green)]"
@@ -150,7 +161,7 @@ export function OptimizedStatsCards() {
       </div>
       {/* Cards de repasse e insights juntos */}
       <div className="grid gap-4 mt-4 md:grid-cols-2 lg:grid-cols-4">
-        {repasseCards.concat(insightsCards).map((stat, index) => (
+        {[...repasseCards, ...saldoCards, ...insightsCards].map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
       </div>

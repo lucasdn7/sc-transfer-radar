@@ -3,7 +3,6 @@ import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards"
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { ProcessStatusOverview } from "@/components/dashboard/ProcessStatusOverview";
-import { ContractStatusOverview } from "@/components/dashboard/ContractStatusOverview";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import { EventStatsCards } from "@/components/dashboard/EventStatsCards";
 import { EventDashboardCharts } from "@/components/dashboard/EventDashboardCharts";
@@ -43,11 +42,6 @@ export default function Dashboard() {
         <>
           <CollapsibleCard id="stats-cards">
             <OptimizedStatsCards />
-          </CollapsibleCard>
-
-          {/* Status dos Contratos Firmados */}
-          <CollapsibleCard id="contract-status">
-            <ContractStatusOverview />
           </CollapsibleCard>
 
           {/* Barra de Progressão das Transferências */}

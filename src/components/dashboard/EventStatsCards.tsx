@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, DollarSign, FileText, MapPin } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Building, DollarSign, FileCheck, FileText, MapPin, TrendingDown } from "lucide-react";
 import { useEventsDashboard } from "@/hooks/useEventsDashboard";
 import { formatCurrency } from "@/utils/processUtils";
 
@@ -33,7 +34,7 @@ export function EventStatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
@@ -50,6 +51,8 @@ export function EventStatsCards() {
     return <div className="text-center py-8"><p className="text-[var(--accent-red)]">Erro ao carregar eventos</p></div>;
   }
 
+  const pctContratos = Math.min(Math.max(data?.stats.pctContratosAssinadosPorValor || 0, 0), 100);
+
   const statsData = [
     {
       title: "Total de Processos",
@@ -59,11 +62,25 @@ export function EventStatsCards() {
       color: "text-[var(--accent-green)]",
     },
     {
-      title: "Valor Transferido",
+      title: "Total das Portarias",
       value: formatCurrency(data?.stats.transferredValue || 0),
       change: "Soma dos valores concedentes",
+      icon: FileCheck,
+      color: "text-[var(--accent-green)]",
+    },
+    {
+      title: "Processos com Repasse Concluído",
+      value: formatCurrency(data?.stats.processosRepasseConcluido || 0),
+      change: "Eventos pagos",
       icon: DollarSign,
       color: "text-[var(--accent-green)]",
+    },
+    {
+      title: "Municípios com 1ª Parcela Paga",
+      value: formatCurrency(data?.stats.municipiosPrimeiraParcela || 0),
+      change: "Mesmo critério de eventos pagos",
+      icon: TrendingDown,
+      color: "text-[var(--accent-amber)]",
     },
     {
       title: "Municípios Beneficiados",
@@ -73,7 +90,7 @@ export function EventStatsCards() {
       color: "text-[var(--accent-amber)]",
     },
     {
-      title: "Núcleos Regionais Atendidos",
+      title: "Núcleos Regionais",
       value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0",
       change: "Núcleos regionais distintos",
       icon: MapPin,
@@ -82,8 +99,35 @@ export function EventStatsCards() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
+    <div className="space-y-4">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>Status dos Contratos Assinados</span>
+            <span className="text-sm font-normal text-gray-500">
+              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}% dos valores com contrato
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="font-medium">Contratos assinados por valor</span>
+            <span className="text-gray-600">
+              {formatCurrency(data?.stats.valorContratosAssinados || 0)} de {formatCurrency(data?.stats.totalContratoConsiderado || 0)}
+            </span>
+          </div>
+          <Progress value={pctContratos} className="h-4" />
+          <div className="text-center">
+            <span className="text-2xl font-bold text-green-600">
+              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}%
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
+      </div>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function useTotalDashboard() {
         supabase
           .from("processes")
           .select("id, total_concedente_value, vigencia_date, contrato_assinado, municipality_id, regional_nucleus_id, municipalities(name), regional_nuclei(name), process_parcels(value, payment_date)"),
-        supabase
+        (supabase as any)
           .from("events")
           .select("*"),
       ]);
@@ -70,18 +70,35 @@ export function useTotalDashboard() {
         };
       });
 
+      const totalPortariasProcesses = processes.reduce((sum, process) => sum + asNumber(process.total_concedente_value), 0);
       const signedProcesses = processes.filter(process => process.contrato_assinado === true);
-      const totalRepassedProcesses = signedProcesses.reduce((sum, process) => {
+      const totalRepassedProcesses = processes.reduce((sum, process) => {
         const paid = (process.process_parcels || [])
           .filter((parcel: any) => parcel.payment_date)
           .reduce((parcelSum: number, parcel: any) => parcelSum + asNumber(parcel.value), 0);
         return sum + paid;
       }, 0);
       const totalConcedenteSignedProcesses = signedProcesses.reduce((sum, process) => sum + asNumber(process.total_concedente_value), 0);
-      const totalRepassedEvents = eventItems.filter(event => event.paid).reduce((sum, event) => sum + event.value, 0);
-      const pendingEvents = eventItems.filter(event => !event.paid).reduce((sum, event) => sum + event.value, 0);
-      const pendingProcesses = totalConcedenteSignedProcesses - totalRepassedProcesses;
+      const totalPortariasEvents = eventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const totalRepassedEvents = eventRows.filter(event => event.foi_pago === true).reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const totalPortarias = totalPortariasProcesses + totalPortariasEvents;
       const totalRepassed = totalRepassedProcesses + totalRepassedEvents;
+      const totalContratoConsiderado = totalPortariasProcesses + eventRows
+        .filter(event => event.contrato_assinado === "sim" || event.contrato_assinado === "não")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const valorContratosAssinados = totalConcedenteSignedProcesses + eventRows
+        .filter(event => event.contrato_assinado === "sim")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const processosRepasseConcluido = processes.filter(process => {
+        const parcels = process.process_parcels || [];
+        return parcels.length > 0 && parcels.every((parcel: any) => parcel.payment_date);
+      }).length + eventRows.filter(event => event.foi_pago === true).length;
+      const processosPrimeiraParcela = processes.filter(process => {
+        const paid = (process.process_parcels || [])
+          .filter((parcel: any) => parcel.payment_date)
+          .reduce((sum: number, parcel: any) => sum + asNumber(parcel.value), 0);
+        return paid > 0 && asNumber(process.total_concedente_value) - paid > 0;
+      }).length + eventRows.filter(event => event.foi_pago === true).length;
 
       const municipalityKeys = new Set<string>();
       const nucleusKeys = new Set<string>();
@@ -139,8 +156,14 @@ export function useTotalDashboard() {
       return {
         stats: {
           totalRepassed,
-          signedContracts: processes.filter(process => process.contrato_assinado === true).length + eventRows.length,
-          pendingTransfer: Math.max(pendingProcesses, 0) + pendingEvents,
+          signedContracts: processes.filter(process => process.contrato_assinado === true).length + eventRows.filter(event => event.contrato_assinado === "sim").length,
+          pendingTransfer: totalPortarias - totalRepassed,
+          valorTotalContratoAssinado: valorContratosAssinados,
+          totalPortarias,
+          processosRepasseConcluido,
+          processosPrimeiraParcela,
+          pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? (valorContratosAssinados / totalContratoConsiderado) * 100 : 0,
+          totalContratoConsiderado,
           municipalitiesCount: municipalityKeys.size,
           totalProcesses: processes.length + eventRows.length,
           regionalNucleiCount: nucleusKeys.size,
