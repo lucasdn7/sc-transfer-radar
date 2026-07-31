@@ -28,20 +28,26 @@ export function useTotalDashboard() {
   return useQuery({
     queryKey: ["total-dashboard"],
     queryFn: async () => {
-      const [processesResult, eventsResult] = await Promise.all([
+      const [processesResult, eventsResult, summaryResult] = await Promise.all([
         supabase
           .from("processes")
           .select("id, total_concedente_value, vigencia_date, contrato_assinado, municipality_id, regional_nucleus_id, municipalities(name), regional_nuclei(name), process_parcels(value, payment_date)"),
         (supabase as any)
           .from("events")
           .select("*"),
+        (supabase as any)
+          .from("vw_dashboard_total")
+          .select("total_processos, total_contratos_assinados, valor_total_contrato_assinado, saldo_a_repassar")
+          .maybeSingle(),
       ]);
 
       if (processesResult.error) throw processesResult.error;
       if (eventsResult.error) throw eventsResult.error;
+      if (summaryResult.error) throw summaryResult.error;
 
       const processes = (processesResult.data || []) as any[];
       const eventRows = (eventsResult.data || []) as any[];
+      const summary = summaryResult.data;
       const eventMunicipalityIds = Array.from(new Set(eventRows.map(event => asId(event.municipio_id)).filter((id): id is number => typeof id === "number")));
       const eventNucleusIds = Array.from(new Set(eventRows.map(event => asId(event.nucleo_origem_id)).filter((id): id is number => typeof id === "number")));
 
@@ -165,7 +171,7 @@ export function useTotalDashboard() {
           pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? (valorContratosAssinados / totalContratoConsiderado) * 100 : 0,
           totalContratoConsiderado,
           municipalitiesCount: municipalityKeys.size,
-          totalProcesses: processes.length + eventRows.length,
+          totalProcesses: asNumber(summary?.total_processos),
           regionalNucleiCount: nucleusKeys.size,
         },
         valuesByYear,

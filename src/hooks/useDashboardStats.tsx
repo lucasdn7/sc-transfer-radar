@@ -37,7 +37,8 @@ export function useDashboardStats() {
           processesResult,
           municipalitiesResult,
           regionalNucleiResult,
-          statusResult
+          statusResult,
+          obrasDashboardResult
         ] = await Promise.all([
           supabase
             .from('processes')
@@ -63,7 +64,11 @@ export function useDashboardStats() {
             .select('id'),
           supabase
             .from('status_processos')
-            .select('id, nome')
+            .select('id, nome'),
+          (supabase as any)
+            .from('vw_dashboard_obras')
+            .select('pct_processos_contrato_assinado')
+            .maybeSingle()
         ]);
 
         // Verificar erros
