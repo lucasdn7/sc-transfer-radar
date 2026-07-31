@@ -76,7 +76,7 @@ export function EventStatsCards() {
       color: "text-[var(--accent-green)]",
     },
     {
-      title: "Municípios com 1ª Parcela Paga",
+      title: "Municípios com 1ª parcela paga",
       value: formatCurrency(data?.stats.municipiosPrimeiraParcela || 0),
       change: "Mesmo critério de eventos pagos",
       icon: TrendingDown,
@@ -100,20 +100,24 @@ export function EventStatsCards() {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
+      </div>
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             <span>Status dos Contratos Assinados</span>
             <span className="text-sm font-normal text-gray-500">
-              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}% dos valores com contrato
+              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}% repassado
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-medium">Contratos assinados por valor</span>
+            <span className="font-medium">Valor repassado em contratos assinados</span>
             <span className="text-gray-600">
-              {formatCurrency(data?.stats.valorContratosAssinados || 0)} de {formatCurrency(data?.stats.totalContratoConsiderado || 0)}
+              {formatCurrency(data?.stats.valorRepassado || 0)} de {formatCurrency(data?.stats.valorContratosAssinados || 0)}
             </span>
           </div>
           <Progress value={pctContratos} className="h-4" />
@@ -122,12 +126,11 @@ export function EventStatsCards() {
               {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}%
             </span>
           </div>
+          <div className="text-center text-sm text-muted-foreground">
+            {formatCurrency(data?.stats.valorRepassado || 0)} repassados equivalem a {(data?.stats.pctPortariaPaga || 0).toFixed(1)}% do total das portarias.
+          </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
-      </div>
     </div>
   );
 }
