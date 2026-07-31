@@ -120,21 +120,11 @@ export function useEventsDashboard() {
   return useQuery({
     queryKey: ["dashboard-events"],
     queryFn: async () => {
-      const [eventsResult, summaryResult] = await Promise.all([
-        supabase
-          .from("events")
-          .select("*"),
-        (supabase as any)
-          .from("vw_dashboard_eventos")
-          .select("valor_contrato_assinado, valor_repassado, saldo_a_repassar, total_processos, total_contratos_assinados")
-          .maybeSingle(),
-      ]);
+      const { data: eventsData, error: eventsError } = await (supabase as any)
+        .from("events")
+        .select("*");
 
-      if (eventsResult.error) throw eventsResult.error;
-      if (summaryResult.error) throw summaryResult.error;
-
-      const eventsData = eventsResult.data;
-      const summary = summaryResult.data;
+      if (eventsError) throw eventsError;
 
       const eventRows = (eventsData || []) as EventDashboardRow[];
       const municipalityIds = Array.from(new Set(
@@ -185,14 +175,30 @@ export function useEventsDashboard() {
       const activeMunicipalities = new Set(events.map(event => dashboardEntityKey("municipio", event.municipalityId, event.municipalityName)).filter(Boolean));
       const activeRegionalNuclei = new Set(events.map(event => isSponsorshipOrigin(event.regionalNucleusName) ? null : dashboardEntityKey("nucleo", event.regionalNucleusId, event.regionalNucleusName)).filter(Boolean));
 
+      const totalPortarias = eventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const valorPago = eventRows
+        .filter(event => event.foi_pago === true)
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const totalContratoConsiderado = eventRows
+        .filter(event => event.contrato_assinado === "sim" || event.contrato_assinado === "não")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+      const valorContratosAssinados = eventRows
+        .filter(event => event.contrato_assinado === "sim")
+        .reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
+
       return {
         events,
         stats: {
-          totalProcesses: asNumber(summary?.total_processos),
-          transferredValue: asNumber(summary?.valor_contrato_assinado),
-          valorRepassado: asNumber(summary?.valor_repassado),
-          saldoARepassar: asNumber(summary?.saldo_a_repassar),
-          totalContratosAssinados: asNumber(summary?.total_contratos_assinados),
+          totalProcesses: eventRows.length,
+          transferredValue: totalPortarias,
+          valorRepassado: valorPago,
+          saldoARepassar: totalPortarias - valorPago,
+          totalContratosAssinados: eventRows.filter(event => event.contrato_assinado === "sim").length,
+          processosRepasseConcluido: valorPago,
+          municipiosPrimeiraParcela: valorPago,
+          pctContratosAssinadosPorValor: totalContratoConsiderado > 0 ? (valorContratosAssinados / totalContratoConsiderado) * 100 : 0,
+          valorContratosAssinados,
+          totalContratoConsiderado,
           municipalitiesCount: activeMunicipalities.size,
           regionalNucleiCount: activeRegionalNuclei.size,
         },

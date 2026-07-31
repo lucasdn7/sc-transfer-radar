@@ -5,12 +5,12 @@ import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/processUtils";
 
 interface TransferStats {
-  valorTotalPortarias: number;
-  valorContratos: number;
+  totalPortarias: number;
+  valorContratosAssinados: number;
   valorRepassado: number;
   saldoARepassar: number;
   valorContrapartida: number;
-  pctContratosPagos: number;
+  pctContratosAssinadosPorValor: number;
   pctPortariaPaga: number;
 }
 
@@ -29,21 +29,36 @@ export function TransferProgressBar() {
   const { data: stats, isLoading } = useQuery<TransferStats>({
     queryKey: ['transfer-progress'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('vw_dashboard_obras')
-        .select('valor_total_portarias, valor_contratos, valor_repassado, saldo_a_repassar, valor_contrapartida, pct_contratos_pagos, pct_portaria_paga')
-        .maybeSingle();
+      const [processesResult, parcelsResult] = await Promise.all([
+        supabase
+          .from('processes')
+          .select('id, total_concedente_value, total_proponente_value, contrato_assinado'),
+        supabase
+          .from('process_parcels')
+          .select('value, payment_date')
+          .not('payment_date', 'is', null),
+      ]);
 
-      if (error) throw error;
+      if (processesResult.error) throw processesResult.error;
+      if (parcelsResult.error) throw parcelsResult.error;
+
+      const processes = processesResult.data || [];
+      const paidParcels = parcelsResult.data || [];
+      const totalPortarias = processes.reduce((sum, process) => sum + toNumber(process.total_concedente_value), 0);
+      const valorContratosAssinados = processes
+        .filter(process => process.contrato_assinado === true)
+        .reduce((sum, process) => sum + toNumber(process.total_concedente_value), 0);
+      const valorContrapartida = processes.reduce((sum, process) => sum + toNumber(process.total_proponente_value), 0);
+      const valorRepassado = paidParcels.reduce((sum, parcel) => sum + toNumber(parcel.value), 0);
 
       return {
-        valorTotalPortarias: toNumber(data?.valor_total_portarias),
-        valorContratos: toNumber(data?.valor_contratos),
-        valorRepassado: toNumber(data?.valor_repassado),
-        saldoARepassar: toNumber(data?.saldo_a_repassar),
-        valorContrapartida: toNumber(data?.valor_contrapartida),
-        pctContratosPagos: toNumber(data?.pct_contratos_pagos),
-        pctPortariaPaga: toNumber(data?.pct_portaria_paga),
+        totalPortarias,
+        valorContratosAssinados,
+        valorRepassado,
+        saldoARepassar: totalPortarias - valorRepassado,
+        valorContrapartida,
+        pctContratosAssinadosPorValor: totalPortarias > 0 ? (valorContratosAssinados / totalPortarias) * 100 : 0,
+        pctPortariaPaga: totalPortarias > 0 ? (valorRepassado / totalPortarias) * 100 : 0,
       };
     },
     refetchInterval: 30000, // Atualizar a cada 30 segundos
@@ -53,7 +68,7 @@ export function TransferProgressBar() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Status das Transferências (Portarias publicadas no DOE)</CardTitle>
+          <CardTitle className="text-lg">Status dos Contratos Assinados</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -66,15 +81,15 @@ export function TransferProgressBar() {
     );
   }
 
-  const percentualPortariaPago = clampPercent(stats.pctPortariaPaga);
+  const percentualContratosAssinados = clampPercent(stats.pctContratosAssinadosPorValor);
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
-          <span>Status das Transferências (Portarias publicadas no DOE)</span>
+          <span>Status dos Contratos Assinados</span>
           <span className="text-sm font-normal text-gray-500">
-            {stats.pctPortariaPaga.toFixed(1)}% da portaria pago
+            {stats.pctContratosAssinadosPorValor.toFixed(1)}% dos valores com contrato
           </span>
         </CardTitle>
       </CardHeader>
@@ -82,47 +97,47 @@ export function TransferProgressBar() {
         {/* Barra de Progressão Principal */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-medium">Progresso dos Repasses sobre Portarias</span>
+            <span className="font-medium">Contratos assinados por valor</span>
             <span className="text-gray-600">
-              {formatCurrency(stats.valorRepassado)} de {formatCurrency(stats.valorTotalPortarias)}
+              {formatCurrency(stats.valorContratosAssinados)} de {formatCurrency(stats.totalPortarias)}
             </span>
           </div>
 
           <div className="relative">
             <Progress
-              value={percentualPortariaPago}
+              value={percentualContratosAssinados}
               className="h-4"
             />
             <div
               className="absolute top-0 left-0 h-4 rounded transition-all duration-500 ease-out"
               style={{
-                width: `${percentualPortariaPago}%`,
+                width: `${percentualContratosAssinados}%`,
                 background: `linear-gradient(90deg,
-                  ${stats.pctPortariaPaga >= 75 ? '#10b981' :
-                    stats.pctPortariaPaga >= 50 ? '#f59e0b' : '#3b82f6'} 0%,
-                  ${stats.pctPortariaPaga >= 75 ? '#059669' :
-                    stats.pctPortariaPaga >= 50 ? '#d97706' : '#1d4ed8'} 100%)`
+                  ${stats.pctContratosAssinadosPorValor >= 75 ? '#10b981' :
+                    stats.pctContratosAssinadosPorValor >= 50 ? '#f59e0b' : '#3b82f6'} 0%,
+                  ${stats.pctContratosAssinadosPorValor >= 75 ? '#059669' :
+                    stats.pctContratosAssinadosPorValor >= 50 ? '#d97706' : '#1d4ed8'} 100%)`
               }}
             />
           </div>
 
           <div className="text-center">
             <span className="text-2xl font-bold text-green-600">
-              {stats.pctPortariaPaga.toFixed(1)}%
+              {stats.pctContratosAssinadosPorValor.toFixed(1)}%
             </span>
           </div>
         </div>
 
         {/* Grid com Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Valor Repassado */}
+          {/* Valor Já Repassado */}
           <div className="bg-green-50 p-3 rounded-lg">
-            <div className="text-sm font-medium text-green-700">Valor Repassado</div>
+            <div className="text-sm font-medium text-green-700">Valor Já Repassado</div>
             <div className="text-lg font-bold text-green-800">
               {formatCurrency(stats.valorRepassado)}
             </div>
             <div className="text-xs text-green-600">
-              {stats.pctPortariaPaga.toFixed(1)}% do total
+              {stats.pctPortariaPaga.toFixed(1)}% das portarias pago
             </div>
           </div>
 
@@ -133,7 +148,7 @@ export function TransferProgressBar() {
               {formatCurrency(stats.saldoARepassar)}
             </div>
             <div className="text-xs text-orange-600">
-              {Math.max(100 - stats.pctContratosPagos, 0).toFixed(1)}% dos contratos
+              {Math.max(100 - stats.pctPortariaPaga, 0).toFixed(1)}% das portarias restante
             </div>
           </div>
 
@@ -141,21 +156,19 @@ export function TransferProgressBar() {
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="text-sm font-medium text-blue-700">Total das Portarias</div>
             <div className="text-lg font-bold text-blue-800">
-              {formatCurrency(stats.valorTotalPortarias)}
+              {formatCurrency(stats.totalPortarias)}
             </div>
             <div className="text-xs text-blue-600">Valor total publicado</div>
           </div>
-
-
 
           {/* Valor dos Contratos */}
           <div className="bg-sky-50 p-3 rounded-lg">
             <div className="text-sm font-medium text-sky-700">Contratos Assinados</div>
             <div className="text-lg font-bold text-sky-800">
-              {formatCurrency(stats.valorContratos)}
+              {formatCurrency(stats.valorContratosAssinados)}
             </div>
             <div className="text-xs text-sky-600">
-              {stats.pctContratosPagos.toFixed(1)}% pago
+              {stats.pctContratosAssinadosPorValor.toFixed(1)}% das portarias
             </div>
           </div>
 
