@@ -5,48 +5,45 @@ import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/processUtils";
 
 interface TransferStats {
-  totalConcedente: number;
-  totalProponente: number;
+  valorTotalPortarias: number;
+  valorContratos: number;
   valorRepassado: number;
   saldoARepassar: number;
-  percentualRepassado: number;
+  valorContrapartida: number;
+  pctContratosPagos: number;
+  pctPortariaPaga: number;
 }
+
+const toNumber = (value: unknown) => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+};
+
+const clampPercent = (value: number) => Math.min(Math.max(value, 0), 100);
 
 export function TransferProgressBar() {
   const { data: stats, isLoading } = useQuery<TransferStats>({
     queryKey: ['transfer-progress'],
     queryFn: async () => {
-      // Buscar todos os processos
-      const { data: processes, error: processError } = await supabase
-        .from('processes')
-        .select('id, total_concedente_value, total_proponente_value, contrato_assinado');
+      const { data, error } = await (supabase as any)
+        .from('vw_dashboard_obras')
+        .select('valor_total_portarias, valor_contratos, valor_repassado, saldo_a_repassar, valor_contrapartida, pct_contratos_pagos, pct_portaria_paga')
+        .maybeSingle();
 
-      if (processError) throw processError;
-
-      const signedProcessIds = processes?.filter(p => p.contrato_assinado === true).map(p => p.id) || [];
-
-      // Buscar todas as parcelas pagas
-      const { data: parcels, error: parcelError } = await supabase
-        .from('process_parcels')
-        .select('process_id, value, payment_date')
-        .not('payment_date', 'is', null);
-
-      if (parcelError) throw parcelError;
-
-      // Calcular estatísticas
-      const totalConcedente = processes?.filter(p => p.contrato_assinado === true).reduce((sum, p) => sum + (p.total_concedente_value || 0), 0) || 0;
-      const totalProponente = processes?.reduce((sum, p) => sum + (p.total_proponente_value || 0), 0) || 0;
-      const valorRepassado = parcels?.reduce((sum, p) => sum + (p.value || 0), 0) || 0;
-      const valorRepassadoContratos = parcels?.filter(p => signedProcessIds.includes(p.process_id)).reduce((sum, p) => sum + (p.value || 0), 0) || 0;
-      const saldoARepassar = totalConcedente - valorRepassadoContratos;
-      const percentualRepassado = totalConcedente > 0 ? (valorRepassado / totalConcedente) * 100 : 0;
+      if (error) throw error;
 
       return {
-        totalConcedente,
-        totalProponente,
-        valorRepassado,
-        saldoARepassar,
-        percentualRepassado,
+        valorTotalPortarias: toNumber(data?.valor_total_portarias),
+        valorContratos: toNumber(data?.valor_contratos),
+        valorRepassado: toNumber(data?.valor_repassado),
+        saldoARepassar: toNumber(data?.saldo_a_repassar),
+        valorContrapartida: toNumber(data?.valor_contrapartida),
+        pctContratosPagos: toNumber(data?.pct_contratos_pagos),
+        pctPortariaPaga: toNumber(data?.pct_portaria_paga),
       };
     },
     refetchInterval: 30000, // Atualizar a cada 30 segundos
@@ -69,9 +66,7 @@ export function TransferProgressBar() {
     );
   }
 
-  const progressColor = stats.percentualRepassado >= 75 ? "bg-green-500" : 
-                       stats.percentualRepassado >= 50 ? "bg-yellow-500" : 
-                       "bg-blue-500";
+  const percentualPortariaPago = clampPercent(stats.pctPortariaPaga);
 
   return (
     <Card className="shadow-lg">
@@ -79,7 +74,7 @@ export function TransferProgressBar() {
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Status das Transferências (Portarias publicadas no DOE)</span>
           <span className="text-sm font-normal text-gray-500">
-            {stats.percentualRepassado.toFixed(1)}% concluído
+            {stats.pctPortariaPaga.toFixed(1)}% da portaria pago
           </span>
         </CardTitle>
       </CardHeader>
@@ -87,39 +82,39 @@ export function TransferProgressBar() {
         {/* Barra de Progressão Principal */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-medium">Progresso dos Repasses</span>
+            <span className="font-medium">Progresso dos Repasses sobre Portarias</span>
             <span className="text-gray-600">
-              {formatCurrency(stats.valorRepassado)} de {formatCurrency(stats.totalConcedente)}
+              {formatCurrency(stats.valorRepassado)} de {formatCurrency(stats.valorTotalPortarias)}
             </span>
           </div>
-          
+
           <div className="relative">
-            <Progress 
-              value={stats.percentualRepassado} 
+            <Progress
+              value={percentualPortariaPago}
               className="h-4"
             />
-            <div 
+            <div
               className="absolute top-0 left-0 h-4 rounded transition-all duration-500 ease-out"
-              style={{ 
-                width: `${Math.min(stats.percentualRepassado, 100)}%`,
-                background: `linear-gradient(90deg, 
-                  ${stats.percentualRepassado >= 75 ? '#10b981' : 
-                    stats.percentualRepassado >= 50 ? '#f59e0b' : '#3b82f6'} 0%, 
-                  ${stats.percentualRepassado >= 75 ? '#059669' : 
-                    stats.percentualRepassado >= 50 ? '#d97706' : '#1d4ed8'} 100%)`
+              style={{
+                width: `${percentualPortariaPago}%`,
+                background: `linear-gradient(90deg,
+                  ${stats.pctPortariaPaga >= 75 ? '#10b981' :
+                    stats.pctPortariaPaga >= 50 ? '#f59e0b' : '#3b82f6'} 0%,
+                  ${stats.pctPortariaPaga >= 75 ? '#059669' :
+                    stats.pctPortariaPaga >= 50 ? '#d97706' : '#1d4ed8'} 100%)`
               }}
             />
           </div>
-          
+
           <div className="text-center">
             <span className="text-2xl font-bold text-green-600">
-              {stats.percentualRepassado.toFixed(1)}%
+              {stats.pctPortariaPaga.toFixed(1)}%
             </span>
           </div>
         </div>
 
         {/* Grid com Métricas */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Valor Repassado */}
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="text-sm font-medium text-green-700">Valor Repassado</div>
@@ -127,7 +122,7 @@ export function TransferProgressBar() {
               {formatCurrency(stats.valorRepassado)}
             </div>
             <div className="text-xs text-green-600">
-              {stats.percentualRepassado.toFixed(1)}% do total
+              {stats.pctPortariaPaga.toFixed(1)}% do total
             </div>
           </div>
 
@@ -138,26 +133,39 @@ export function TransferProgressBar() {
               {formatCurrency(stats.saldoARepassar)}
             </div>
             <div className="text-xs text-orange-600">
-              {(100 - stats.percentualRepassado).toFixed(1)}% restante
+              {Math.max(100 - stats.pctContratosPagos, 0).toFixed(1)}% dos contratos
             </div>
           </div>
 
-          {/* Total Concedente */}
+          {/* Total das Portarias */}
           <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="text-sm font-medium text-blue-700">Total Concedente</div>
+            <div className="text-sm font-medium text-blue-700">Total das Portarias</div>
             <div className="text-lg font-bold text-blue-800">
-              {formatCurrency(stats.totalConcedente)}
+              {formatCurrency(stats.valorTotalPortarias)}
             </div>
-            <div className="text-xs text-blue-600">Meta total</div>
+            <div className="text-xs text-blue-600">Valor total publicado</div>
+          </div>
+
+
+
+          {/* Valor dos Contratos */}
+          <div className="bg-sky-50 p-3 rounded-lg">
+            <div className="text-sm font-medium text-sky-700">Contratos Assinados</div>
+            <div className="text-lg font-bold text-sky-800">
+              {formatCurrency(stats.valorContratos)}
+            </div>
+            <div className="text-xs text-sky-600">
+              {stats.pctContratosPagos.toFixed(1)}% pago
+            </div>
           </div>
 
           {/* Contrapartida */}
           <div className="bg-purple-50 p-3 rounded-lg">
             <div className="text-sm font-medium text-purple-700">Contrapartida</div>
             <div className="text-lg font-bold text-purple-800">
-              {formatCurrency(stats.totalProponente)}
+              {formatCurrency(stats.valorContrapartida)}
             </div>
-            <div className="text-xs text-purple-600">Recursos municipais</div>
+            <div className="text-xs text-purple-600">Contrapartida</div>
           </div>
         </div>
 

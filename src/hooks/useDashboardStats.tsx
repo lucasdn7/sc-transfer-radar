@@ -21,6 +21,7 @@ interface DashboardStats {
   };
   contratosAssinados: number;
   valorContratos: number;
+  pctProcessosContratoAssinado: number;
   processes?: Array<any>;
   lastUpdated: string;
 }
@@ -35,7 +36,8 @@ export function useDashboardStats() {
           processesResult,
           municipalitiesResult,
           regionalNucleiResult,
-          statusResult
+          statusResult,
+          obrasDashboardResult
         ] = await Promise.all([
           supabase
             .from('processes')
@@ -61,7 +63,11 @@ export function useDashboardStats() {
             .select('id'),
           supabase
             .from('status_processos')
-            .select('id, nome')
+            .select('id, nome'),
+          (supabase as any)
+            .from('vw_dashboard_obras')
+            .select('pct_processos_contrato_assinado')
+            .maybeSingle()
         ]);
 
         // Verificar erros
@@ -207,6 +213,7 @@ export function useDashboardStats() {
         const valorContratos = processes
           .filter((p: any) => p.contrato_assinado === true)
           .reduce((sum: number, p: any) => sum + (p.total_concedente_value || 0), 0);
+        const pctProcessosContratoAssinado = Number(obrasDashboardResult.data?.pct_processos_contrato_assinado || 0);
 
         return {
           totalProcesses,
@@ -220,6 +227,7 @@ export function useDashboardStats() {
           repasseStats,
           contratosAssinados,
           valorContratos,
+          pctProcessosContratoAssinado,
           processes,
           lastUpdated: new Date().toISOString()
         };
@@ -244,6 +252,7 @@ export function useDashboardStats() {
           },
           contratosAssinados: 0,
           valorContratos: 0,
+          pctProcessosContratoAssinado: 0,
           processes: [],
           lastUpdated: new Date().toISOString()
         };

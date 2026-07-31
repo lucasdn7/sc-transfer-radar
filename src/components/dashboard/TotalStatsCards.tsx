@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, DollarSign, FileCheck, FileText, MapPin, TrendingDown } from "lucide-react";
+import { DollarSign, FileCheck, FileText, TrendingDown } from "lucide-react";
 import { useTotalDashboard } from "@/hooks/useTotalDashboard";
 import { formatCurrency } from "@/utils/processUtils";
 
@@ -33,8 +33,8 @@ export function TotalStatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
               <div className="h-8 bg-gray-200 rounded mb-2" />
@@ -51,16 +51,14 @@ export function TotalStatsCards() {
   }
 
   const statsData = [
-    { title: "Total Repassado", value: formatCurrency(data?.stats.totalRepassed || 0), change: "Obras pagas + eventos pagos", icon: DollarSign, color: "text-[var(--accent-green)]" },
-    { title: "Contratos Assinados", value: data?.stats.signedContracts.toLocaleString("pt-BR") || "0", change: "Obras assinadas + eventos", icon: FileCheck, color: "text-[var(--accent-green)]" },
-    { title: "Falta Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Obras assinadas pendentes + eventos não pagos", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
-    { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: Building, color: "text-[var(--accent-amber)]" },
     { title: "Total de Processos", value: data?.stats.totalProcesses.toLocaleString("pt-BR") || "0", change: "Obras + eventos", icon: FileText, color: "text-[var(--accent-green)]" },
-    { title: "Núcleos Atendidos", value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: MapPin, color: "text-[var(--accent-amber)]" },
+    { title: "Contratos Assinados", value: data?.stats.signedContracts.toLocaleString("pt-BR") || "0", change: "Processos com contrato assinado", icon: FileCheck, color: "text-[var(--accent-green)]" },
+    { title: "Valor Total Contratado", value: formatCurrency(data?.stats.valorTotalContratoAssinado || 0), change: "Valor total com contrato assinado", icon: DollarSign, color: "text-[var(--accent-green)]" },
+    { title: "Saldo a Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Valor pendente de repasse", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
     </div>
   );

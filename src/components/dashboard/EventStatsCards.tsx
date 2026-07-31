@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, DollarSign, FileText, MapPin } from "lucide-react";
+import { Building, DollarSign, FileCheck, FileText, MapPin, TrendingDown } from "lucide-react";
 import { useEventsDashboard } from "@/hooks/useEventsDashboard";
 import { formatCurrency } from "@/utils/processUtils";
 
@@ -33,7 +33,7 @@ export function EventStatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
@@ -59,11 +59,25 @@ export function EventStatsCards() {
       color: "text-[var(--accent-green)]",
     },
     {
-      title: "Valor Transferido",
-      value: formatCurrency(data?.stats.transferredValue || 0),
-      change: "Soma dos valores concedentes",
+      title: "Contratos Assinados",
+      value: data?.stats.totalContratosAssinados.toLocaleString("pt-BR") || "0",
+      change: "Eventos com contrato assinado",
+      icon: FileCheck,
+      color: "text-[var(--accent-green)]",
+    },
+    {
+      title: "Valor Repassado",
+      value: formatCurrency(data?.stats.valorRepassado || 0),
+      change: "Valor já repassado",
       icon: DollarSign,
       color: "text-[var(--accent-green)]",
+    },
+    {
+      title: "Saldo a Repassar",
+      value: formatCurrency(data?.stats.saldoARepassar || 0),
+      change: "Valor pendente de repasse",
+      icon: TrendingDown,
+      color: "text-[var(--accent-amber)]",
     },
     {
       title: "Municípios Beneficiados",
@@ -82,7 +96,7 @@ export function EventStatsCards() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
     </div>
   );

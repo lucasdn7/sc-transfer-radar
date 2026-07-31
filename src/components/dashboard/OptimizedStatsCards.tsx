@@ -126,7 +126,7 @@ export function OptimizedStatsCards() {
     {
       title: "Contratos Assinados",
       value: contratosAssinados.toLocaleString('pt-BR'),
-      change: "Processos com contrato assinado",
+      change: `${(stats?.pctProcessosContratoAssinado || 0).toFixed(1)}% dos processos com contrato assinado`,
       trend: "up" as const,
       icon: FileText,
       color: "text-[var(--accent-green)]"
