@@ -67,20 +67,24 @@ export function TotalStatsCards() {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
+      </div>
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             <span>Status dos Contratos Assinados</span>
             <span className="text-sm font-normal text-gray-500">
-              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}% dos valores com contrato
+              {(data?.stats.pctContratosAssinadosPorValor || 0).toFixed(1)}% repassado
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-medium">Contratos assinados por valor</span>
+            <span className="font-medium">Valor repassado em contratos assinados</span>
             <span className="text-gray-600">
-              {formatCurrency(data?.stats.valorTotalContratoAssinado || 0)} de {formatCurrency(data?.stats.totalContratoConsiderado || 0)}
+              {formatCurrency(data?.stats.totalRepassedContratosAssinados || 0)} de {formatCurrency(data?.stats.totalContratoConsiderado || 0)}
             </span>
           </div>
           <Progress value={pctContratos} className="h-4" />
@@ -91,10 +95,6 @@ export function TotalStatsCards() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statsData.map((stat) => <StatCard key={stat.title} {...stat} />)}
-      </div>
     </div>
   );
 }

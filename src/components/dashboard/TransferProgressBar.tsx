@@ -8,6 +8,7 @@ interface TransferStats {
   totalPortarias: number;
   valorContratosAssinados: number;
   valorRepassado: number;
+  valorRepassadoContratosAssinados: number;
   saldoARepassar: number;
   valorContrapartida: number;
   pctContratosAssinadosPorValor: number;
@@ -25,6 +26,8 @@ const toNumber = (value: unknown) => {
 
 const clampPercent = (value: number) => Math.min(Math.max(value, 0), 100);
 
+const isArchivedContract = (value: unknown) => value === "arquivado";
+
 export function TransferProgressBar() {
   const { data: stats, isLoading } = useQuery<TransferStats>({
     queryKey: ['transfer-progress'],
@@ -35,29 +38,38 @@ export function TransferProgressBar() {
           .select('id, total_concedente_value, total_proponente_value, contrato_assinado'),
         supabase
           .from('process_parcels')
-          .select('value, payment_date')
+          .select('process_id, value, payment_date')
           .not('payment_date', 'is', null),
       ]);
 
       if (processesResult.error) throw processesResult.error;
       if (parcelsResult.error) throw parcelsResult.error;
 
-      const processes = processesResult.data || [];
+      const processes = (processesResult.data || []).filter(process => !isArchivedContract(process.contrato_assinado));
       const paidParcels = parcelsResult.data || [];
       const totalPortarias = processes.reduce((sum, process) => sum + toNumber(process.total_concedente_value), 0);
       const valorContratosAssinados = processes
         .filter(process => process.contrato_assinado === true)
         .reduce((sum, process) => sum + toNumber(process.total_concedente_value), 0);
       const valorContrapartida = processes.reduce((sum, process) => sum + toNumber(process.total_proponente_value), 0);
+      const signedProcessIds = new Set(
+        processes
+          .filter(process => process.contrato_assinado === true)
+          .map(process => process.id)
+      );
       const valorRepassado = paidParcels.reduce((sum, parcel) => sum + toNumber(parcel.value), 0);
+      const valorRepassadoContratosAssinados = paidParcels
+        .filter(parcel => signedProcessIds.has(parcel.process_id))
+        .reduce((sum, parcel) => sum + toNumber(parcel.value), 0);
 
       return {
         totalPortarias,
         valorContratosAssinados,
         valorRepassado,
-        saldoARepassar: totalPortarias - valorRepassado,
+        valorRepassadoContratosAssinados,
+        saldoARepassar: valorContratosAssinados - valorRepassadoContratosAssinados,
         valorContrapartida,
-        pctContratosAssinadosPorValor: totalPortarias > 0 ? (valorContratosAssinados / totalPortarias) * 100 : 0,
+        pctContratosAssinadosPorValor: valorContratosAssinados > 0 ? (valorRepassadoContratosAssinados / valorContratosAssinados) * 100 : 0,
         pctPortariaPaga: totalPortarias > 0 ? (valorRepassado / totalPortarias) * 100 : 0,
       };
     },
@@ -97,9 +109,9 @@ export function TransferProgressBar() {
         {/* Barra de Progressão Principal */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm">
-            <span className="font-medium">Contratos assinados por valor</span>
+            <span className="font-medium">Valor repassado em contratos assinados</span>
             <span className="text-gray-600">
-              {formatCurrency(stats.valorContratosAssinados)} de {formatCurrency(stats.totalPortarias)}
+              {formatCurrency(stats.valorRepassadoContratosAssinados)} de {formatCurrency(stats.valorContratosAssinados)}
             </span>
           </div>
 
@@ -148,7 +160,7 @@ export function TransferProgressBar() {
               {formatCurrency(stats.saldoARepassar)}
             </div>
             <div className="text-xs text-orange-600">
-              {Math.max(100 - stats.pctPortariaPaga, 0).toFixed(1)}% das portarias restante
+              {Math.max(100 - stats.pctContratosAssinadosPorValor, 0).toFixed(1)}% dos contratos assinados restante
             </div>
           </div>
 
