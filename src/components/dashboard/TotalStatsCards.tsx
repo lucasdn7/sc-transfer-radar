@@ -60,7 +60,7 @@ export function TotalStatsCards() {
     { title: "Valor Total Contratado", value: formatCurrency(data?.stats.valorTotalContratoAssinado || 0), change: "Valor total com contrato assinado", icon: DollarSign, color: "text-[var(--accent-green)]" },
     { title: "Processos com Repasse Concluído", value: data?.stats.processosRepasseConcluido.toLocaleString("pt-BR") || "0", change: "Obras com parcelas pagas + eventos pagos", icon: FileCheck, color: "text-[var(--accent-green)]" },
     { title: "Processos com 1ª Parcela Paga", value: data?.stats.processosPrimeiraParcela.toLocaleString("pt-BR") || "0", change: "Obras parciais + eventos pagos", icon: FileText, color: "text-[var(--accent-amber)]" },
-    { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: Building, color: "text-[var(--accent-amber)]" },
+    { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "Municípios únicos em obras e eventos", icon: Building, color: "text-[var(--accent-amber)]" },
     { title: "Núcleos Regionais", value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: MapPin, color: "text-[var(--accent-amber)]" },
     { title: "Saldo a Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Valor pendente de repasse", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
   ];
