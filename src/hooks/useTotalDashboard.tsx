@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdentityUtils";
+import { dashboardBeneficiaryMunicipalityKey, dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdentityUtils";
 
 const YEARS = [2023, 2024, 2025, 2026];
 
@@ -72,7 +72,7 @@ export function useTotalDashboard() {
           value: asNumber(event.valor_concedente),
           paid: event.foi_pago === true,
           year: asNumber(event.ano) || null,
-          municipalityKey: dashboardEntityKey("municipio", municipalityId, (municipalityId ? eventMunicipalities.get(municipalityId)?.name : undefined) || event.municipio_nome),
+          municipalityKey: dashboardBeneficiaryMunicipalityKey(municipalityId, (municipalityId ? eventMunicipalities.get(municipalityId)?.name : undefined) || event.municipio_nome),
           nucleusKey: isSponsorshipOrigin(event.nucleo_origem_texto) ? null : dashboardEntityKey("nucleo", regionalNucleusId, (regionalNucleusId ? eventNuclei.get(regionalNucleusId)?.name : undefined) || event.nucleo_origem_texto),
           nucleusName: isSponsorshipOrigin(event.nucleo_origem_texto) ? null : ((regionalNucleusId ? eventNuclei.get(regionalNucleusId)?.name : undefined) || event.nucleo_origem_texto || "Não definido"),
         };
@@ -117,7 +117,7 @@ export function useTotalDashboard() {
       const municipalityKeys = new Set<string>();
       const nucleusKeys = new Set<string>();
       processes.forEach(process => {
-        const municipalityKey = dashboardEntityKey("municipio", process.municipality_id, process.municipalities?.name);
+        const municipalityKey = dashboardBeneficiaryMunicipalityKey(process.municipality_id, process.municipalities?.name);
         const nucleusKey = dashboardEntityKey("nucleo", process.regional_nucleus_id, process.regional_nuclei?.name);
         if (municipalityKey) municipalityKeys.add(municipalityKey);
         if (nucleusKey) nucleusKeys.add(nucleusKey);
@@ -136,7 +136,7 @@ export function useTotalDashboard() {
       const municipalitiesByYear = YEARS.map(year => {
         const processKeys = new Set<string>();
         processes.filter(process => yearFromDate(process.vigencia_date) === year).forEach(process => {
-          const key = dashboardEntityKey("municipio", process.municipality_id, process.municipalities?.name);
+          const key = dashboardBeneficiaryMunicipalityKey(process.municipality_id, process.municipalities?.name);
           if (key) processKeys.add(key);
         });
         const eventKeys = new Set<string>();
