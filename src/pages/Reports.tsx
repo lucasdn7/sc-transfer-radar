@@ -30,6 +30,7 @@ const ALL_FIELDS = [
   { key: 'municipalities.regioes.nome', label: 'Região' },
   { key: 'regional_nuclei.name', label: 'Núcleo Regional' },
   { key: 'status_processos.nome', label: 'Status do Processo' },
+  { key: 'contrato_assinado', label: 'Contrato Assinado' },
   { key: 'total_portaria_value', label: 'Valor Total da Portaria' },
   { key: 'total_proponente_value', label: 'Valor Total do Proponente' },
   { key: 'total_concedente_value', label: 'Valor Total do Concedente' },
@@ -77,6 +78,7 @@ export default function Reports() {
   const [reportType, setReportType] = useState('');
   const [showFieldSelector, setShowFieldSelector] = useState(false);
   const [selectedFields, setSelectedFields] = useState<string[]>(DEFAULT_FIELDS);
+  const [signedContractsOnly, setSignedContractsOnly] = useState(false);
   const { toast } = useToast();
 
   // --- NOVOS HOOKS PARA MUNICÍPIOS, NÚCLEOS E REGIÕES ---
@@ -127,6 +129,7 @@ export default function Reports() {
     nucleus,
     dateFrom: dateRange.from,
     dateTo: dateRange.to,
+    contratoAssinado: signedContractsOnly,
   });
 
   const selectedMunicipalityLabel = useMemo(() => {
@@ -381,6 +384,16 @@ export default function Reports() {
                   <span>{field.label}</span>
                 </div>
               ))}
+            </div>
+            <div className="flex items-center gap-2 border-t pt-4">
+              <Checkbox
+                id="signed-contracts-only"
+                checked={signedContractsOnly}
+                onCheckedChange={checked => setSignedContractsOnly(checked === true)}
+              />
+              <label htmlFor="signed-contracts-only" className="cursor-pointer text-sm font-medium">
+                Buscar e baixar somente processos com contrato assinado
+              </label>
             </div>
             {/* Indicação clara de download */}
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded flex flex-col gap-2">
