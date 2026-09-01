@@ -7,11 +7,19 @@ interface UseProcessesFilters {
   nucleus?: string;
   dateFrom?: Date;
   dateTo?: Date;
+  contratoAssinado?: boolean;
 }
 
-export function useProcesses({ searchTerm = '', municipality = 'all', nucleus = 'all', dateFrom, dateTo }: UseProcessesFilters) {
+export function useProcesses({
+  searchTerm = '',
+  municipality = 'all',
+  nucleus = 'all',
+  dateFrom,
+  dateTo,
+  contratoAssinado = false,
+}: UseProcessesFilters) {
   return useQuery({
-    queryKey: ['processes', searchTerm, municipality, nucleus, dateFrom, dateTo],
+    queryKey: ['processes', searchTerm, municipality, nucleus, dateFrom, dateTo, contratoAssinado],
     queryFn: async () => {
       let query = supabase
         .from('processes')
@@ -42,10 +50,13 @@ export function useProcesses({ searchTerm = '', municipality = 'all', nucleus = 
       if (dateTo) {
         query = query.lte('created_at', dateTo.toISOString());
       }
+      if (contratoAssinado) {
+        query = query.eq('contrato_assinado', true);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
-} 
+}
