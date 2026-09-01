@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdentityUtils";
+import { dashboardBeneficiaryMunicipalityKey, dashboardEntityKey, isSponsorshipOrigin } from "@/hooks/dashboardIdentityUtils";
 
 type EventDashboardRow = Record<string, any> & {
   id: number;
@@ -177,7 +177,12 @@ export function useEventsDashboard() {
         name: year.toString(),
         value: events.filter(event => event.year === year).length,
       }));
-      const activeMunicipalities = new Set(events.map(event => dashboardEntityKey("municipio", event.municipalityId, event.municipalityName)).filter(Boolean));
+      // Count municipalities by their normalized name rather than their database id.
+      // This makes duplicate records and accent/case/spacing variations represent one
+      // beneficiary municipality in the Events dashboard.
+      const activeMunicipalities = new Set(events
+        .map(event => dashboardBeneficiaryMunicipalityKey(event.municipalityId, event.municipalityName))
+        .filter(Boolean));
       const activeRegionalNuclei = new Set(events.map(event => isSponsorshipOrigin(event.regionalNucleusName) ? null : dashboardEntityKey("nucleo", event.regionalNucleusId, event.regionalNucleusName)).filter(Boolean));
 
       const totalPortarias = activeEventRows.reduce((sum, event) => sum + asNumber(event.valor_concedente), 0);
