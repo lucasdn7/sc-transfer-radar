@@ -4,10 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Plus } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, MapPin, ExternalLink, Plus, FileText, Clock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
 import { ProcessDetailModal } from '@/components/calendar/ProcessDetailModal';
+import { formatDateDisplay } from '@/utils/dateUtils';
+import { Link } from 'react-router-dom';
 import { 
   Breadcrumb,
   BreadcrumbItem,
@@ -184,6 +186,40 @@ export default function ProcessCalendar() {
     );
   }
 
+  {/* Navegação contextual para outras telas de Monitoramento */}
+  const navigationCard = (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Navegação Rápida - Monitoramento</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/processes">
+              <FileText className="h-3 w-3 mr-1" />
+              Processos
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/process-timeline">
+              <Clock className="h-3 w-3 mr-1" />
+              Timeline
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/monitoring/alerts">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Alertas e Vencimentos
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -199,6 +235,9 @@ export default function ProcessCalendar() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+
+        {/* Navegação contextual para outras telas de Monitoramento */}
+        {navigationCard}
 
         <div className="flex justify-between items-center">
           <div>
@@ -372,7 +411,7 @@ export default function ProcessCalendar() {
                         {formatCurrency(process.total_portaria_value)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
+                        Vigência: {formatDateDisplay(process.vigencia_date)}
                       </div>
                       <Button 
                         size="sm" 
@@ -423,7 +462,7 @@ export default function ProcessCalendar() {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div><b>Valor repassado:</b> {formatCurrency(selectedParcel.value)}</div>
-                    <div><b>Data do repasse:</b> {new Date(selectedParcel.payment_date).toLocaleDateString('pt-BR')}</div>
+                    <div><b>Data do repasse:</b> {formatDateDisplay(selectedParcel.payment_date)}</div>
                     <div><b>Número da parcela:</b> {parcelaAtual}ª</div>
                     <div><b>Município:</b> {selectedParcel.processes?.municipalities?.name || 'N/A'}</div>
                     <div><b>Núcleo Regional:</b> {selectedParcel.processes?.regional_nuclei?.name || 'N/A'}</div>

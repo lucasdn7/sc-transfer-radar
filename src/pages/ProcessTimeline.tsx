@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, AlertTriangle, ArrowLeft, Download, CheckCircle, XCircle, PlayCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, AlertTriangle, ArrowLeft, Download, CheckCircle, XCircle, PlayCircle, FileText, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
+import { formatDateDisplay } from '@/utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { 
   Breadcrumb,
@@ -109,6 +110,40 @@ export default function ProcessTimeline() {
     );
   }
 
+  {/* Navegação contextual para outras telas de Monitoramento */}
+  const navigationCard = (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Navegação Rápida - Monitoramento</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/processes">
+              <FileText className="h-3 w-3 mr-1" />
+              Processos
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/process-calendar">
+              <Calendar className="h-3 w-3 mr-1" />
+              Calendário
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/monitoring/alerts">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Alertas e Vencimentos
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   const groupedProcesses = processes?.reduce((acc, process) => {
     const month = new Date(process.vigencia_date).toLocaleDateString('pt-BR', { 
       year: 'numeric', 
@@ -133,6 +168,9 @@ export default function ProcessTimeline() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+
+      {/* Navegação contextual para outras telas de Monitoramento */}
+      {navigationCard}
 
       {/* Header fixo */}
       <div className="sticky top-0 bg-white z-10 pb-4 border-b">
@@ -226,7 +264,7 @@ export default function ProcessTimeline() {
                         
                         <div className="flex items-center gap-2 text-gray-600">
                           <Calendar className="h-4 w-4" />
-                          <span>Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}</span>
+                          <span>Vigência: {formatDateDisplay(process.vigencia_date)}</span>
                         </div>
                         
                         <div className="flex items-center gap-2">

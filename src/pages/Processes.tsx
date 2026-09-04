@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid, Clock, ArrowRight, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -13,9 +13,10 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProcessForm } from "@/components/forms/ProcessForm";
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from "react-router-dom";
+import { formatDateDisplay } from "@/utils/dateUtils";
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
@@ -162,7 +163,7 @@ export default function Processes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="main" aria-label="Gestão de processos">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Processos</h1>
@@ -173,8 +174,8 @@ export default function Processes() {
         {isAuthenticated && (
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingProcess(null)}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button onClick={() => setEditingProcess(null)} aria-label="Criar novo processo">
+                <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
                 Novo Processo
               </Button>
             </DialogTrigger>
@@ -200,27 +201,28 @@ export default function Processes() {
 
       <div className="flex gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
             placeholder="Buscar por número do processo, objeto ou município..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
+            aria-label="Buscar processos"
           />
         </div>
         {/* Botão de Filtros */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
+            <Button variant="outline" aria-label="Abrir filtros">
+              <Filter className="h-4 w-4 mr-2" aria-hidden="true" />
               Filtros
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
             <div className="space-y-2">
-              <label className="text-xs font-semibold">Status</label>
+              <label className="text-xs font-semibold" htmlFor="filter-status">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectTrigger id="filter-status"><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {statusList.map((s: any) => (
@@ -228,9 +230,9 @@ export default function Processes() {
                   ))}
                 </SelectContent>
               </Select>
-              <label className="text-xs font-semibold">Município</label>
+              <label className="text-xs font-semibold" htmlFor="filter-municipality">Município</label>
               <Select value={filterMunicipality} onValueChange={setFilterMunicipality}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectTrigger id="filter-municipality"><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {(processes || []).map(p => p.municipalities?.name).filter((v, i, arr) => v && arr.indexOf(v) === i).map(name => (
@@ -238,9 +240,9 @@ export default function Processes() {
                   ))}
                 </SelectContent>
               </Select>
-              <label className="text-xs font-semibold">Núcleo Regional</label>
+              <label className="text-xs font-semibold" htmlFor="filter-nucleus">Núcleo Regional</label>
               <Select value={filterNucleus} onValueChange={setFilterNucleus}>
-                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectTrigger id="filter-nucleus"><SelectValue placeholder="Todos" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {(processes || []).map(p => p.regional_nuclei?.name).filter((v, i, arr) => v && arr.indexOf(v) === i).map(name => (
@@ -254,25 +256,25 @@ export default function Processes() {
         {/* Botão de Ordenação */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" aria-label="Abrir ordenação">
               Ordenar
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56">
             <div className="space-y-2">
-              <label className="text-xs font-semibold">Campo</label>
+              <label className="text-xs font-semibold" htmlFor="sort-field">Campo</label>
               <Select value={sortField} onValueChange={setSortField}>
-                <SelectTrigger><SelectValue placeholder="Campo" /></SelectTrigger>
+                <SelectTrigger id="sort-field"><SelectValue placeholder="Campo" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="total_portaria_value">Valor Total</SelectItem>
                   <SelectItem value="total_proponente_value">Contrapartida</SelectItem>
-                  <SelectItem value="total_concedente_value">Concedente</SelectItem>
-                  <SelectItem value="licitado_value">Licitado</SelectItem>
+                  <SelectItem value="total_concedente_value">Valor Concedente</SelectItem>
+                  <SelectItem value="licitado_value">Valor Licitado</SelectItem>
                 </SelectContent>
               </Select>
-              <label className="text-xs font-semibold">Ordem</label>
+              <label className="text-xs font-semibold" htmlFor="sort-order">Ordem</label>
               <Select value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
-                <SelectTrigger><SelectValue placeholder="Ordem" /></SelectTrigger>
+                <SelectTrigger id="sort-order"><SelectValue placeholder="Ordem" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="desc">Maior para menor</SelectItem>
                   <SelectItem value="asc">Menor para maior</SelectItem>
@@ -284,9 +286,43 @@ export default function Processes() {
         </Popover>
       </div>
 
+      {/* Navegação contextual para outras telas de Monitoramento */}
+      <nav aria-label="Navegação rápida - Monitoramento">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Navegação Rápida - Monitoramento</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/process-timeline">
+                  <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
+                  Timeline
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/process-calendar">
+                <Calendar className="h-3 w-3 mr-1" />
+                Calendário
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/monitoring/alerts">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Alertas e Vencimentos
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      </nav>
+
       <div className="flex justify-end gap-2 mb-2">
-        <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
-        <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
+        <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')} aria-label="Visualizar em cards"><LayoutGrid className="h-4 w-4 mr-1" aria-hidden="true" /> Cards</Button>
+        <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')} aria-label="Visualizar em lista"><List className="h-4 w-4 mr-1" aria-hidden="true" /> Lista</Button>
       </div>
       {viewMode === 'cards' ? (
         <div className="grid gap-6">
@@ -376,7 +412,7 @@ export default function Processes() {
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="h-4 w-4 mr-2" />
                         <span>
-                          Vigência: {new Date(process.vigencia_date).toLocaleDateString('pt-BR')}
+                          Vigência: {formatDateDisplay(process.vigencia_date)}
                         </span>
                       </div>
                     </div>

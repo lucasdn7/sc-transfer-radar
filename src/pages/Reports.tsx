@@ -122,6 +122,7 @@ export default function Reports() {
   const [sortField, setSortField] = useState('total_concedente_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [vigenciaStatus, setVigenciaStatus] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
     searchTerm: '',
@@ -164,6 +165,9 @@ export default function Reports() {
     if (proponentValue) {
       data = data.filter(p => (p.total_proponente_value || 0) >= Number(proponentValue));
     }
+    if (statusFilter !== 'all') {
+      data = data.filter(p => p.status_processos?.nome === statusFilter);
+    }
     // Filtro de vigência
     const today = new Date();
     const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -184,7 +188,7 @@ export default function Reports() {
       return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
     });
     return data;
-  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder, vigenciaStatus]);
+  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder, vigenciaStatus, statusFilter]);
 
   // Função para filtrar os campos exportados, tratando nulos e aninhados
   function filterFields(data: any[], fields: string[]) {
@@ -305,38 +309,61 @@ export default function Reports() {
     handleDownload(reportName, 'PDF');
   };
 
+  const [reportStatuses, setReportStatuses] = useState<Record<string, 'available' | 'processing' | 'error'>>({});
+
+  const handleReportAction = (reportType: string, action: 'generate' | 'retry') => {
+    setReportStatuses(prev => ({ ...prev, [reportType]: 'processing' }));
+    
+    // Simular processamento com possibilidade de erro
+    setTimeout(() => {
+      const shouldFail = Math.random() < 0.1; // 10% chance de erro para simulação
+      
+      if (shouldFail) {
+        setReportStatuses(prev => ({ ...prev, [reportType]: 'error' }));
+        toast({ 
+          title: 'Erro ao gerar relatório', 
+          description: 'Ocorreu um erro ao processar o relatório. Tente novamente.',
+          variant: 'destructive' 
+        });
+      } else {
+        setReportStatuses(prev => ({ ...prev, [reportType]: 'available' }));
+        handlePredefinedDownload(reportType, 'PDF', reports.find(r => r.type === reportType)?.title || 'Relatório');
+      }
+    }, 2000);
+  };
+
   const reports = [
     {
       title: 'Relatório de Processos',
       description: 'Relatório completo de todos os processos com status, valores e prazos',
       type: 'process' as const,
-      status: 'available' as const,
+      status: reportStatuses['process'] || 'available' as const,
       lastGenerated: '2024-07-04T10:30:00'
     },
     {
       title: 'Análise Financeira',
       description: 'Análise detalhada dos valores investidos por região e município',
       type: 'financial' as const,
-      status: 'available' as const,
+      status: reportStatuses['financial'] || 'available' as const,
       lastGenerated: '2024-07-03T15:45:00'
     },
     {
       title: 'Dashboard Executivo',
       description: 'Visão executiva com principais KPIs e indicadores',
       type: 'dashboard' as const,
-      status: 'processing' as const
+      status: reportStatuses['dashboard'] || 'processing' as const
     },
     {
       title: 'Relatório por Município',
       description: 'Detalhamento dos investimentos por município',
       type: 'municipality' as const,
-      status: 'available' as const,
+      status: reportStatuses['municipality'] || 'available' as const,
       lastGenerated: '2024-07-04T08:15:00'
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="main" aria-label="Relatórios e exportações">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -363,7 +390,7 @@ export default function Reports() {
       <div className="flex justify-end mb-4">
         <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
           <DialogTrigger asChild>
-            <Button variant="outline" onClick={() => setShowFieldSelector(true)}>
+            <Button variant="outline" onClick={() => setShowFieldSelector(true)} aria-label="Personalizar campos do relatório">
               Personalizar Campos do Relatório
             </Button>
           </DialogTrigger>
@@ -380,8 +407,9 @@ export default function Reports() {
                       if (checked) setSelectedFields([...selectedFields, field.key]);
                       else setSelectedFields(selectedFields.filter(f => f !== field.key));
                     }}
+                    id={`field-${field.key}`}
                   />
-                  <span>{field.label}</span>
+                  <label htmlFor={`field-${field.key}`} className="cursor-pointer">{field.label}</label>
                 </div>
               ))}
             </div>
@@ -399,13 +427,13 @@ export default function Reports() {
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded flex flex-col gap-2">
               <span className="font-medium text-blue-700">Após personalizar os campos, baixe o relatório no formato desejado:</span>
               <div className="flex gap-2 flex-wrap">
-                <Button size="sm" onClick={() => handleDownload('Relatório Personalizado', 'PDF')}>
+                <Button size="sm" onClick={() => handleDownload('Relatório Personalizado', 'PDF')} aria-label="Baixar relatório personalizado em PDF">
                   Baixar PDF
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'XLSX')}>
+                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'XLSX')} aria-label="Baixar relatório personalizado em XLSX">
                   Baixar XLS
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'CSV')}>
+                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'CSV')} aria-label="Baixar relatório personalizado em CSV">
                   Baixar CSV
                 </Button>
               </div>
@@ -415,31 +443,32 @@ export default function Reports() {
       </div>
 
       {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Filtros de Relatório
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Período (De)</label>
-              <DatePicker
-                selected={dateRange.from}
-                onSelect={(date) => setDateRange(prev => ({...prev, from: date}))}
-                placeholderText="Data inicial"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Período (Até)</label>
-              <DatePicker
-                selected={dateRange.to}
-                onSelect={(date) => setDateRange(prev => ({...prev, to: date}))}
-                placeholderText="Data final"
-              />
-            </div>
+      <section aria-labelledby="filtros-relatorio">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2" id="filtros-relatorio">
+              <BarChart3 className="h-5 w-5" aria-hidden="true" />
+              Filtros de Relatório
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="date-from">Período (De)</label>
+                <DatePicker
+                  selected={dateRange.from}
+                  onSelect={(date) => setDateRange(prev => ({...prev, from: date}))}
+                  placeholderText="Data inicial"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="date-to">Período (Até)</label>
+                <DatePicker
+                  selected={dateRange.to}
+                  onSelect={(date) => setDateRange(prev => ({...prev, to: date}))}
+                  placeholderText="Data final"
+                />
+              </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Município</label>
               <Popover>
@@ -513,6 +542,23 @@ export default function Reports() {
               </Select>
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium">Status do Processo</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="Criado">Criado</SelectItem>
+                  <SelectItem value="Em Análise">Em Análise</SelectItem>
+                  <SelectItem value="Aprovado">Aprovado</SelectItem>
+                  <SelectItem value="Em Execução">Em Execução</SelectItem>
+                  <SelectItem value="Finalizado">Finalizado</SelectItem>
+                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Valor Proponente (mínimo)</label>
               <input type="number" className="input input-bordered w-full" value={proponentValue} onChange={e => setProponentValue(e.target.value)} placeholder="Valor mínimo" />
             </div>
@@ -564,9 +610,12 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
+      </section>
 
       {/* Estatísticas Rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-labelledby="estatisticas-rapidas">
+        <h2 id="estatisticas-rapidas" className="sr-only">Estatísticas Rápidas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
@@ -612,12 +661,15 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+      </section>
 
       {/* Lista de Relatórios */}
-      {isLoadingProcesses ? (
-        <div className="text-center py-8">Carregando dados dos relatórios...</div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <section aria-labelledby="lista-relatorios">
+        <h2 id="lista-relatorios" className="sr-only">Lista de Relatórios</h2>
+        {isLoadingProcesses ? (
+          <div className="text-center py-8" role="status" aria-live="polite">Carregando dados dos relatórios...</div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {reports.map((report, index) => (
             <ReportCard
               key={index}
@@ -626,7 +678,8 @@ export default function Reports() {
               type={report.type}
               status={report.status}
               lastGenerated={report.lastGenerated}
-              onGenerate={() => generateReport(report.title)}
+              onGenerate={() => handleReportAction(report.type, 'generate')}
+              onRetry={() => handleReportAction(report.type, 'retry')}
               onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
               onDownloadPDF={() => handlePredefinedDownload(report.type, 'PDF', report.title)}
               onDownloadExcel={() => handlePredefinedDownload(report.type, 'XLSX', report.title)}
@@ -635,26 +688,29 @@ export default function Reports() {
           ))}
         </div>
       )}
+      </section>
 
       {/* Ações Rápidas */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => handleDownload('Relatório Completo', 'PDF')}>
-              Relatório Completo (PDF)
-            </Button>
-            <Button variant="outline" onClick={() => handleDownload('Dados Exportação', 'XLSX')}>
-              Exportar Dados (XLSX)
-            </Button>
-            <Button variant="outline" onClick={() => handleDownload('Resumo Executivo', 'CSV')}>
-              Resumo Executivo (CSV)
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <section aria-labelledby="acoes-rapidas">
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle id="acoes-rapidas">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => handleDownload('Relatório Completo', 'PDF')} aria-label="Baixar relatório completo em PDF">
+                Relatório Completo (PDF)
+              </Button>
+              <Button variant="outline" onClick={() => handleDownload('Dados Exportação', 'XLSX')} aria-label="Exportar dados em XLSX">
+                Exportar Dados (XLSX)
+              </Button>
+              <Button variant="outline" onClick={() => handleDownload('Resumo Executivo', 'CSV')} aria-label="Baixar resumo executivo em CSV">
+                Resumo Executivo (CSV)
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

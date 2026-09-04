@@ -1,8 +1,11 @@
+// ÁREA PROTEGIDA — NÃO ALTERAR nesta fase do projeto (reorganização de navegação).
+// Qualquer mudança necessária aqui deve ser registrada como sugestão futura, não implementada.
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/utils/processUtils";
+import { Link } from "react-router-dom";
 
 interface StatCardProps {
   title: string;
@@ -11,23 +14,24 @@ interface StatCardProps {
   trend?: 'up' | 'down' | 'neutral';
   icon: React.ElementType;
   color?: string;
+  linkTo?: string;
 }
 
-function StatCard({ title, value, change, trend, icon: Icon, color = "text-[var(--accent-green)]" }: StatCardProps) {
-  return (
+function StatCard({ title, value, change, trend, icon: Icon, color = "text-[var(--accent-green)]", linkTo }: StatCardProps) {
+  const cardContent = (
     <Card className="overflow-hidden hover:border-[var(--accent-green)]/40 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="metric-label">
           {title}
         </CardTitle>
-        <Icon className={`h-5 w-5 ${color}`} />
+        <Icon className={`h-5 w-5 ${color}`} aria-hidden="true" />
       </CardHeader>
       <CardContent>
         <div className="metric-value">{value}</div>
         {change && (
           <div className="flex items-center text-xs text-muted-foreground mt-1">
-            {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3 text-[var(--accent-green)]" />}
-            {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3 text-[var(--accent-red)]" />}
+            {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3 text-[var(--accent-green)]" aria-hidden="true" />}
+            {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3 text-[var(--accent-red)]" aria-hidden="true" />}
             <span className={trend === 'up' ? 'text-[var(--accent-green)]' : trend === 'down' ? 'text-[var(--accent-red)]' : ''}>
               {change}
             </span>
@@ -36,6 +40,16 @@ function StatCard({ title, value, change, trend, icon: Icon, color = "text-[var(
       </CardContent>
     </Card>
   );
+
+  if (linkTo) {
+    return (
+      <Link to={linkTo} className="block no-underline">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }
 
 export function OptimizedStatsCards() {
@@ -43,9 +57,9 @@ export function OptimizedStatsCards() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" role="status" aria-live="polite" aria-label="Carregando estatísticas">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="animate-pulse">
+          <Card key={i} className="animate-pulse" aria-hidden="true">
             <CardContent className="p-6">
               <div className="h-8 bg-gray-200 rounded mb-2"></div>
               <div className="h-6 bg-gray-200 rounded"></div>
@@ -58,8 +72,9 @@ export function OptimizedStatsCards() {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-[var(--accent-red)]">Erro ao carregar estatísticas</p>
+      <div className="text-center py-8" role="alert" aria-live="assertive">
+        <p className="text-[var(--accent-red)] mb-4">Erro ao carregar estatísticas</p>
+        <p className="text-sm text-muted-foreground">Tente recarregar a página ou entre em contato com o suporte técnico.</p>
       </div>
     );
   }
@@ -71,7 +86,8 @@ export function OptimizedStatsCards() {
       change: "Dados atualizados em tempo real",
       trend: 'neutral' as const,
       icon: FileText,
-      color: "text-[var(--accent-green)]"
+      color: "text-[var(--accent-green)]",
+      linkTo: "/processes"
     },
     {
       title: "Total das Portarias",
@@ -87,7 +103,8 @@ export function OptimizedStatsCards() {
       change: "Municípios ativos no programa",
       trend: 'neutral' as const,
       icon: Building,
-      color: "text-[var(--accent-amber)]"
+      color: "text-[var(--accent-amber)]",
+      linkTo: "/municipalities"
     },
     {
       title: "Núcleos Regionais",
@@ -95,7 +112,8 @@ export function OptimizedStatsCards() {
       change: "Cobertura estadual completa",
       trend: 'neutral' as const,
       icon: MapPin,
-      color: "text-[var(--accent-amber)]"
+      color: "text-[var(--accent-amber)]",
+      linkTo: "/regional-nuclei"
     }
   ];
 

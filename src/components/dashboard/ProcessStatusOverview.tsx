@@ -1,3 +1,6 @@
+// ÁREA PROTEGIDA — NÃO ALTERAR nesta fase do projeto (reorganização de navegação).
+// Qualquer mudança necessária aqui deve ser registrada como sugestão futura, não implementada.
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

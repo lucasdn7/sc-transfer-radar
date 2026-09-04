@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw, Link2 } from "lucide-react";
+import { MapPin, Search, Filter, Layers, Settings, ZoomIn, ZoomOut, RotateCcw, Link2, ArrowRight, Building, MapPin as MapPinIcon } from "lucide-react";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { MapboxTokenForm } from "@/components/map/MapboxTokenForm";
 import { InteractiveMap } from "@/components/map/InteractiveMap";
+import { Link } from "react-router-dom";
 
 export default function Map() {
   const { token, isTokenSet, isLoading, saveToken, clearToken } = useMapboxToken();
@@ -89,6 +90,31 @@ export default function Map() {
           Visualize as transferências financeiras geograficamente
         </p>
       </div>
+
+      {/* Navegação contextual para outras telas de Território */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Navegação Rápida - Território</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/municipalities">
+                <Building className="h-3 w-3 mr-1" />
+                Municípios
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/regional-nuclei">
+                <MapPinIcon className="h-3 w-3 mr-1" />
+                Núcleos Regionais
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filtros e Configurações */}

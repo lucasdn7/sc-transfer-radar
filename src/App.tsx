@@ -25,6 +25,11 @@ import { Component, ReactNode } from "react";
 import { AuthProvider } from "@/hooks/useAuth";
 import DART from "./pages/DART";
 import Flowchart from "./pages/Flowchart";
+import MonitoringAlerts from "./pages/MonitoringAlerts";
+import MunicipalityDetail from "./pages/MunicipalityDetail";
+import TerritorialInconsistencies from "./pages/TerritorialInconsistencies";
+import Indicators from "./pages/Indicators";
+import Charts from "./pages/Charts";
 
 const queryClient = new QueryClient();
 
@@ -72,7 +77,12 @@ const App = () => (
                   <Route path="/processes" element={<Processes />} />
                   <Route path="/process-timeline" element={<ProcessTimeline />} />
                   <Route path="/process-calendar" element={<ProcessCalendar />} />
+                  <Route path="/monitoring/alerts" element={<MonitoringAlerts />} />
                   <Route path="/municipalities" element={<Municipalities />} />
+                  <Route path="/municipalities/:id" element={<MunicipalityDetail />} />
+                  <Route path="/municipalities/inconsistencies" element={<TerritorialInconsistencies />} />
+                  <Route path="/indicators" element={<Indicators />} />
+                  <Route path="/charts" element={<Charts />} />
                   <Route path="/regional-nuclei" element={<RegionalNuclei />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/map" element={<Map />} />

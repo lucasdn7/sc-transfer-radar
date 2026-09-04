@@ -1,3 +1,6 @@
+// ÁREA PROTEGIDA — NÃO ALTERAR nesta fase do projeto (reorganização de navegação).
+// Qualquer mudança necessária aqui deve ser registrada como sugestão futura, não implementada.
+
 import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";

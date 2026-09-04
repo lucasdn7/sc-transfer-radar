@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { TopHeader } from "./TopHeader";
+import { PageBreadcrumb } from "./Breadcrumb";
 import { useTheme } from "@/hooks/useTheme";
 
 interface AppLayoutProps {
@@ -26,6 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <TopHeader />
         <main className="pt-32">
           <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-8 lg:px-10">
+            <PageBreadcrumb />
             {children}
           </div>
         </main>
@@ -46,12 +48,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
-      <div className="hidden md:fixed md:inset-y-0 md:flex md:w-[212px] md:flex-col">
+      <div className="hidden md:fixed md:inset-y-0 md:flex md:flex-col">
         <Sidebar />
       </div>
 
-      <main className="pt-20 md:pl-[212px]">
+      <main className="pt-20 md:pl-16 transition-all duration-200">
         <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-8 lg:px-10">
+          <PageBreadcrumb />
           {children}
         </div>
       </main>

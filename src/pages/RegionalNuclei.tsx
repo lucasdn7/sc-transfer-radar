@@ -1,7 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Users, ChevronLeft, ChevronRight, List, LayoutGrid, Edit } from "lucide-react";
+import { Search, Plus, Users, ChevronLeft, ChevronRight, List, LayoutGrid, Edit, ArrowRight, Map, Building } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -124,6 +124,31 @@ export default function RegionalNuclei() {
           </Dialog>
         )}
       </div>
+
+      {/* Navegação contextual para outras telas de Território */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Navegação Rápida - Território</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/municipalities">
+                <Building className="h-3 w-3 mr-1" />
+                Municípios
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/map">
+                <Map className="h-3 w-3 mr-1" />
+                Mapa
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6">

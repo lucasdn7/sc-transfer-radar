@@ -10,24 +10,33 @@ import { EventCalendar } from "@/components/dashboard/EventCalendar";
 import { TotalStatsCards } from "@/components/dashboard/TotalStatsCards";
 import { TotalDashboardCharts } from "@/components/dashboard/TotalDashboardCharts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useState } from "react";
 
 export default function Dashboard() {
   const [dashboardMode, setDashboardMode] = useState<"obras" | "eventos" | "total">("obras");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-6 lg:px-8" role="main" aria-label="Dashboard de transferências">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Dashboard</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div>
-        <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+        <div className="rounded-2xl border border-border bg-card p-4 md:p-6 lg:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
+            <div className="flex-1">
               <p className="metric-label mb-3">Visão geral</p>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Seu painel de transferências quer te contar uns segredos...</h1>
-              <p className="mt-3 max-w-3xl text-muted-foreground">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">Seu painel de transferências quer te contar uns segredos...</h1>
+              <p className="mt-3 max-w-3xl text-sm md:text-base text-muted-foreground">
                 Visão geral das transferências financeiras do Estado de SC para os municípios
               </p>
             </div>
-            <Tabs value={dashboardMode} onValueChange={(value) => setDashboardMode(value as "obras" | "eventos" | "total")}>
+            <Tabs value={dashboardMode} onValueChange={(value) => setDashboardMode(value as "obras" | "eventos" | "total")} className="mt-4 md:mt-0">
               <TabsList aria-label="Alternar visão do dashboard">
                 <TabsTrigger value="obras">Obras</TabsTrigger>
                 <TabsTrigger value="eventos">Eventos</TabsTrigger>
@@ -85,6 +94,8 @@ export default function Dashboard() {
         </>
       )}
 
+      {/* ÁREA PROTEGIDA — NÃO ALTERAR nesta fase do projeto (reorganização de navegação).
+          Qualquer mudança necessária aqui deve ser registrada como sugestão futura, não implementada. */}
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center justify-between mb-4">

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, MapPin, Phone, Mail, Users, Plus, Edit, List, LayoutGrid } from "lucide-react";
+import { Search, MapPin, Phone, Mail, Users, Plus, Edit, List, LayoutGrid, ArrowRight, Map, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +20,8 @@ export default function Municipalities() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [sortBy, setSortBy] = useState<'name' | 'processes' | 'value'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   const { data: municipalities, isLoading, error, refetch } = useQuery({
@@ -106,6 +108,43 @@ export default function Municipalities() {
     }).format(value);
   };
 
+  // Função para ordenar municípios
+  const getSortedMunicipalities = () => {
+    if (!municipalities) return [];
+    
+    return [...municipalities].sort((a, b) => {
+      const statsA = municipalityStats?.[a.id];
+      const statsB = municipalityStats?.[b.id];
+      
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'processes':
+          comparison = (statsA?.totalProcesses || 0) - (statsB?.totalProcesses || 0);
+          break;
+        case 'value':
+          comparison = (statsA?.totalValue || 0) - (statsB?.totalValue || 0);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const sortedMunicipalities = getSortedMunicipalities();
+
+  const handleSort = (field: 'name' | 'processes' | 'value') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // Default to desc for processes and value
+    }
+  };
+
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setEditingMunicipality(null);
@@ -165,33 +204,66 @@ export default function Municipalities() {
             Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
           </p>
         </div>
-        {isAuthenticated && (
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingMunicipality(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Município
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingMunicipality ? 'Editar Município' : 'Novo Município'}
-                </DialogTitle>
-              </DialogHeader>
-              <MunicipalityForm
-                onSuccess={handleFormSuccess}
-                onCancel={() => {
-                  setIsFormOpen(false);
-                  setEditingMunicipality(null);
-                }}
-                initialData={editingMunicipality}
-                isEdit={!!editingMunicipality}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/municipalities/inconsistencies">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Relatório de Inconsistências
+            </Link>
+          </Button>
+          {isAuthenticated && (
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingMunicipality(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Município
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingMunicipality ? 'Editar Município' : 'Novo Município'}
+                  </DialogTitle>
+                </DialogHeader>
+                <MunicipalityForm
+                  onSuccess={handleFormSuccess}
+                  onCancel={() => {
+                    setIsFormOpen(false);
+                    setEditingMunicipality(null);
+                  }}
+                  initialData={editingMunicipality}
+                  isEdit={!!editingMunicipality}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
+
+      {/* Navegação contextual para outras telas de Território */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Navegação Rápida - Território</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/regional-nuclei">
+                <MapPin className="h-3 w-3 mr-1" />
+                Núcleos Regionais
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/map">
+                <Map className="h-3 w-3 mr-1" />
+                Mapa
+                <ArrowRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search */}
       <Card>
@@ -208,18 +280,48 @@ export default function Municipalities() {
         </CardContent>
       </Card>
 
+      {/* Ordenação */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium text-gray-600">Ordenar por:</span>
+            <Button
+              variant={sortBy === 'name' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('name')}
+            >
+              Nome {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </Button>
+            <Button
+              variant={sortBy === 'processes' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('processes')}
+            >
+              Nº Processos {sortBy === 'processes' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </Button>
+            <Button
+              variant={sortBy === 'value' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleSort('value')}
+            >
+              Valor Total {sortBy === 'value' && (sortOrder === 'asc' ? '↑' : '↓')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end gap-2 mb-2">
         <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
         <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
       </div>
       {viewMode === 'cards' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {municipalities?.map((municipality) => {
+          {sortedMunicipalities?.map((municipality) => {
             const stats = municipalityStats?.[municipality.id];
             const regularity = getRegularityIndicator(stats);
             
             return (
-              <Card key={municipality.id} className="hover:shadow-lg transition-shadow">
+              <Card key={municipality.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = `/municipalities/${municipality.id}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="space-y-2">
@@ -230,7 +332,7 @@ export default function Municipalities() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" asChild>
+                      <Button variant="ghost" size="sm" asChild onClick={(e) => e.stopPropagation()}>
                         <Link to={`/map?municipality=${municipality.id}`}>
                           <MapPin className="h-4 w-4" />
                         </Link>
@@ -239,7 +341,10 @@ export default function Municipalities() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(municipality)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(municipality);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -346,10 +451,12 @@ export default function Municipalities() {
               </tr>
             </thead>
             <tbody>
-              {municipalities && municipalities.length > 0 ? (
-                municipalities.map((m: any) => (
+              {sortedMunicipalities && sortedMunicipalities.length > 0 ? (
+                sortedMunicipalities.map((m: any) => (
                   <tr key={m.id}>
-                    <td className="border px-2 py-1">{m.name}</td>
+                    <td className="border px-2 py-1">
+                      <Link to={`/municipalities/${m.id}`} className="text-blue-600 hover:underline">{m.name}</Link>
+                    </td>
                     <td className="border px-2 py-1">{m.regioes?.nome}</td>
                     <td className="border px-2 py-1">{m.regional_nuclei?.name}</td>
                     <td className="border px-2 py-1">{m.cnpj}</td>
@@ -384,7 +491,7 @@ export default function Municipalities() {
         </div>
       )}
 
-      {municipalities?.length === 0 && (
+      {sortedMunicipalities?.length === 0 && (
         <div className="text-center py-8">
           <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">

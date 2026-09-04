@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Button } from '@/components/ui/button';
-import { Settings, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Settings, AlertCircle, List, RefreshCw, WifiOff, Key, Database } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/processUtils';
+import { getVigenciaStatus, getVigenciaMarkerColor } from '@/utils/vigenciaUtils';
+
+type ErrorType = 'configuration' | 'network' | 'webgl' | 'timeout' | 'unknown' | 'no_results';
 
 interface InteractiveMapProps {
   token: string;
@@ -24,9 +27,12 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ type: ErrorType; message: string } | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [showFallbackList, setShowFallbackList] = useState(false);
+  const [processes, setProcesses] = useState<any[]>([]);
+  const [isLoadingProcesses, setIsLoadingProcesses] = useState(false);
 
   const initializeMap = () => {
     setRetryCount(prev => prev + 1);
@@ -57,14 +63,14 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
     try {
       // Verificar se o token é válido
       if (!token.startsWith('pk.')) {
-        setError('Token inválido. A chave deve começar com "pk.". Verifique e tente novamente.');
+        setError({ type: 'configuration', message: 'Token inválido. A chave deve começar com "pk.". Verifique e tente novamente.' });
         setIsInitializing(false);
         return;
       }
 
       // Verificar se o token tem o formato correto
       if (token.length < 50) {
-        setError('Token muito curto. Verifique se copiou a chave completa do Mapbox.');
+        setError({ type: 'configuration', message: 'Token muito curto. Verifique se copiou a chave completa do Mapbox.' });
         setIsInitializing(false);
         return;
       }
@@ -73,14 +79,14 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
       // Verificar se o container está disponível
       if (!mapContainer.current) {
-        setError('Erro interno: container do mapa não encontrado.');
+        setError({ type: 'unknown', message: 'Erro interno: container do mapa não encontrado.' });
         setIsInitializing(false);
         return;
       }
 
       // Verificar suporte ao WebGL
       if (!mapboxgl.supported()) {
-        setError('Seu navegador não suporta WebGL, necessário para exibir o mapa. Tente atualizar seu navegador ou usar outro.');
+        setError({ type: 'webgl', message: 'Seu navegador não suporta WebGL, necessário para exibir o mapa. Tente atualizar seu navegador ou usar outro.' });
         setIsInitializing(false);
         return;
       }
@@ -117,9 +123,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
           
           // Check network connectivity
           if (!navigator.onLine) {
-            setError('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
+            setError({ type: 'network', message: 'Sem conexão com a internet. Verifique sua conexão e tente novamente.' });
           } else {
-            setError('O mapa está demorando para carregar. Verifique sua conexão e chave API.');
+            setError({ type: 'timeout', message: 'O mapa está demorando para carregar. Verifique sua conexão e chave API.' });
           }
           setIsInitializing(false);
         }
@@ -136,25 +142,6 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
       // Adicionar controle de escala
       map.current.addControl(new mapboxgl.ScaleControl());
 
-      // Funções auxiliares
-      const getVigenciaStatus = (vigenciaDate?: string, isFinished?: boolean) => {
-        if (isFinished) return 'concluidas';
-        if (!vigenciaDate) return 'vigentes';
-        const today = new Date();
-        const date = new Date(vigenciaDate);
-        const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return 'vencidos';
-        if (diffDays <= 30) return 'proximos';
-        return 'vigentes';
-      };
-
-      const getMarkerColor = (vigenciaDate?: string, isFinished?: boolean) => {
-        if (isFinished) return '#3b82f6'; // azul para concluídas
-        const status = getVigenciaStatus(vigenciaDate, false);
-        if (status === 'vencidos') return '#ef4444';
-        if (status === 'proximos') return '#f59e0b';
-        return '#10b981';
-      };
 
       // Evento quando o mapa carrega
       map.current.on('load', async () => {
@@ -228,7 +215,7 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
               // Definir cor do marcador baseado na vigência/conclusão
               const isFinished = (process.status_processos && 'nome' in process.status_processos) ? String(process.status_processos.nome).toLowerCase().includes('final') : false;
-              const markerColor = getMarkerColor(process.vigencia_date, isFinished);
+              const markerColor = getVigenciaMarkerColor(process.vigencia_date, isFinished);
 
               new mapboxgl.Marker({
                 color: markerColor,
@@ -301,13 +288,13 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
         
         // More specific error messages based on the error type
         if (e.error?.message?.includes('401') || e.error?.message?.includes('Unauthorized')) {
-          setError('Token do Mapbox inválido ou expirado. Verifique sua chave API.');
+          setError({ type: 'configuration', message: 'Token do Mapbox inválido ou expirado. Verifique sua chave API.' });
         } else if (e.error?.message?.includes('network') || e.error?.message?.includes('fetch')) {
-          setError('Erro de conexão. Verifique sua internet e tente novamente.');
+          setError({ type: 'network', message: 'Erro de conexão. Verifique sua internet e tente novamente.' });
         } else if (e.error?.message?.includes('style')) {
-          setError('Erro ao carregar o estilo do mapa. Tente outro estilo.');
+          setError({ type: 'unknown', message: 'Erro ao carregar o estilo do mapa. Tente outro estilo.' });
         } else {
-          setError('Erro ao carregar o mapa. Verifique sua chave API e conexão.');
+          setError({ type: 'unknown', message: 'Erro ao carregar o mapa. Verifique sua chave API e conexão.' });
         }
         
         setIsInitializing(false);
@@ -323,10 +310,52 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
     } catch (error) {
       console.error('Erro ao inicializar o mapa:', error);
-      setError('Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.');
+      setError({ type: 'unknown', message: 'Erro ao inicializar o mapa. Tente recarregar a página ou verificar sua chave API.' });
       setIsInitializing(false);
     }
   }, [token, mapStyle, statusFilter, regionFilter, searchTerm, vigenciaFilter, onlyWithContrapartida, showConnections]);
+
+  // Fetch processes for fallback list
+  useEffect(() => {
+    if (showFallbackList) {
+      setIsLoadingProcesses(true);
+      const fetchProcesses = async () => {
+        try {
+          let query = supabase
+            .from('processes')
+            .select(`
+              *,
+              municipalities (name),
+              status_processos (nome)
+            `);
+
+          if (statusFilter && statusFilter !== 'all') {
+            query = query.eq('status_processos.nome', statusFilter);
+          }
+
+          if (regionFilter && regionFilter !== 'all') {
+            query = query.ilike('municipalities.regioes.nome', `%${regionFilter}%`);
+          }
+
+          if (searchTerm) {
+            query = query.ilike('municipalities.name', `%${searchTerm}%`);
+          }
+
+          const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+          
+          if (error) throw error;
+          setProcesses(data || []);
+        } catch (error) {
+          console.error('Erro ao buscar processos:', error);
+          setProcesses([]);
+        } finally {
+          setIsLoadingProcesses(false);
+        }
+      };
+
+      fetchProcesses();
+    }
+  }, [showFallbackList, statusFilter, regionFilter, searchTerm]);
 
   // Atualizar visibilidade dos rótulos
   useEffect(() => {
@@ -361,13 +390,44 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
   }
 
   if (error) {
+    const getErrorIcon = () => {
+      switch (error.type) {
+        case 'configuration':
+          return <Key className="h-4 w-4" />;
+        case 'network':
+          return <WifiOff className="h-4 w-4" />;
+        case 'webgl':
+          return <AlertCircle className="h-4 w-4" />;
+        case 'timeout':
+          return <RefreshCw className="h-4 w-4" />;
+        default:
+          return <AlertCircle className="h-4 w-4" />;
+      }
+    };
+
+    const getErrorTitle = () => {
+      switch (error.type) {
+        case 'configuration':
+          return 'Erro de Configuração';
+        case 'network':
+          return 'Erro de Conexão';
+        case 'webgl':
+          return 'Erro de Compatibilidade';
+        case 'timeout':
+          return 'Tempo Limite Excedido';
+        default:
+          return 'Erro ao Carregar Mapa';
+      }
+    };
+
     return (
       <div className="w-full h-full flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-md">
           <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+            {getErrorIcon()}
+            <AlertTitle>{getErrorTitle()}</AlertTitle>
             <AlertDescription className="text-left">
-              {error}
+              {error.message}
               {retryCount > 1 && (
                 <div className="mt-2 text-sm text-muted-foreground">
                   Tentativa {retryCount} de carregamento
@@ -376,8 +436,9 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
             </AlertDescription>
           </Alert>
           <div className="space-y-2">
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-center">
               <Button onClick={initializeMap} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
                 Tentar Novamente
               </Button>
               <Button onClick={onConfigureToken} variant="outline">
@@ -385,6 +446,10 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
                 Reconfigurar Token
               </Button>
             </div>
+            <Button onClick={() => setShowFallbackList(true)} variant="ghost" size="sm">
+              <List className="h-4 w-4 mr-2" />
+              Ver lista de processos como alternativa
+            </Button>
             <p className="text-sm text-muted-foreground">
               Certifique-se de que sua chave API está correta e ativa.
             </p>
@@ -396,36 +461,78 @@ export function InteractiveMap({ token, mapStyle, showLabels, onConfigureToken, 
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
-      
-      {(isInitializing || !isLoaded) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="text-center space-y-3">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Carregando mapa...</p>
-              <p className="text-xs text-muted-foreground">
-                {retryCount > 1 ? `Tentativa ${retryCount}...` : 'Inicializando Mapbox GL JS'}
-              </p>
-              {retryCount > 2 && (
-                <p className="text-xs text-yellow-600">
-                  Conexão lenta detectada. Aguarde...
-                </p>
-              )}
+      {showFallbackList ? (
+        <div className="w-full h-full overflow-auto p-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Lista de Processos (Alternativa ao Mapa)</h3>
+              <Button onClick={() => setShowFallbackList(false)} variant="outline" size="sm">
+                Voltar ao Mapa
+              </Button>
             </div>
+            {isLoadingProcesses ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p>Carregando processos...</p>
+              </div>
+            ) : processes.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Database className="h-12 w-12 mx-auto mb-4" />
+                <p>Nenhum processo encontrado com os filtros atuais</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {processes.map((process) => (
+                  <div key={process.id} className="p-3 border rounded-lg hover:bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium">{process.process_number}</div>
+                        <div className="text-sm text-gray-600">{process.object}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {process.municipalities?.name} • {formatCurrency(process.total_portaria_value)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      ) : (
+        <>
+          <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+          
+          {(isInitializing || !isLoaded) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <div className="text-center space-y-3">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Carregando mapa...</p>
+                  <p className="text-xs text-muted-foreground">
+                    {retryCount > 1 ? `Tentativa ${retryCount}...` : 'Inicializando Mapbox GL JS'}
+                  </p>
+                  {retryCount > 2 && (
+                    <p className="text-xs text-yellow-600">
+                      Conexão lenta detectada. Aguarde...
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm"
-        onClick={onConfigureToken}
-      >
-        <Settings className="h-4 w-4 mr-2" />
-        Reconfigurar
-      </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm"
+            onClick={onConfigureToken}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Reconfigurar
+          </Button>
+        </>
+      )}
     </div>
   );
 }
