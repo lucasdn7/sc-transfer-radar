@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParcelManager } from '@/components/processes/ParcelManager';
+import { AddendumManager } from '@/components/processes/AddendumManager';
 import type { Database } from '@/integrations/supabase/types';
 import { enviarParaGoogleSheets } from '@/utils/googleSheetsUtils';
 
@@ -29,6 +30,11 @@ interface ProcessFormData {
   latitude?: number;
   longitude?: number;
   link_plataforma_governo?: string;
+  data_assinatura?: string;
+  em_prestacao_contas?: boolean;
+  data_prestacao_contas?: string;
+  numero_transferencia_especial?: string;
+  categoria?: string;
 }
 
 interface Parcel {
@@ -58,6 +64,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [statuses, setStatuses] = useState<{ id: number; nome: string; ordem?: number }[]>([]);
   const [currentParcels, setCurrentParcels] = useState<Parcel[]>([]);
   const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
+  const [emPrestacaoContas, setEmPrestacaoContas] = useState(initialData ? !!(initialData as any).em_prestacao_contas : false);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<ProcessFormData>({
@@ -77,6 +84,10 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
       latitude: initialData.latitude || 0,
       longitude: initialData.longitude || 0,
       link_plataforma_governo: initialData.link_plataforma_governo || '',
+      data_assinatura: (initialData as any).data_assinatura || '',
+      data_prestacao_contas: (initialData as any).data_prestacao_contas || '',
+      numero_transferencia_especial: (initialData as any).numero_transferencia_especial || '',
+      categoria: (initialData as any).categoria || '',
     } : {},
   });
 
@@ -230,6 +241,11 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         longitude: data.longitude || null,
         link_plataforma_governo: data.link_plataforma_governo || null,
         contrato_assinado: contratoAssinado,
+        data_assinatura: contratoAssinado ? (data.data_assinatura || null) : null,
+        em_prestacao_contas: emPrestacaoContas,
+        data_prestacao_contas: emPrestacaoContas ? (data.data_prestacao_contas || null) : null,
+        numero_transferencia_especial: data.numero_transferencia_especial || null,
+        categoria: data.categoria || null,
       } as any;
 
       console.log('Dados do processo preparados:', processData);
@@ -367,7 +383,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
           </div>
           <div className="max-h-[80vh] overflow-y-auto pr-2">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="process_number">Número do Processo *</Label>
                   <Input
@@ -380,15 +396,24 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                   )}
                 </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="portaria_number">Número da Portaria</Label>
-                <Input
-                  id="portaria_number"
-                  {...register('portaria_number')}
-                  placeholder="Ex: PRT-001/2024"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="portaria_number">Número da Portaria</Label>
+                  <Input
+                    id="portaria_number"
+                    {...register('portaria_number')}
+                    placeholder="Ex: PRT-001/2024"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numero_transferencia_especial">Número da Transferência Especial</Label>
+                  <Input
+                    id="numero_transferencia_especial"
+                    {...register('numero_transferencia_especial')}
+                    placeholder="Ex: TE-001/2024"
+                  />
+                </div>
               </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="object">Objeto *</Label>
@@ -401,6 +426,31 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               {errors.object && (
                 <p className="text-sm text-red-600">{errors.object.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="categoria">Categoria (teor do objeto)</Label>
+              <Select
+                value={watch('categoria') || undefined}
+                onValueChange={(value) => setValue('categoria', value)}
+              >
+                <SelectTrigger id="categoria">
+                  <SelectValue placeholder="Selecione a categoria (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Rua Coberta / Praça">Rua Coberta / Praça</SelectItem>
+                  <SelectItem value="Mirante">Mirante</SelectItem>
+                  <SelectItem value="Centro/Pavilhão Multiuso">Centro/Pavilhão Multiuso</SelectItem>
+                  <SelectItem value="Parque de Exposições (incl. cancha de laço)">Parque de Exposições (incl. cancha de laço)</SelectItem>
+                  <SelectItem value="Centro/Parque/Pavilhão de Eventos">Centro/Parque/Pavilhão de Eventos</SelectItem>
+                  <SelectItem value="Revitalização de Parques e Praças">Revitalização de Parques e Praças</SelectItem>
+                  <SelectItem value="Pórtico/Portal Turístico">Pórtico/Portal Turístico</SelectItem>
+                  <SelectItem value="Sinalização Turística">Sinalização Turística</SelectItem>
+                  <SelectItem value="Aquisição de Veículos e Equipamentos">Aquisição de Veículos e Equipamentos</SelectItem>
+                  <SelectItem value="Deck/Passarela/Estrutura Náutica">Deck/Passarela/Estrutura Náutica</SelectItem>
+                  <SelectItem value="Infraestrutura Turística Geral/Diversos">Infraestrutura Turística Geral/Diversos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -586,25 +636,81 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
             {/* Checkbox Contrato Assinado */}
             <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="contrato_assinado"
-                  checked={contratoAssinado}
-                  onCheckedChange={(checked) => {
-                    setContratoAssinado(!!checked);
-                    if (!checked) {
-                      setValue('vigencia_date', '', { shouldValidate: true });
-                    }
-                    trigger('vigencia_date');
-                  }}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="contrato_assinado" className="text-base font-semibold cursor-pointer">
-                  Contrato Assinado
-                </Label>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="contrato_assinado"
+                    checked={contratoAssinado}
+                    onCheckedChange={(checked) => {
+                      setContratoAssinado(!!checked);
+                      if (!checked) {
+                        setValue('vigencia_date', '', { shouldValidate: true });
+                        setValue('data_assinatura', '', { shouldValidate: true });
+                      }
+                      trigger('vigencia_date');
+                    }}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="contrato_assinado" className="text-base font-semibold cursor-pointer">
+                    Contrato Assinado
+                  </Label>
+                </div>
+                {contratoAssinado && (
+                  <div className="flex-1 max-w-xs">
+                    <Label htmlFor="data_assinatura" className="text-sm">Data de Assinatura *</Label>
+                    <Input
+                      id="data_assinatura"
+                      type="date"
+                      {...register('data_assinatura', { required: 'Campo obrigatório ao marcar "Contrato Assinado"' })}
+                      className="mt-1"
+                    />
+                    {errors.data_assinatura && (
+                      <p className="text-sm text-red-600 mt-1">{errors.data_assinatura.message}</p>
+                    )}
+                  </div>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1 ml-8">
                 Marque se o contrato deste processo já foi assinado
+              </p>
+            </div>
+
+            {/* Checkbox Em prestação de contas */}
+            <div className="mt-6 p-4 border-2 border-primary/30 rounded-lg bg-primary/5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="em_prestacao_contas"
+                    checked={emPrestacaoContas}
+                    onCheckedChange={(checked) => {
+                      setEmPrestacaoContas(!!checked);
+                      if (!checked) {
+                        setValue('data_prestacao_contas', '', { shouldValidate: true });
+                      }
+                    }}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="em_prestacao_contas" className="text-base font-semibold cursor-pointer">
+                    Em prestação de contas?
+                  </Label>
+                </div>
+                {emPrestacaoContas && (
+                  <div className="flex-1 max-w-xs">
+                    <Label htmlFor="data_prestacao_contas" className="text-sm">Data de entrada em prestação de contas *</Label>
+                    <Input
+                      id="data_prestacao_contas"
+                      type="date"
+                      {...register('data_prestacao_contas', { required: 'Campo obrigatório ao marcar "Em prestação de contas"' })}
+                      className="mt-1"
+                    />
+                    {errors.data_prestacao_contas && (
+                      <p className="text-sm text-red-600 mt-1">{errors.data_prestacao_contas.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 ml-8">
+                Marque se o processo está em fase de prestação de contas
               </p>
             </div>
 
@@ -614,6 +720,15 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 processId={initialData?.id}
                 onParcelChange={handleParcelChange}
                 isEdit={isEdit}
+              />
+            </div>
+
+            {/* Seção de gestão de aditivos */}
+            <div className="mt-6">
+              <AddendumManager
+                processId={initialData?.id}
+                isEdit={isEdit}
+                onAddendumChange={handleFormSuccess}
               />
             </div>
             </div>
