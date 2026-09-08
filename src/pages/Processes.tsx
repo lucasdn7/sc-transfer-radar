@@ -617,61 +617,129 @@ export default function Processes() {
                 const searchLower = debouncedSearchTerm.toLowerCase();
                 return (
                   !searchTerm ||
+                  event.process_number?.toLowerCase().includes(searchLower) ||
                   event.nome?.toLowerCase().includes(searchLower) ||
                   event.municipio_nome?.toLowerCase().includes(searchLower) ||
                   event.tipo?.toLowerCase().includes(searchLower)
                 );
               })
-              .map((event: any) => (
-                <Card key={event.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-2">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Evento {event.ano || ''}
-                          <Badge variant="secondary" className="ml-2">
-                            Evento
-                          </Badge>
-                        </CardTitle>
-                        <Badge variant="secondary">
-                          {event.contrato_assinado === 'sim' ? 'Assinado' : event.contrato_assinado === 'arquivado' ? 'Arquivado' : 'Não assinado'}
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600">
-                          {formatCurrency(event.valor_concedente)}
+              .map((event: any) => {
+                // Formatar data do evento
+                const formatDateRange = () => {
+                  const inicio = event.plano_de_trabalho_inicio;
+                  const fim = event.plano_de_trabalho_final;
+                  if (!inicio && !fim) return 'Não informada';
+                  
+                  const formatPart = (dateStr: string) => {
+                    if (!dateStr) return '';
+                    // Tentar formatar como DD/MM/AAAA
+                    const parts = dateStr.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+                    if (parts) {
+                      return `${parts[1]}/${parts[2]}/${parts[3]}`;
+                    }
+                    return dateStr;
+                  };
+                  
+                  const inicioFormatted = formatPart(inicio);
+                  const fimFormatted = formatPart(fim);
+                  
+                  if (inicioFormatted && fimFormatted) {
+                    return `${inicioFormatted} - ${fimFormatted}`;
+                  }
+                  return inicioFormatted || fimFormatted || 'Não informada';
+                };
+
+                const valorLicitado = (event.valor_concedente || 0) + (event.valor_proponente || 0);
+
+                return (
+                  <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            {event.process_number || `Evento ${event.ano || ''}`}
+                            <Badge variant="secondary" className="ml-2">
+                              Evento
+                            </Badge>
+                            {/* Botão de link externo */}
+                            {event.link_plataforma_governo && (
+                              <a
+                                href={event.link_plataforma_governo}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-blue-600 hover:text-blue-800"
+                                title="Acessar plataforma do governo"
+                              >
+                                <ExternalLink className="h-5 w-5 inline" />
+                              </a>
+                            )}
+                          </CardTitle>
+                          {/* Badge de status não é exibido para eventos */}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          Valor Concedente
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatCurrency(event.valor_concedente)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Valor Total
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-1">Nome:</h3>
-                      <p className="text-sm text-gray-600">{event.nome}</p>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-1">Município:</h3>
-                      <p className="text-sm text-gray-600">{event.municipio_nome || 'Não informado'}</p>
-                    </div>
-                    {event.tipo && (
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                       <div>
-                        <h3 className="font-medium mb-1">Tipo:</h3>
-                        <p className="text-sm text-gray-600">{event.tipo}</p>
+                        <h3 className="font-medium mb-1">Objeto:</h3>
+                        <p className="text-gray-600">{event.nome}</p>
                       </div>
-                    )}
-                    {event.nucleo_origem_texto && (
-                      <div>
-                        <h3 className="font-medium mb-1">Núcleo de Origem:</h3>
-                        <p className="text-sm text-gray-600">{event.nucleo_origem_texto}</p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="h-4 w-4 mr-2" />
+                          <span>
+                            {event.municipio_nome || 'Não informado'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>
+                            Data do evento: {formatDateRange()}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+
+                      {event.nucleo_origem_texto && (
+                        <div className="text-sm text-gray-600">
+                          <strong>Núcleo Regional:</strong> {event.nucleo_origem_texto}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                        <div className="text-center">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatCurrency(event.valor_concedente)}
+                          </div>
+                          <div className="text-xs text-gray-500">Concedente</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatCurrency(event.valor_proponente)}
+                          </div>
+                          <div className="text-xs text-gray-500">Contrapartida</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatCurrency(valorLicitado)}
+                          </div>
+                          <div className="text-xs text-gray-500">Licitado</div>
+                        </div>
+                      </div>
+                      {/* Parcelas Pagas / Valor Repassado / Saldo a Repassar não são exibidos para eventos */}
+                    </CardContent>
+                  </Card>
+                );
+              })}
           </div>
         </div>
       )}
