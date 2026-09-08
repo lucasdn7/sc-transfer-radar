@@ -15,7 +15,7 @@ import { ProcessForm } from "@/components/forms/ProcessForm";
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { formatDateDisplay } from "@/utils/dateUtils";
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
@@ -33,6 +33,10 @@ export default function Processes() {
   const [sortField, setSortField] = useState('total_portaria_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'alpha'>('desc');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [searchParams] = useSearchParams();
+  const metricFilter = searchParams.get('filter');
+  const transferFilter = searchParams.get('transfer');
+  const contractFilter = searchParams.get('contract');
 
   const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['processes'],
@@ -72,6 +76,21 @@ export default function Processes() {
       (filterStatus === 'all' || process.status_processos?.nome === filterStatus) &&
       (filterMunicipality === 'all' || process.municipalities?.name === filterMunicipality) &&
       (filterNucleus === 'all' || process.regional_nuclei?.name === filterNucleus) &&
+      (metricFilter !== 'portarias' || Boolean(process.portaria_number)) &&
+      (contractFilter !== 'signed' || process.contrato_assinado) &&
+      (transferFilter !== 'completed' || (() => {
+        const parcels = parcelsMap[process.id] || [];
+        return parcels.length > 0 && parcels.every((parcel) => parcel.payment_date);
+      })()) &&
+      (transferFilter !== 'partial' || (() => {
+        const parcels = parcelsMap[process.id] || [];
+        const paidParcels = parcels.filter((parcel) => parcel.payment_date).length;
+        return paidParcels > 0 && paidParcels < parcels.length;
+      })()) &&
+      (transferFilter !== 'pending' || (() => {
+        const parcels = parcelsMap[process.id] || [];
+        return parcels.some((parcel) => !parcel.payment_date);
+      })()) &&
       (
         process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
         process.object.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
