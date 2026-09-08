@@ -11,6 +11,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { layoutPosition } = useTheme();
 
   const handleMenuToggle = () => {
@@ -19,6 +20,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleSidebarClose = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed);
   };
 
   if (layoutPosition === "top") {
@@ -49,10 +54,10 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       <div className="hidden md:fixed md:inset-y-0 md:flex md:flex-col">
-        <Sidebar />
+        <Sidebar onCollapseChange={handleSidebarCollapse} />
       </div>
 
-      <main className="pt-20 md:pl-16 transition-all duration-200">
+      <main className={`pt-20 transition-all duration-200 ${isSidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
         <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-8 lg:px-10">
           <PageBreadcrumb />
           {children}

@@ -2,15 +2,12 @@ import { Component, MouseEvent, ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { OptimizedStatsCards } from "@/components/dashboard/OptimizedStatsCards";
-import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { TransferProgressBar } from "@/components/dashboard/TransferProgressBar";
 import { ProcessStatusOverview } from "@/components/dashboard/ProcessStatusOverview";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import { EventStatsCards } from "@/components/dashboard/EventStatsCards";
-import { EventDashboardCharts } from "@/components/dashboard/EventDashboardCharts";
 import { EventCalendar } from "@/components/dashboard/EventCalendar";
 import { TotalStatsCards } from "@/components/dashboard/TotalStatsCards";
-import { TotalDashboardCharts } from "@/components/dashboard/TotalDashboardCharts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -132,18 +129,15 @@ export default function Dashboard() {
               <CollapsibleCard id="stats-cards"><OptimizedStatsCards /></CollapsibleCard>
               <CollapsibleCard id="transfer-progress"><TransferProgressBar /></CollapsibleCard>
               <CollapsibleCard id="process-status"><ProcessStatusOverview /></CollapsibleCard>
-              <CollapsibleCard id="dashboard-charts"><DashboardCharts /></CollapsibleCard>
             </>
           ) : dashboardMode === "eventos" ? (
             <>
               <CollapsibleCard id="event-stats-cards"><EventStatsCards /></CollapsibleCard>
-              <CollapsibleCard id="event-dashboard-charts"><EventDashboardCharts /></CollapsibleCard>
               <CollapsibleCard id="event-calendar"><EventCalendar /></CollapsibleCard>
             </>
           ) : (
             <>
               <CollapsibleCard id="total-stats-cards"><TotalStatsCards /></CollapsibleCard>
-              <CollapsibleCard id="total-dashboard-charts"><TotalDashboardCharts /></CollapsibleCard>
             </>
           )}
         </DashboardIndicatorNavigation>

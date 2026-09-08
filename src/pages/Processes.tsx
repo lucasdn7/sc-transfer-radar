@@ -30,6 +30,7 @@ export default function Processes() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterMunicipality, setFilterMunicipality] = useState('all');
   const [filterNucleus, setFilterNucleus] = useState('all');
+  const [filterType, setFilterType] = useState<'all' | 'obras' | 'eventos'>('all');
   const [sortField, setSortField] = useState('total_portaria_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'alpha'>('desc');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
@@ -56,6 +57,19 @@ export default function Processes() {
     },
   });
 
+  const { data: events } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Buscar status do Supabase para o filtro
   const { data: statusList = [] } = useQuery({
     queryKey: ['status-processos'],
@@ -72,31 +86,36 @@ export default function Processes() {
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 400);
   // Filtros aplicados
   const filteredProcesses = (processes || [])
-    .filter(process =>
-      (filterStatus === 'all' || process.status_processos?.nome === filterStatus) &&
-      (filterMunicipality === 'all' || process.municipalities?.name === filterMunicipality) &&
-      (filterNucleus === 'all' || process.regional_nuclei?.name === filterNucleus) &&
-      (metricFilter !== 'portarias' || Boolean(process.portaria_number)) &&
-      (contractFilter !== 'signed' || process.contrato_assinado) &&
-      (transferFilter !== 'completed' || (() => {
-        const parcels = parcelsMap[process.id] || [];
-        return parcels.length > 0 && parcels.every((parcel) => parcel.payment_date);
-      })()) &&
-      (transferFilter !== 'partial' || (() => {
-        const parcels = parcelsMap[process.id] || [];
-        const paidParcels = parcels.filter((parcel) => parcel.payment_date).length;
-        return paidParcels > 0 && paidParcels < parcels.length;
-      })()) &&
-      (transferFilter !== 'pending' || (() => {
-        const parcels = parcelsMap[process.id] || [];
-        return parcels.some((parcel) => !parcel.payment_date);
-      })()) &&
-      (
-        process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        process.object.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        process.municipalities?.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      )
-    )
+    .filter(process => {
+      // Filtro por tipo: esconder obras quando filterType é 'eventos'
+      if (filterType === 'eventos') return false;
+      
+      return (
+        (filterStatus === 'all' || process.status_processos?.nome === filterStatus) &&
+        (filterMunicipality === 'all' || process.municipalities?.name === filterMunicipality) &&
+        (filterNucleus === 'all' || process.regional_nuclei?.name === filterNucleus) &&
+        (metricFilter !== 'portarias' || Boolean(process.portaria_number)) &&
+        (contractFilter !== 'signed' || process.contrato_assinado) &&
+        (transferFilter !== 'completed' || (() => {
+          const parcels = parcelsMap[process.id] || [];
+          return parcels.length > 0 && parcels.every((parcel) => parcel.payment_date);
+        })()) &&
+        (transferFilter !== 'partial' || (() => {
+          const parcels = parcelsMap[process.id] || [];
+          const paidParcels = parcels.filter((parcel) => parcel.payment_date).length;
+          return paidParcels > 0 && paidParcels < parcels.length;
+        })()) &&
+        (transferFilter !== 'pending' || (() => {
+          const parcels = parcelsMap[process.id] || [];
+          return parcels.some((parcel) => !parcel.payment_date);
+        })()) &&
+        (
+          process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          process.object.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          process.municipalities?.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        )
+      );
+    })
     .sort((a, b) => {
       if (sortOrder === 'alpha') {
         return String(a[sortField] || '').localeCompare(String(b[sortField] || ''));
@@ -239,6 +258,15 @@ export default function Processes() {
           </PopoverTrigger>
           <PopoverContent className="w-64">
             <div className="space-y-2">
+              <label className="text-xs font-semibold" htmlFor="filter-type">Tipo</label>
+              <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+                <SelectTrigger id="filter-type"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="obras">Obras</SelectItem>
+                  <SelectItem value="eventos">Eventos</SelectItem>
+                </SelectContent>
+              </Select>
               <label className="text-xs font-semibold" htmlFor="filter-status">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger id="filter-status"><SelectValue placeholder="Todos" /></SelectTrigger>
@@ -576,6 +604,75 @@ export default function Processes() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Seção de Eventos - exibida quando filterType não é 'obras' */}
+      {filterType !== 'obras' && events && events.length > 0 && (
+        <div className="mt-8 space-y-4">
+          <h2 className="text-2xl font-bold">Eventos</h2>
+          <div className="grid gap-6">
+            {events
+              .filter((event: any) => {
+                const searchLower = debouncedSearchTerm.toLowerCase();
+                return (
+                  !searchTerm ||
+                  event.nome?.toLowerCase().includes(searchLower) ||
+                  event.municipio_nome?.toLowerCase().includes(searchLower) ||
+                  event.tipo?.toLowerCase().includes(searchLower)
+                );
+              })
+              .map((event: any) => (
+                <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Evento {event.ano || ''}
+                          <Badge variant="secondary" className="ml-2">
+                            Evento
+                          </Badge>
+                        </CardTitle>
+                        <Badge variant="secondary">
+                          {event.contrato_assinado === 'sim' ? 'Assinado' : event.contrato_assinado === 'arquivado' ? 'Arquivado' : 'Não assinado'}
+                        </Badge>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-green-600">
+                          {formatCurrency(event.valor_concedente)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Valor Concedente
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-1">Nome:</h3>
+                      <p className="text-sm text-gray-600">{event.nome}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">Município:</h3>
+                      <p className="text-sm text-gray-600">{event.municipio_nome || 'Não informado'}</p>
+                    </div>
+                    {event.tipo && (
+                      <div>
+                        <h3 className="font-medium mb-1">Tipo:</h3>
+                        <p className="text-sm text-gray-600">{event.tipo}</p>
+                      </div>
+                    )}
+                    {event.nucleo_origem_texto && (
+                      <div>
+                        <h3 className="font-medium mb-1">Núcleo de Origem:</h3>
+                        <p className="text-sm text-gray-600">{event.nucleo_origem_texto}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
         </div>
       )}
     </div>

@@ -10,11 +10,21 @@ import { cn } from "@/lib/utils";
 import { navigationConfig } from "@/config/navigation.config";
 import { useState, useEffect } from "react";
 
-export function Sidebar() {
+interface SidebarProps {
+  onCollapseChange?: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ onCollapseChange }: SidebarProps) {
   const location = useLocation();
   const { userRole } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleCollapse = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    onCollapseChange?.(newCollapsed);
+  };
 
   // Auto-expand group containing current page
   useEffect(() => {
@@ -39,10 +49,6 @@ export function Sidebar() {
       }
       return newSet;
     });
-  };
-
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
   };
 
   return (
