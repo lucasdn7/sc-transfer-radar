@@ -10,16 +10,42 @@ import { EventCalendar } from "@/components/dashboard/EventCalendar";
 import { TotalStatsCards } from "@/components/dashboard/TotalStatsCards";
 import { TotalDashboardCharts } from "@/components/dashboard/TotalDashboardCharts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useState } from "react";
 
 export default function Dashboard() {
   const [dashboardMode, setDashboardMode] = useState<"obras" | "eventos" | "total">("obras");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+  };
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen px-4" role="alert" aria-live="assertive">
+        <div className="max-w-md w-full text-center space-y-4">
+          <h2 className="text-2xl font-bold text-foreground">Erro ao carregar o Dashboard</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <button
+            onClick={() => { setError(null); window.location.reload(); }}
+            className="inline-flex items-center justify-center rounded-lg bg-[var(--accent-green)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-green)]/90 transition-colors"
+          >
+            Recarregar Página
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 px-4 md:px-6 lg:px-8" role="main" aria-label="Dashboard de transferências">
+    <div className="min-h-screen space-y-6 px-4 md:px-6 lg:px-8 py-4 md:py-6" role="main" aria-label="Dashboard de transferências">
       <Breadcrumb>
         <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage>Dashboard</BreadcrumbPage>
           </BreadcrumbItem>

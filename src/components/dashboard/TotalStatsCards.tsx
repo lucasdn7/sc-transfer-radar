@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Building, DollarSign, FileCheck, FileText, MapPin, TrendingDown } from "lucide-react";
 import { useTotalDashboard } from "@/hooks/useTotalDashboard";
 import { formatCurrency } from "@/utils/processUtils";
+import { Link } from "react-router-dom";
 
 interface StatCardProps {
   title: string;
@@ -10,10 +11,11 @@ interface StatCardProps {
   change: string;
   icon: React.ElementType;
   color?: string;
+  linkTo?: string;
 }
 
-function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accent-green)]" }: StatCardProps) {
-  return (
+function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accent-green)]", linkTo }: StatCardProps) {
+  const cardContent = (
     <Card className="overflow-hidden hover:border-[var(--accent-green)]/40 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="metric-label">{title}</CardTitle>
@@ -27,6 +29,16 @@ function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accen
       </CardContent>
     </Card>
   );
+
+  if (linkTo) {
+    return (
+      <Link to={linkTo} className="block no-underline">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }
 
 export function TotalStatsCards() {
@@ -54,15 +66,15 @@ export function TotalStatsCards() {
   const pctContratos = Math.min(Math.max(data?.stats.pctContratosAssinadosPorValor || 0, 0), 100);
 
   const statsData = [
-    { title: "Total de Processos", value: data?.stats.totalProcesses.toLocaleString("pt-BR") || "0", change: "Obras + eventos", icon: FileText, color: "text-[var(--accent-green)]" },
-    { title: "Total das Portarias", value: formatCurrency(data?.stats.totalPortarias || 0), change: "Obras + eventos", icon: DollarSign, color: "text-[var(--accent-green)]" },
-    { title: "Contratos Assinados", value: data?.stats.signedContracts.toLocaleString("pt-BR") || "0", change: "Processos com contrato assinado", icon: FileCheck, color: "text-[var(--accent-green)]" },
-    { title: "Valor Total Contratado", value: formatCurrency(data?.stats.valorTotalContratoAssinado || 0), change: "Valor total com contrato assinado", icon: DollarSign, color: "text-[var(--accent-green)]" },
-    { title: "Processos com Repasse Concluído", value: data?.stats.processosRepasseConcluido.toLocaleString("pt-BR") || "0", change: "Obras com parcelas pagas + eventos pagos", icon: FileCheck, color: "text-[var(--accent-green)]" },
-    { title: "Processos com 1ª Parcela Paga", value: data?.stats.processosPrimeiraParcela.toLocaleString("pt-BR") || "0", change: "Obras parciais + eventos pagos", icon: FileText, color: "text-[var(--accent-amber)]" },
-    { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "Municípios únicos em obras e eventos", icon: Building, color: "text-[var(--accent-amber)]" },
-    { title: "Núcleos Regionais", value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: MapPin, color: "text-[var(--accent-amber)]" },
-    { title: "Saldo a Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Valor pendente de repasse", icon: TrendingDown, color: "text-[var(--accent-amber)]" },
+    { title: "Total de Processos", value: data?.stats.totalProcesses.toLocaleString("pt-BR") || "0", change: "Obras + eventos", icon: FileText, color: "text-[var(--accent-green)]", linkTo: "/processes" },
+    { title: "Total das Portarias", value: formatCurrency(data?.stats.totalPortarias || 0), change: "Obras + eventos", icon: DollarSign, color: "text-[var(--accent-green)]", linkTo: "/processes?sort=valor" },
+    { title: "Contratos Assinados", value: data?.stats.signedContracts.toLocaleString("pt-BR") || "0", change: "Processos com contrato assinado", icon: FileCheck, color: "text-[var(--accent-green)]", linkTo: "/processes?status=assinado" },
+    { title: "Valor Total Contratado", value: formatCurrency(data?.stats.valorTotalContratoAssinado || 0), change: "Valor total com contrato assinado", icon: DollarSign, color: "text-[var(--accent-green)]", linkTo: "/processes?status=assinado&sort=valor" },
+    { title: "Processos com Repasse Concluído", value: data?.stats.processosRepasseConcluido.toLocaleString("pt-BR") || "0", change: "Obras com parcelas pagas + eventos pagos", icon: FileCheck, color: "text-[var(--accent-green)]", linkTo: "/processes?status=pago" },
+    { title: "Processos com 1ª Parcela Paga", value: data?.stats.processosPrimeiraParcela.toLocaleString("pt-BR") || "0", change: "Obras parciais + eventos pagos", icon: FileText, color: "text-[var(--accent-amber)]", linkTo: "/processes?status=parcial" },
+    { title: "Municípios Beneficiados", value: data?.stats.municipalitiesCount.toLocaleString("pt-BR") || "0", change: "Municípios únicos em obras e eventos", icon: Building, color: "text-[var(--accent-amber)]", linkTo: "/municipalities" },
+    { title: "Núcleos Regionais", value: data?.stats.regionalNucleiCount.toLocaleString("pt-BR") || "0", change: "União distinta de obras e eventos", icon: MapPin, color: "text-[var(--accent-amber)]", linkTo: "/regional-nuclei" },
+    { title: "Saldo a Repassar", value: formatCurrency(data?.stats.pendingTransfer || 0), change: "Valor pendente de repasse", icon: TrendingDown, color: "text-[var(--accent-amber)]", linkTo: "/reports?view=saldo" },
   ];
 
   return (

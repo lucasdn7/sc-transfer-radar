@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Building, DollarSign, FileCheck, FileText, MapPin, TrendingDown } from "lucide-react";
 import { useEventsDashboard } from "@/hooks/useEventsDashboard";
 import { formatCurrency } from "@/utils/processUtils";
+import { Link } from "react-router-dom";
 
 interface StatCardProps {
   title: string;
@@ -10,10 +11,11 @@ interface StatCardProps {
   change: string;
   icon: React.ElementType;
   color?: string;
+  linkTo?: string;
 }
 
-function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accent-green)]" }: StatCardProps) {
-  return (
+function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accent-green)]", linkTo }: StatCardProps) {
+  const cardContent = (
     <Card className="overflow-hidden hover:border-[var(--accent-green)]/40 transition-colors">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="metric-label">{title}</CardTitle>
@@ -27,6 +29,16 @@ function StatCard({ title, value, change, icon: Icon, color = "text-[var(--accen
       </CardContent>
     </Card>
   );
+
+  if (linkTo) {
+    return (
+      <Link to={linkTo} className="block no-underline">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }
 
 export function EventStatsCards() {
@@ -60,6 +72,7 @@ export function EventStatsCards() {
       change: "Eventos cadastrados",
       icon: FileText,
       color: "text-[var(--accent-green)]",
+      linkTo: "/processes?filter=events"
     },
     {
       title: "Total das Portarias",
@@ -67,6 +80,7 @@ export function EventStatsCards() {
       change: "Soma dos valores concedentes",
       icon: FileCheck,
       color: "text-[var(--accent-green)]",
+      linkTo: "/processes?filter=events&sort=valor"
     },
     {
       title: "Contratos Assinados",
@@ -74,6 +88,7 @@ export function EventStatsCards() {
       change: "Eventos com contrato assinado",
       icon: FileText,
       color: "text-[var(--accent-green)]",
+      linkTo: "/processes?filter=events&status=assinado"
     },
     {
       title: "Valores dos Contratos",
@@ -81,6 +96,7 @@ export function EventStatsCards() {
       change: "Valor concedente dos contratos",
       icon: DollarSign,
       color: "text-[var(--accent-green)]",
+      linkTo: "/processes?filter=events&status=assinado&sort=valor"
     },
     {
       title: "Processos com Repasse Concluído",
@@ -88,6 +104,7 @@ export function EventStatsCards() {
       change: "Eventos pagos",
       icon: DollarSign,
       color: "text-[var(--accent-green)]",
+      linkTo: "/processes?filter=events&status=pago"
     },
     {
       title: "Processos com a 1ª parcela paga",
@@ -95,6 +112,7 @@ export function EventStatsCards() {
       change: "Eventos pagos",
       icon: TrendingDown,
       color: "text-[var(--accent-amber)]",
+      linkTo: "/processes?filter=events&status=parcial"
     },
     {
       title: "Municípios Beneficiados",
@@ -102,6 +120,7 @@ export function EventStatsCards() {
       change: "Municípios distintos em eventos",
       icon: Building,
       color: "text-[var(--accent-amber)]",
+      linkTo: "/municipalities"
     },
     {
       title: "Núcleos Regionais",
@@ -109,6 +128,7 @@ export function EventStatsCards() {
       change: "Núcleos regionais distintos",
       icon: MapPin,
       color: "text-[var(--accent-amber)]",
+      linkTo: "/regional-nuclei"
     },
     {
       title: "Saldo a repassar",
@@ -116,6 +136,7 @@ export function EventStatsCards() {
       change: "Contratos assinados menos eventos pagos",
       icon: TrendingDown,
       color: "text-[var(--accent-amber)]",
+      linkTo: "/reports?view=saldo"
     },
   ];
 
