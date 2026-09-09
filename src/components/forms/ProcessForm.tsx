@@ -96,6 +96,12 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     setCurrentParcels(parcels);
   };
 
+  // Função para lidar com mudanças nos aditivos (refetch do processo para atualizar vigência)
+  const handleAddendumChange = () => {
+    // Esta função será usada para notificar o componente pai para refetch
+    // Por enquanto, não faz nada pois o refetch é feito pelo componente pai
+  };
+
   // Remover busca por latitude/longitude já que não existem na tabela municipalities
   useEffect(() => {
     const subscription = watch(async (value, { name }) => {
@@ -451,6 +457,10 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                   <SelectItem value="Infraestrutura Turística Geral/Diversos">Infraestrutura Turística Geral/Diversos</SelectItem>
                 </SelectContent>
               </Select>
+              <input
+                type="hidden"
+                {...register('categoria')}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -728,7 +738,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
               <AddendumManager
                 processId={initialData?.id}
                 isEdit={isEdit}
-                onAddendumChange={handleFormSuccess}
+                onAddendumChange={handleAddendumChange}
               />
             </div>
             </div>
