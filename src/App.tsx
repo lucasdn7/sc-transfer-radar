@@ -30,6 +30,7 @@ import MunicipalityDetail from "./pages/MunicipalityDetail";
 import TerritorialInconsistencies from "./pages/TerritorialInconsistencies";
 import Indicators from "./pages/Indicators";
 import Charts from "./pages/Charts";
+import Assistente from "./pages/Assistente";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                   <Route path="/dart" element={<DART />} />
                   <Route path="/fluxograma" element={<Flowchart />} />
+                  <Route path="/assistente" element={<Assistente />} />
                 </Routes>
               </AppLayout>
             </BrowserRouter>

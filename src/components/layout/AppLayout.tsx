@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { TopHeader } from "./TopHeader";
 import { PageBreadcrumb } from "./Breadcrumb";
 import { useTheme } from "@/hooks/useTheme";
+import { Assistente } from "@/pages/Assistente";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {children}
           </div>
         </main>
+        <Assistente />
       </div>
     );
   }
@@ -63,6 +65,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </div>
       </main>
+      <Assistente />
     </div>
   );
 }
