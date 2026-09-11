@@ -23,6 +23,17 @@ interface ProcessDataForSheets {
   link_plataforma_governo?: string;
 }
 
+function getGoogleSheetsApiUrl(): string | null {
+  const apiUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '');
+
+  if (!apiUrl) {
+    console.info('Envio ao Google Sheets ignorado: VITE_API_URL não foi configurada.');
+    return null;
+  }
+
+  return apiUrl;
+}
+
 // Função para buscar o nome do município pelo ID
 async function getMunicipalityName(municipalityId: number): Promise<string> {
   try {
@@ -92,8 +103,10 @@ export async function enviarParaGoogleSheets(processData: ProcessDataForSheets):
 
     console.log('📝 Dados preparados com nomes:', dataToSend);
 
-    // URL da API - ajustar conforme necessário para produção
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    // A API deve ser configurada no ambiente que hospeda o frontend. Não usar
+    // localhost como fallback evita tentativas inválidas no navegador do usuário.
+    const API_URL = getGoogleSheetsApiUrl();
+    if (!API_URL) return;
     const endpoint = `${API_URL}/api/sheets`;
 
     // Fazer requisição POST para o endpoint
@@ -132,7 +145,8 @@ export async function enviarParaGoogleSheets(processData: ProcessDataForSheets):
  */
 export async function testarConexaoGoogleSheets(): Promise<boolean> {
   try {
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const API_URL = getGoogleSheetsApiUrl();
+    if (!API_URL) return false;
     const endpoint = `${API_URL}/api/sheets/test`;
 
     const response = await fetch(endpoint);
