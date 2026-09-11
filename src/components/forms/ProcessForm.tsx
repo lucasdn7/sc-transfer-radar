@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParcelManager } from '@/components/processes/ParcelManager';
 import { AddendumManager } from '@/components/processes/AddendumManager';
-import { ImageUpload } from '@/components/forms/ImageUpload';
+import { ImageUpload, type ProcessImage } from '@/components/forms/ImageUpload';
 import type { Database } from '@/integrations/supabase/types';
 import { enviarParaGoogleSheets } from '@/utils/googleSheetsUtils';
 
@@ -44,14 +44,6 @@ interface Parcel {
   value: number;
   payment_date: string | null;
   process_id?: number;
-}
-
-interface ProcessImage {
-  id?: number;
-  tipo: 'principal' | 'medicao';
-  parcela_id?: number;
-  image_url: string;
-  percentual_execucao?: number;
 }
 
 interface ProcessFormProps {
@@ -160,9 +152,9 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         .select('*')
         .eq('process_id', processId)
         .eq('tipo', 'principal')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Erro ao carregar imagem principal:', error);
       }
 
@@ -325,18 +317,6 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
           throw error;
         }
         processId = initialData.id;
-        
-        // Primeiro remove todas as parcelas existentes
-        console.log('Removendo parcelas existentes do processo:', processId);
-        const { error: deleteError } = await supabase
-          .from('process_parcels')
-          .delete()
-          .eq('process_id', processId);
-
-        if (deleteError) {
-          console.error('Erro ao remover parcelas existentes:', deleteError);
-          throw deleteError;
-        }
       } else {
         console.log('Criando novo processo');
         const { data: newProcess, error } = await supabase
@@ -353,30 +333,14 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         console.log('Processo criado com ID:', processId);
       }
 
-      // Agora insere as novas parcelas
-      if (currentParcels && currentParcels.length > 0) {
-        const parcelasToInsert = currentParcels
-          .filter(p => p.value > 0)
-          .map((parcela, index) => ({
-            process_id: processId,
-            parcel_number: index + 1,
-            value: parcela.value,
-            payment_date: parcela.payment_date,
-          }));
-
-        console.log('Inserindo parcelas:', parcelasToInsert);
-
-        if (parcelasToInsert.length > 0) {
-          const { error: parcelError } = await supabase
-            .from('process_parcels')
-            .insert(parcelasToInsert);
-
-          if (parcelError) {
-            console.error('Erro ao inserir parcelas:', parcelError);
-            throw parcelError;
-          }
-          console.log('Parcelas inseridas com sucesso');
-        }
+      // ParcelManager remove parcelas existentes imediatamente. Aqui apenas
+      // atualizamos/inserimos para preservar os IDs e as fotos de medição.
+      for (const [index, parcel] of currentParcels.entries()) {
+        const parcelData = { parcel_number: index + 1, value: parcel.value, payment_date: parcel.payment_date };
+        const { error: parcelError } = parcel.id
+          ? await supabase.from('process_parcels').update(parcelData).eq('id', parcel.id)
+          : await supabase.from('process_parcels').insert({ ...parcelData, process_id: processId });
+        if (parcelError) throw parcelError;
       }
 
       toast({

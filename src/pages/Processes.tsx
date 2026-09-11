@@ -10,7 +10,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { getStatusColor, getStatusLabel, formatCurrency } from "@/utils/processUtils";
 import type { Database } from "@/integrations/supabase/types";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProcessForm } from "@/components/forms/ProcessForm";
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -222,6 +222,9 @@ export default function Processes() {
                 <DialogTitle>
                   {editingProcess ? 'Editar Processo' : 'Novo Processo'}
                 </DialogTitle>
+                <DialogDescription>
+                  {editingProcess ? 'Atualize os dados, parcelas e fotos da obra.' : 'Preencha os dados para cadastrar um novo processo.'}
+                </DialogDescription>
               </DialogHeader>
               <ProcessForm
                 onSuccess={handleFormSuccess}
