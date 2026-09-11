@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/processUtils";
 import { Plus, Trash2 } from "lucide-react";
-import { ImageUpload } from "@/components/forms/ImageUpload";
+import { ImageUpload, type ProcessImage } from "@/components/forms/ImageUpload";
 
 interface Parcel {
   id?: number;
@@ -16,14 +16,6 @@ interface Parcel {
   value: number;
   payment_date: string | null;
   process_id?: number;
-}
-
-interface ProcessImage {
-  id?: number;
-  tipo: 'principal' | 'medicao';
-  parcela_id?: number;
-  image_url: string;
-  percentual_execucao?: number;
 }
 
 interface ParcelManagerProps {
@@ -121,7 +113,7 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
 
       const imagesMap = new Map<number, ProcessImage>();
       data?.forEach(image => {
-        if (image.parcela_id) {
+        if (image.parcela_id !== null) {
           imagesMap.set(image.parcela_id, image);
         }
       });
@@ -197,6 +189,15 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
   };
 
   const removeParcel = async (index: number) => {
+    if (parcels.length <= 1) {
+      toast({
+        title: "Não é possível remover",
+        description: "É necessário ter pelo menos uma parcela.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setParcels(prev => {
       // Não permitir remoção se há apenas uma parcela
       if (prev.length <= 1) {
@@ -215,6 +216,10 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
     const parcelToRemove = parcels[index];
     if (isEdit && parcelToRemove.id && processId) {
       try {
+        const image = parcelImages.get(parcelToRemove.id);
+        if (image?.image_path) {
+          await supabase.storage.from('obras').remove([image.image_path]);
+        }
         const { error } = await supabase
           .from('process_parcels')
           .delete()
@@ -390,9 +395,9 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
               {parcels.map((parcel, index) => (
                 <div 
                   key={`parcel-${parcel.id || index}`} 
-                  className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+                  className="space-y-4 p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* Linha 1: Checkbox e Label */}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex items-center min-w-[140px] w-full sm:w-auto">
                     <Checkbox
                       checked={!!parcel.payment_date}
@@ -451,6 +456,22 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                  </div>
+
+                  {isEdit && processId && parcel.id ? (
+                    <ImageUpload
+                      processId={processId}
+                      tipo="medicao"
+                      parcelaId={parcel.id}
+                      parcelaNumber={parcel.parcel_number}
+                      existingImage={parcelImages.get(parcel.id)}
+                      onUploadSuccess={(image) => handleParcelImageUpload(parcel.id!, image)}
+                      onDeleteSuccess={() => handleParcelImageDelete(parcel.id!)}
+                      showPercentual
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Salve o processo para adicionar a foto da medição.</p>
+                  )}
                 </div>
               ))}
             </div>

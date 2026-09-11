@@ -1,210 +1,147 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 
-interface ProcessImage {
+export interface ProcessImage {
   id?: number;
-  tipo: 'principal' | 'medicao';
-  parcela_id?: number;
+  image_path?: string;
   image_url: string;
-  percentual_execucao?: number;
+  parcela_id?: number | null;
+  percentual_execucao?: number | null;
+  tipo: 'principal' | 'medicao';
 }
 
 interface ImageUploadProps {
   processId: number;
-  tipo: 'principal' | 'medicao';
+  tipo: ProcessImage['tipo'];
   parcelaId?: number;
+  parcelaNumber?: number;
   existingImage?: ProcessImage;
   onUploadSuccess: (image: ProcessImage) => void;
   onDeleteSuccess: () => void;
   showPercentual?: boolean;
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
+const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : undefined;
+
 export function ImageUpload({
   processId,
   tipo,
   parcelaId,
+  parcelaNumber,
   existingImage,
   onUploadSuccess,
   onDeleteSuccess,
   showPercentual = false,
 }: ImageUploadProps) {
+  const [file, setFile] = useState<File>();
+  const [previewUrl, setPreviewUrl] = useState<string>();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [percentualExecucao, setPercentualExecucao] = useState<number>(
-    existingImage?.percentual_execucao || 0
-  );
-  const [previewUrl, setPreviewUrl] = useState<string | null>(
-    existingImage?.image_url || null
-  );
+  const [percentualExecucao, setPercentualExecucao] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const validateFile = (file: File): boolean => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
+  useEffect(() => {
+    setFile(undefined);
+    setPreviewUrl(existingImage?.image_url);
+    setPercentualExecucao(existingImage?.percentual_execucao?.toString() ?? '');
+  }, [existingImage?.id, existingImage?.image_url, existingImage?.percentual_execucao]);
 
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Tipo de arquivo inválido',
-        description: 'Apenas arquivos JPG, JPEG e PNG são permitidos.',
-        variant: 'destructive',
-      });
+  useEffect(() => () => {
+    if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  const validateFile = (selectedFile: File) => {
+    if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
+      toast({ title: 'Tipo de arquivo inválido', description: 'Envie uma imagem JPG, JPEG ou PNG.', variant: 'destructive' });
       return false;
     }
-
-    if (file.size > maxSize) {
-      toast({
-        title: 'Arquivo muito grande',
-        description: 'O tamanho máximo permitido é 5MB.',
-        variant: 'destructive',
-      });
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      toast({ title: 'Arquivo muito grande', description: 'O tamanho máximo permitido é 5 MB.', variant: 'destructive' });
       return false;
     }
-
     return true;
   };
 
-  const handleFileSelect = (file: File) => {
-    if (validateFile(file)) {
-      setSelectedFile(file);
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const selectFile = (selectedFile?: File) => {
+    if (!selectedFile || !validateFile(selectedFile)) return;
+    if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+    setFile(selectedFile);
+    setPreviewUrl(URL.createObjectURL(selectedFile));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+  const clearSelection = () => {
+    if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+    setFile(undefined);
+    setPreviewUrl(existingImage?.image_url);
+    if (inputRef.current) inputRef.current.value = '';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current) {
-      dropZoneRef.current.classList.add('border-primary', 'bg-primary/5');
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current) {
-      dropZoneRef.current.classList.remove('border-primary', 'bg-primary/5');
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current) {
-      dropZoneRef.current.classList.remove('border-primary', 'bg-primary/5');
-    }
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+  const getStoragePath = () => {
+    if (existingImage?.image_path) return existingImage.image_path;
+    const marker = '/storage/v1/object/public/obras/';
+    const path = existingImage?.image_url.split(marker)[1];
+    return path ? decodeURIComponent(path.split('?')[0]) : undefined;
   };
 
   const uploadImage = async () => {
-    if (!selectedFile) return;
+    if (!file || (tipo === 'medicao' && !parcelaId)) return;
+    const percentual = percentualExecucao === '' ? null : Number(percentualExecucao);
+    if (percentual !== null && (!Number.isFinite(percentual) || percentual < 0 || percentual > 100)) {
+      toast({ title: 'Percentual inválido', description: 'Informe um percentual entre 0 e 100.', variant: 'destructive' });
+      return;
+    }
 
     setIsUploading(true);
-    setUploadProgress(0);
-
+    setUploadProgress(10);
+    let uploadedPath: string | undefined;
     try {
-      const fileExt = selectedFile.name.split('.').pop();
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8);
-      
-      // Define path based on tipo
-      const folder = tipo === 'principal' ? 'principal' : 'medicoes';
-      const fileName = tipo === 'principal' 
-        ? `${timestamp}-${random}.${fileExt}`
-        : `${timestamp}-parcela-${parcelaId}.${fileExt}`;
-      
-      const filePath = `obras/${processId}/${folder}/${fileName}`;
+      const suffix = Math.random().toString(36).slice(2, 8);
+      uploadedPath = tipo === 'principal'
+        ? `${processId}/principal/${timestamp}-${suffix}.${extension}`
+        : `${processId}/medicoes/${timestamp}-parcela-${parcelaNumber ?? parcelaId}-${suffix}.${extension}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('obras')
-        .upload(filePath, selectedFile, {
-          upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          },
-        });
+      const { error: storageError } = await supabase.storage.from('obras').upload(uploadedPath, file, { upsert: false });
+      if (storageError) throw storageError;
+      setUploadProgress(70);
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('obras')
-        .getPublicUrl(filePath);
-
-      // Insert into process_images table
-      const imageData: any = {
+      const { data: publicUrlData } = supabase.storage.from('obras').getPublicUrl(uploadedPath);
+      const imagePayload = {
         process_id: processId,
         tipo,
-        image_path: filePath,
-        image_url: publicUrl,
+        image_path: uploadedPath,
+        image_url: publicUrlData.publicUrl,
+        parcela_id: tipo === 'medicao' ? parcelaId : null,
+        percentual_execucao: tipo === 'medicao' ? percentual : null,
       };
+      const query = existingImage?.id
+        ? supabase.from('process_images').update(imagePayload).eq('id', existingImage.id).select().single()
+        : supabase.from('process_images').insert(imagePayload).select().single();
+      const { data, error } = await query;
+      if (error) throw error;
 
-      if (tipo === 'medicao' && parcelaId) {
-        imageData.parcela_id = parcelaId;
-        imageData.percentual_execucao = percentualExecucao || null;
-      }
-
-      const { data: insertedImage, error: insertError } = await supabase
-        .from('process_images')
-        .insert(imageData)
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // If it's a principal image, update processes table
       if (tipo === 'principal') {
-        await supabase
-          .from('processes')
-          .update({ imagem_principal_url: publicUrl })
-          .eq('id', processId);
+        const { error: processError } = await supabase.from('processes').update({ imagem_principal_url: publicUrlData.publicUrl }).eq('id', processId);
+        if (processError) throw processError;
       }
-
-      toast({
-        title: 'Imagem enviada com sucesso',
-        description: 'A imagem foi salva e associada ao processo.',
-      });
-
-      onUploadSuccess(insertedImage);
-      setSelectedFile(null);
-    } catch (error: any) {
-      console.error('Erro ao fazer upload:', error);
-      toast({
-        title: 'Erro ao enviar imagem',
-        description: error.message || 'Ocorreu um erro ao enviar a imagem.',
-        variant: 'destructive',
-      });
-      // Revert preview on error
-      if (existingImage?.image_url) {
-        setPreviewUrl(existingImage.image_url);
-      } else {
-        setPreviewUrl(null);
-      }
+      const previousPath = getStoragePath();
+      if (previousPath && previousPath !== uploadedPath) await supabase.storage.from('obras').remove([previousPath]);
+      setUploadProgress(100);
+      onUploadSuccess(data as ProcessImage);
+      toast({ title: 'Imagem enviada com sucesso', description: 'A imagem foi associada ao processo.' });
+    } catch (error: unknown) {
+      if (uploadedPath) await supabase.storage.from('obras').remove([uploadedPath]);
+      toast({ title: 'Erro ao enviar imagem', description: getErrorMessage(error) || 'Não foi possível enviar a imagem.', variant: 'destructive' });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -213,187 +150,30 @@ export function ImageUpload({
 
   const deleteImage = async () => {
     if (!existingImage?.id) return;
-
+    setIsUploading(true);
     try {
-      // Delete from storage
-      if (existingImage.image_url) {
-        const filePath = existingImage.image_url.split('/obras/')[1];
-        if (filePath) {
-          await supabase.storage
-            .from('obras')
-            .remove([`obras/${filePath}`]);
-        }
-      }
-
-      // Delete from database
-      await supabase
-        .from('process_images')
-        .delete()
-        .eq('id', existingImage.id);
-
-      // If it's a principal image, clear from processes table
+      const { error } = await supabase.from('process_images').delete().eq('id', existingImage.id);
+      if (error) throw error;
+      const path = getStoragePath();
+      if (path) await supabase.storage.from('obras').remove([path]);
       if (tipo === 'principal') {
-        await supabase
-          .from('processes')
-          .update({ imagem_principal_url: null })
-          .eq('id', processId);
+        const { error: processError } = await supabase.from('processes').update({ imagem_principal_url: null }).eq('id', processId);
+        if (processError) throw processError;
       }
-
-      toast({
-        title: 'Imagem removida',
-        description: 'A imagem foi removida com sucesso.',
-      });
-
       onDeleteSuccess();
-      setPreviewUrl(null);
-      setSelectedFile(null);
-    } catch (error: any) {
-      console.error('Erro ao deletar imagem:', error);
-      toast({
-        title: 'Erro ao remover imagem',
-        description: error.message || 'Ocorreu um erro ao remover a imagem.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Imagem removida', description: 'A imagem foi removida com sucesso.' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao remover imagem', description: getErrorMessage(error) || 'Não foi possível remover a imagem.', variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  return (
-    <div className="space-y-2">
-      <Label>
-        {tipo === 'principal' ? 'Foto Principal da Obra' : `Foto da Parcela ${parcelaId}`}
-      </Label>
-      
-      {previewUrl ? (
-        <div className="relative group">
-          <div className="relative inline-block">
-            <img
-              src={previewUrl}
-              alt={tipo === 'principal' ? 'Foto principal' : `Foto parcela ${parcelaId}`}
-              className="h-48 w-full object-cover rounded-lg border"
-            />
-            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={deleteImage}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {showPercentual && (
-            <div className="mt-2">
-              <Label htmlFor={`percentual-${parcelaId}`}>
-                % Execução (opcional)
-              </Label>
-              <Input
-                id={`percentual-${parcelaId}`}
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={percentualExecucao || ''}
-                onChange={(e) => setPercentualExecucao(Number(e.target.value) || 0)}
-                placeholder="0.00"
-                className="mt-1"
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div
-          ref={dropZoneRef}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {isUploading ? (
-            <div className="space-y-2">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-              <p className="text-sm text-gray-600">Enviando... {Math.round(uploadProgress)}%</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-            </div>
-          ) : selectedFile ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{selectedFile.name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setPreviewUrl(null);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {showPercentual && (
-                <div>
-                  <Label htmlFor={`percentual-${parcelaId}`}>
-                    % Execução (opcional)
-                  </Label>
-                  <Input
-                    id={`percentual-${parcelaId}`}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={percentualExecucao || ''}
-                    onChange={(e) => setPercentualExecucao(Number(e.target.value) || 0)}
-                    placeholder="0.00"
-                    className="mt-1"
-                  />
-                </div>
-              )}
-              
-              <Button
-                type="button"
-                onClick={uploadImage}
-                disabled={isUploading}
-                className="w-full"
-              >
-                {isUploading ? 'Enviando...' : 'Enviar Imagem'}
-              </Button>
-            </div>
-          ) : (
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full flex flex-col items-center justify-center py-4"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-6 w-6 mb-2 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  {tipo === 'principal' ? 'Adicionar foto principal' : 'Adicionar foto da medição'}
-                </span>
-                <span className="text-xs text-gray-400 mt-1">
-                  JPG, JPEG ou PNG (máx. 5MB)
-                </span>
-              </Button>
-              <Input
-                ref={fileInputRef}
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/jpeg,image/jpg,image/png"
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  const hasSavedImage = Boolean(existingImage?.id && !file);
+  return <div className="space-y-2">
+    <Label>{tipo === 'principal' ? 'Foto Principal da Obra' : `Foto da Medição — Parcela ${parcelaNumber}`}</Label>
+    {showPercentual && <div className="max-w-xs"><Label htmlFor={`percentual-${parcelaId}`}>% Execução (opcional)</Label><Input id={`percentual-${parcelaId}`} type="number" min="0" max="100" step="0.01" value={percentualExecucao} onChange={(event) => setPercentualExecucao(event.target.value)} placeholder="0,00" /></div>}
+    {previewUrl && <div className="relative w-full max-w-md"><img src={previewUrl} alt={tipo === 'principal' ? 'Foto principal da obra' : `Foto da medição da parcela ${parcelaNumber}`} className="h-[200px] w-full rounded-lg border object-cover" />{hasSavedImage && <Button type="button" variant="destructive" size="icon" className="absolute right-2 top-2" disabled={isUploading} onClick={deleteImage} aria-label="Excluir imagem"><X className="h-4 w-4" /></Button>}</div>}
+    {isUploading ? <div className="max-w-md space-y-2"><div className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Enviando imagem… {Math.round(uploadProgress)}%</div><Progress value={uploadProgress} /></div> : file ? <div className="flex max-w-md gap-2"><Button type="button" onClick={uploadImage} className="flex-1">Enviar imagem</Button><Button type="button" variant="outline" onClick={clearSelection}>Cancelar</Button></div> : <div onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); selectFile(event.dataTransfer.files[0]); }} className="max-w-md rounded-lg border-2 border-dashed p-4 text-center"><Button type="button" variant="outline" onClick={() => inputRef.current?.click()}><Upload className="mr-2 h-4 w-4" />{hasSavedImage ? 'Trocar foto' : tipo === 'principal' ? 'Adicionar foto principal' : 'Adicionar foto da medição'}</Button><p className="mt-2 text-xs text-muted-foreground">Arraste uma imagem aqui ou selecione um arquivo JPG, JPEG ou PNG (máx. 5 MB).</p><Input ref={inputRef} type="file" className="hidden" accept="image/jpeg,image/png,.jpg,.jpeg,.png" onChange={(event) => selectFile(event.target.files?.[0])} /></div>}
+  </div>;
 }

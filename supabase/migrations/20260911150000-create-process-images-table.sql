@@ -83,11 +83,15 @@ CREATE TRIGGER update_process_images_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION public.update_updated_at_column();
 
--- Garantir que a constraint de unicidade existe
-ALTER TABLE public.process_images 
-ADD CONSTRAINT IF NOT EXISTS unique_process_principal_image 
-UNIQUE (process_id, tipo) 
+-- Uma foto principal por processo e uma foto de medição por parcela.
+-- PostgreSQL suporta a condição em índices únicos parciais, não em constraints.
+CREATE UNIQUE INDEX IF NOT EXISTS unique_process_principal_image
+ON public.process_images (process_id)
 WHERE tipo = 'principal';
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_process_parcel_measurement_image
+ON public.process_images (parcela_id)
+WHERE tipo = 'medicao' AND parcela_id IS NOT NULL;
 
 -- Adicionar coluna imagem_principal_url na tabela processes se não existir
 DO $$
