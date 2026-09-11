@@ -29,7 +29,11 @@ interface ImageUploadProps {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
-const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : undefined;
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') return error.message;
+  return undefined;
+};
 
 export function ImageUpload({
   processId,
@@ -141,7 +145,7 @@ export function ImageUpload({
       toast({ title: 'Imagem enviada com sucesso', description: 'A imagem foi associada ao processo.' });
     } catch (error: unknown) {
       if (uploadedPath) await supabase.storage.from('obras').remove([uploadedPath]);
-      toast({ title: 'Erro ao enviar imagem', description: getErrorMessage(error) || 'Não foi possível enviar a imagem.', variant: 'destructive' });
+      toast({ title: 'Erro ao enviar imagem', description: getErrorMessage(error) || 'Verifique se o bucket obras e suas permissões de upload foram configurados.', variant: 'destructive' });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);

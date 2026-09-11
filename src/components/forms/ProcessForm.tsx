@@ -152,9 +152,9 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
         .select('*')
         .eq('process_id', processId)
         .eq('tipo', 'principal')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Erro ao carregar imagem principal:', error);
       }
 
