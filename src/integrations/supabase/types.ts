@@ -940,6 +940,57 @@ export type Database = {
           },
         ]
       }
+      process_images: {
+        Row: {
+          created_at: string
+          id: number
+          image_path: string
+          image_url: string
+          parcela_id: number | null
+          percentual_execucao: number | null
+          process_id: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          image_path: string
+          image_url: string
+          parcela_id?: number | null
+          percentual_execucao?: number | null
+          process_id: number
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          image_path?: string
+          image_url?: string
+          parcela_id?: number | null
+          percentual_execucao?: number | null
+          process_id?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_images_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "process_parcels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_images_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_parcels: {
         Row: {
           created_at: string
@@ -1019,6 +1070,7 @@ export type Database = {
           contrato_assinado: boolean
           created_at: string
           id: number
+          imagem_principal_url: string | null
           last_tramitacao: string | null
           latitude: number | null
           licitado_value: number | null
@@ -1041,6 +1093,7 @@ export type Database = {
           contrato_assinado?: boolean
           created_at?: string
           id?: number
+          imagem_principal_url?: string | null
           last_tramitacao?: string | null
           latitude?: number | null
           licitado_value?: number | null
@@ -1063,6 +1116,7 @@ export type Database = {
           contrato_assinado?: boolean
           created_at?: string
           id?: number
+          imagem_principal_url?: string | null
           last_tramitacao?: string | null
           latitude?: number | null
           licitado_value?: number | null

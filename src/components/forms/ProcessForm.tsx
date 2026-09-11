@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParcelManager } from '@/components/processes/ParcelManager';
 import { AddendumManager } from '@/components/processes/AddendumManager';
+import { ImageUpload } from '@/components/forms/ImageUpload';
 import type { Database } from '@/integrations/supabase/types';
 import { enviarParaGoogleSheets } from '@/utils/googleSheetsUtils';
 
@@ -45,6 +46,14 @@ interface Parcel {
   process_id?: number;
 }
 
+interface ProcessImage {
+  id?: number;
+  tipo: 'principal' | 'medicao';
+  parcela_id?: number;
+  image_url: string;
+  percentual_execucao?: number;
+}
+
 interface ProcessFormProps {
   onSuccess: () => void;
   onCancel: () => void;
@@ -65,6 +74,7 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   const [currentParcels, setCurrentParcels] = useState<Parcel[]>([]);
   const [contratoAssinado, setContratoAssinado] = useState(initialData ? !!(initialData as any).contrato_assinado : false);
   const [emPrestacaoContas, setEmPrestacaoContas] = useState(initialData ? !!(initialData as any).em_prestacao_contas : false);
+  const [mainImage, setMainImage] = useState<ProcessImage | undefined>(undefined);
   const { toast } = useToast();
   
   const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<ProcessFormData>({
@@ -115,7 +125,16 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
 
   useEffect(() => {
     fetchData();
-  }, []);
+    if (isEdit && initialData?.id) {
+      loadMainImage(initialData.id);
+    } else if (initialData?.imagem_principal_url) {
+      // For new processes with existing image URL
+      setMainImage({
+        tipo: 'principal',
+        image_url: initialData.imagem_principal_url,
+      });
+    }
+  }, [isEdit, initialData?.id, initialData?.imagem_principal_url]);
 
   const fetchData = async () => {
     try {
@@ -131,6 +150,42 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     }
+  };
+
+  const loadMainImage = async (processId: number) => {
+    try {
+      // First check if there's an image in process_images table
+      const { data, error } = await supabase
+        .from('process_images')
+        .select('*')
+        .eq('process_id', processId)
+        .eq('tipo', 'principal')
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao carregar imagem principal:', error);
+      }
+
+      if (data) {
+        setMainImage(data);
+      } else if (initialData?.imagem_principal_url) {
+        // If not in process_images but exists in processes table, create a temp object
+        setMainImage({
+          tipo: 'principal',
+          image_url: initialData.imagem_principal_url,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar imagem principal:', error);
+    }
+  };
+
+  const handleMainImageUpload = (image: ProcessImage) => {
+    setMainImage(image);
+  };
+
+  const handleMainImageDelete = () => {
+    setMainImage(undefined);
   };
 
   const findOrCreateMunicipality = async (municipalityName: string) => {
@@ -723,6 +778,19 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
                 Marque se o processo está em fase de prestação de contas
               </p>
             </div>
+
+            {/* Seção de imagem principal */}
+            {isEdit && initialData?.id && (
+              <div className="mt-6">
+                <ImageUpload
+                  processId={initialData.id}
+                  tipo="principal"
+                  existingImage={mainImage}
+                  onUploadSuccess={handleMainImageUpload}
+                  onDeleteSuccess={handleMainImageDelete}
+                />
+              </div>
+            )}
 
             {/* Seção de gestão de parcelas */}
             <div className="mt-6">

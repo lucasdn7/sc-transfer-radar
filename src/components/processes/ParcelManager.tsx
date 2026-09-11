@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/utils/processUtils";
 import { Plus, Trash2 } from "lucide-react";
+import { ImageUpload } from "@/components/forms/ImageUpload";
 
 interface Parcel {
   id?: number;
@@ -15,6 +16,14 @@ interface Parcel {
   value: number;
   payment_date: string | null;
   process_id?: number;
+}
+
+interface ProcessImage {
+  id?: number;
+  tipo: 'principal' | 'medicao';
+  parcela_id?: number;
+  image_url: string;
+  percentual_execucao?: number;
 }
 
 interface ParcelManagerProps {
@@ -27,11 +36,13 @@ interface ParcelManagerProps {
 export function ParcelManager({ processId, onParcelChange, initialParcels = [], isEdit = false }: ParcelManagerProps) {
   const [parcels, setParcels] = useState<Parcel[]>(initialParcels);
   const [loading, setLoading] = useState(false);
+  const [parcelImages, setParcelImages] = useState<Map<number, ProcessImage>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
     if (processId && isEdit) {
       loadParcels();
+      loadParcelImages();
     } else if (!isEdit && parcels.length === 0) {
       // Se não está editando e não tem parcelas, criar uma parcela padrão
       const defaultParcel: Parcel = {
@@ -94,6 +105,43 @@ export function ParcelManager({ processId, onParcelChange, initialParcels = [], 
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadParcelImages = async () => {
+    if (!processId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('process_images')
+        .select('*')
+        .eq('process_id', processId)
+        .eq('tipo', 'medicao');
+
+      if (error) throw error;
+
+      const imagesMap = new Map<number, ProcessImage>();
+      data?.forEach(image => {
+        if (image.parcela_id) {
+          imagesMap.set(image.parcela_id, image);
+        }
+      });
+
+      setParcelImages(imagesMap);
+    } catch (error) {
+      console.error('Erro ao carregar imagens das parcelas:', error);
+    }
+  };
+
+  const handleParcelImageUpload = (parcelId: number, image: ProcessImage) => {
+    setParcelImages(prev => new Map(prev).set(parcelId, image));
+  };
+
+  const handleParcelImageDelete = (parcelId: number) => {
+    setParcelImages(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(parcelId);
+      return newMap;
+    });
   };
 
   const addParcel = async () => {
