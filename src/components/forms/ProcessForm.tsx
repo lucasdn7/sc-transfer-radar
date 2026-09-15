@@ -99,9 +99,26 @@ export function ProcessForm({ onSuccess, onCancel, initialData, isEdit = false }
   };
 
   // Função para lidar com mudanças nos aditivos (refetch do processo para atualizar vigência)
-  const handleAddendumChange = () => {
-    // Esta função será usada para notificar o componente pai para refetch
-    // Por enquanto, não faz nada pois o refetch é feito pelo componente pai
+  const handleAddendumChange = async () => {
+    if (isEdit && initialData?.id) {
+      try {
+        // Recarregar os dados do processo para obter a nova vigência
+        const { data, error } = await supabase
+          .from('processes')
+          .select('*')
+          .eq('id', initialData.id)
+          .single();
+
+        if (error) throw error;
+
+        // Atualizar o campo de vigência no formulário
+        if (data.vigencia_date) {
+          setValue('vigencia_date', data.vigencia_date);
+        }
+      } catch (error) {
+        console.error('Erro ao recarregar dados do processo:', error);
+      }
+    }
   };
 
   // Remover busca por latitude/longitude já que não existem na tabela municipalities

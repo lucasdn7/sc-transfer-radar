@@ -102,10 +102,25 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
 
         if (error) throw error;
 
-        toast({
-          title: "Aditivo atualizado",
-          description: "O aditivo foi atualizado com sucesso.",
-        });
+        // Atualizar a data de vigência do processo para a nova vigência do aditivo
+        const { error: updateError } = await (supabase as any)
+          .from('processes')
+          .update({ vigencia_date: formData.nova_vigencia })
+          .eq('id', processId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar vigência do processo:', updateError);
+          toast({
+            title: "Aditivo atualizado",
+            description: "O aditivo foi atualizado, mas houve um erro ao atualizar a vigência do processo.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Aditivo atualizado",
+            description: "O aditivo foi atualizado e a vigência do processo foi atualizada.",
+          });
+        }
       } else {
         // Criar novo aditivo
         const { error } = await (supabase as any)
@@ -119,10 +134,25 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
 
         if (error) throw error;
 
-        toast({
-          title: "Aditivo adicionado",
-          description: "O aditivo foi adicionado com sucesso.",
-        });
+        // Atualizar a data de vigência do processo para a nova vigência do aditivo
+        const { error: updateError } = await (supabase as any)
+          .from('processes')
+          .update({ vigencia_date: formData.nova_vigencia })
+          .eq('id', processId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar vigência do processo:', updateError);
+          toast({
+            title: "Aditivo adicionado",
+            description: "O aditivo foi adicionado, mas houve um erro ao atualizar a vigência do processo.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Aditivo adicionado",
+            description: "O aditivo foi adicionado e a vigência do processo foi atualizada.",
+          });
+        }
       }
 
       setIsDialogOpen(false);
@@ -164,6 +194,27 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
         .eq('id', id);
 
       if (error) throw error;
+
+      // Após deletar, atualizar a vigência do processo para o último aditivo restante
+      // Se não houver mais aditivos, manter a vigência atual (não voltar para a original)
+      const { data: remainingAddendums } = await (supabase as any)
+        .from('process_addendums')
+        .select('nova_vigencia')
+        .eq('process_id', processId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (remainingAddendums && remainingAddendums.length > 0) {
+        // Atualizar para a vigência do último aditivo
+        const { error: updateError } = await (supabase as any)
+          .from('processes')
+          .update({ vigencia_date: remainingAddendums[0].nova_vigencia })
+          .eq('id', processId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar vigência do processo:', updateError);
+        }
+      }
 
       toast({
         title: "Aditivo removido",
