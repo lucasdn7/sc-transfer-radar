@@ -103,6 +103,7 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
         if (error) throw error;
 
         // Atualizar a data de vigência do processo para a nova vigência do aditivo
+        console.log('Tentando atualizar vigência do processo:', processId, 'para:', formData.nova_vigencia);
         const { error: updateError } = await (supabase as any)
           .from('processes')
           .update({ vigencia_date: formData.nova_vigencia })
@@ -110,12 +111,14 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
 
         if (updateError) {
           console.error('Erro ao atualizar vigência do processo:', updateError);
+          console.error('Detalhes do erro:', JSON.stringify(updateError, null, 2));
           toast({
             title: "Aditivo atualizado",
             description: "O aditivo foi atualizado, mas houve um erro ao atualizar a vigência do processo.",
             variant: "destructive",
           });
         } else {
+          console.log('Vigência do processo atualizada com sucesso para:', formData.nova_vigencia);
           toast({
             title: "Aditivo atualizado",
             description: "O aditivo foi atualizado e a vigência do processo foi atualizada.",
@@ -135,6 +138,7 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
         if (error) throw error;
 
         // Atualizar a data de vigência do processo para a nova vigência do aditivo
+        console.log('Tentando atualizar vigência do processo:', processId, 'para:', formData.nova_vigencia);
         const { error: updateError } = await (supabase as any)
           .from('processes')
           .update({ vigencia_date: formData.nova_vigencia })
@@ -142,12 +146,14 @@ export function AddendumManager({ processId, isEdit = false, onAddendumChange }:
 
         if (updateError) {
           console.error('Erro ao atualizar vigência do processo:', updateError);
+          console.error('Detalhes do erro:', JSON.stringify(updateError, null, 2));
           toast({
             title: "Aditivo adicionado",
             description: "O aditivo foi adicionado, mas houve um erro ao atualizar a vigência do processo.",
             variant: "destructive",
           });
         } else {
+          console.log('Vigência do processo atualizada com sucesso para:', formData.nova_vigencia);
           toast({
             title: "Aditivo adicionado",
             description: "O aditivo foi adicionado e a vigência do processo foi atualizada.",
