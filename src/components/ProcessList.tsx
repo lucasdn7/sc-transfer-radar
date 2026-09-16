@@ -40,85 +40,95 @@ export function ProcessList() {
   const { data: processes, isLoading, error } = useQuery({
     queryKey: ['processes', debouncedSearchTerm, statusFilter, advancedFilters, page],
     queryFn: async () => {
-      let query = supabase
-        .from('processes')
-        .select(`
-          *,
-          municipalities (name),
-          regional_nuclei (name, acronym),
-          status_processos (nome, cor)
-        `, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range((page - 1) * pageSize, page * pageSize - 1);
+      try {
+        let query = supabase
+          .from('processes')
+          .select(`
+            *,
+            municipalities (name),
+            regional_nuclei (name, acronym),
+            status_processos (nome, cor)
+          `, { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range((page - 1) * pageSize, page * pageSize - 1);
 
-      if (debouncedSearchTerm) {
-        query = query.or(`process_number.ilike.%${debouncedSearchTerm}%,object.ilike.%${debouncedSearchTerm}%`);
-      }
-      if (advancedFilters.municipality) {
-        query = query.ilike('municipalities.name', `%${advancedFilters.municipality}%`);
-      }
-      if (advancedFilters.minValue) {
-        query = query.gte('total_portaria_value', parseFloat(advancedFilters.minValue));
-      }
-      if (advancedFilters.maxValue) {
-        query = query.lte('total_portaria_value', parseFloat(advancedFilters.maxValue));
-      }
-      if (advancedFilters.deadline) {
-        query = query.lte('vigencia_date', advancedFilters.deadline.toISOString().split('T')[0]);
-      }
-      // Filtro de vigência
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const plus30Str = plus30.toISOString().split('T')[0];
-      if (advancedFilters.vigenciaStatus === 'vencidos') {
-        query = query.lt('vigencia_date', todayStr);
-      } else if (advancedFilters.vigenciaStatus === 'vigentes') {
-        query = query.gte('vigencia_date', todayStr);
-      } else if (advancedFilters.vigenciaStatus === 'proximos') {
-        query = query.gte('vigencia_date', todayStr).lte('vigencia_date', plus30Str);
-      }
-      // Filtro de contratos assinados
-      if (advancedFilters.contratoAssinado) {
-        query = query.eq('contrato_assinado', true);
-      }
-
-      // Filtro de última atualização
-      if (advancedFilters.lastUpdateStatus && advancedFilters.lastUpdateStatus !== 'all') {
+        if (debouncedSearchTerm) {
+          query = query.or(`process_number.ilike.%${debouncedSearchTerm}%,object.ilike.%${debouncedSearchTerm}%`);
+        }
+        if (advancedFilters.municipality) {
+          query = query.ilike('municipalities.name', `%${advancedFilters.municipality}%`);
+        }
+        if (advancedFilters.minValue) {
+          query = query.gte('total_portaria_value', parseFloat(advancedFilters.minValue));
+        }
+        if (advancedFilters.maxValue) {
+          query = query.lte('total_portaria_value', parseFloat(advancedFilters.maxValue));
+        }
+        if (advancedFilters.deadline) {
+          query = query.lte('vigencia_date', advancedFilters.deadline.toISOString().split('T')[0]);
+        }
+        // Filtro de vigência
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
-        
-        if (advancedFilters.lastUpdateStatus === 'recent') {
-          // Últimos 7 dias
-          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          const weekAgoStr = weekAgo.toISOString().split('T')[0];
-          query = query.gte('updated_at', weekAgoStr);
-        } else if (advancedFilters.lastUpdateStatus === 'month') {
-          // Último mês
-          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          const monthAgoStr = monthAgo.toISOString().split('T')[0];
-          query = query.gte('updated_at', monthAgoStr);
-        } else if (advancedFilters.lastUpdateStatus === 'quarter') {
-          // Últimos 3 meses
-          const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
-          const quarterAgoStr = quarterAgo.toISOString().split('T')[0];
-          query = query.gte('updated_at', quarterAgoStr);
-        } else if (advancedFilters.lastUpdateStatus === 'halfyear') {
-          // Últimos 6 meses
-          const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
-          const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
-          query = query.gte('updated_at', halfYearAgoStr);
-        } else if (advancedFilters.lastUpdateStatus === 'old') {
-          // Não modificados há muito tempo (6+ meses)
-          const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
-          const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
-          query = query.lt('updated_at', halfYearAgoStr);
+        const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const plus30Str = plus30.toISOString().split('T')[0];
+        if (advancedFilters.vigenciaStatus === 'vencidos') {
+          query = query.lt('vigencia_date', todayStr);
+        } else if (advancedFilters.vigenciaStatus === 'vigentes') {
+          query = query.gte('vigencia_date', todayStr);
+        } else if (advancedFilters.vigenciaStatus === 'proximos') {
+          query = query.gte('vigencia_date', todayStr).lte('vigencia_date', plus30Str);
         }
-      }
+        // Filtro de contratos assinados
+        if (advancedFilters.contratoAssinado) {
+          query = query.eq('contrato_assinado', true);
+        }
 
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { data: data || [], count: count || 0 };
+        // Filtro de última atualização
+        if (advancedFilters.lastUpdateStatus && advancedFilters.lastUpdateStatus !== 'all') {
+          const today = new Date();
+          
+          try {
+            if (advancedFilters.lastUpdateStatus === 'recent') {
+              // Últimos 7 dias
+              const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+              const weekAgoStr = weekAgo.toISOString().split('T')[0];
+              query = query.gte('updated_at', weekAgoStr);
+            } else if (advancedFilters.lastUpdateStatus === 'month') {
+              // Último mês
+              const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+              const monthAgoStr = monthAgo.toISOString().split('T')[0];
+              query = query.gte('updated_at', monthAgoStr);
+            } else if (advancedFilters.lastUpdateStatus === 'quarter') {
+              // Últimos 3 meses
+              const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+              const quarterAgoStr = quarterAgo.toISOString().split('T')[0];
+              query = query.gte('updated_at', quarterAgoStr);
+            } else if (advancedFilters.lastUpdateStatus === 'halfyear') {
+              // Últimos 6 meses
+              const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
+              const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+              query = query.gte('updated_at', halfYearAgoStr);
+            } else if (advancedFilters.lastUpdateStatus === 'old') {
+              // Não modificados há muito tempo (6+ meses)
+              const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
+              const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+              query = query.lt('updated_at', halfYearAgoStr);
+            }
+          } catch (error) {
+            console.error('Erro ao aplicar filtro de última atualização:', error);
+            // Continua sem o filtro se houver erro
+          }
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+        return { data: data || [], count: count || 0 };
+      } catch (error) {
+        console.error('Erro ao buscar processos:', error);
+        // Return empty array on error to prevent page crash
+        return { data: [], count: 0 };
+      }
     },
     staleTime: 2 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,

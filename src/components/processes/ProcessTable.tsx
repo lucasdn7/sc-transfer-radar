@@ -44,9 +44,15 @@ export function ProcessTable({ processes }: ProcessTableProps) {
   };
 
   const getDaysSinceUpdate = (updatedDate: string) => {
-    const updated = new Date(updatedDate);
-    const today = new Date();
-    return differenceInDays(today, updated);
+    try {
+      if (!updatedDate) return 999; // Return large number for missing dates
+      const updated = new Date(updatedDate);
+      const today = new Date();
+      return differenceInDays(today, updated);
+    } catch (error) {
+      console.error('Erro ao calcular dias desde atualização:', error);
+      return 999; // Return large number for invalid dates
+    }
   };
 
   const getUpdateStatusColor = (daysSinceUpdate: number) => {
@@ -184,17 +190,21 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Edit3 className="h-3 w-3 text-gray-400" />
-                        <div>
-                          <div className="text-sm font-medium">
-                            {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })}
-                          </div>
-                          <div className={`text-xs ${getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}`}>
-                            {formatUpdateLabel(getDaysSinceUpdate(process.updated_at))}
+                      {process.updated_at ? (
+                        <div className="flex items-center gap-2">
+                          <Edit3 className="h-3 w-3 text-gray-400" />
+                          <div>
+                            <div className="text-sm font-medium">
+                              {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })}
+                            </div>
+                            <div className={`text-xs ${getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}`}>
+                              {formatUpdateLabel(getDaysSinceUpdate(process.updated_at))}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="text-xs text-gray-400">Não disponível</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">

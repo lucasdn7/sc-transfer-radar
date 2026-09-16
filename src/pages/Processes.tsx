@@ -113,13 +113,19 @@ export default function Processes() {
           return parcels.some((parcel) => !parcel.payment_date);
         })()) &&
         (filterLastUpdate === 'all' || (() => {
-          const daysSinceUpdate = getDaysSinceUpdate(process.updated_at);
-          if (filterLastUpdate === 'recent') return daysSinceUpdate <= 7;
-          if (filterLastUpdate === 'month') return daysSinceUpdate <= 30;
-          if (filterLastUpdate === 'quarter') return daysSinceUpdate <= 90;
-          if (filterLastUpdate === 'halfyear') return daysSinceUpdate <= 180;
-          if (filterLastUpdate === 'old') return daysSinceUpdate > 180;
-          return true;
+          try {
+            if (!process.updated_at) return false;
+            const daysSinceUpdate = getDaysSinceUpdate(process.updated_at);
+            if (filterLastUpdate === 'recent') return daysSinceUpdate <= 7;
+            if (filterLastUpdate === 'month') return daysSinceUpdate <= 30;
+            if (filterLastUpdate === 'quarter') return daysSinceUpdate <= 90;
+            if (filterLastUpdate === 'halfyear') return daysSinceUpdate <= 180;
+            if (filterLastUpdate === 'old') return daysSinceUpdate > 180;
+            return true;
+          } catch (error) {
+            console.error('Erro ao calcular dias desde atualização:', error);
+            return false;
+          }
         })()) &&
         (
           process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -177,9 +183,15 @@ export default function Processes() {
   };
 
   const getDaysSinceUpdate = (updatedDate: string) => {
-    const updated = new Date(updatedDate);
-    const today = new Date();
-    return differenceInDays(today, updated);
+    try {
+      if (!updatedDate) return 999; // Return large number for missing dates
+      const updated = new Date(updatedDate);
+      const today = new Date();
+      return differenceInDays(today, updated);
+    } catch (error) {
+      console.error('Erro ao calcular dias desde atualização:', error);
+      return 999; // Return large number for invalid dates
+    }
   };
 
   const getUpdateStatusColor = (daysSinceUpdate: number) => {
@@ -513,13 +525,15 @@ export default function Processes() {
                       </div>
                     </div>
 
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Edit3 className="h-3 w-3 mr-2" />
-                      <span className={getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}>
-                        Atualizado: {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })} 
-                        ({formatUpdateLabel(getDaysSinceUpdate(process.updated_at))})
-                      </span>
-                    </div>
+                    {process.updated_at && (
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Edit3 className="h-3 w-3 mr-2" />
+                        <span className={getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}>
+                          Atualizado: {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })} 
+                          ({formatUpdateLabel(getDaysSinceUpdate(process.updated_at))})
+                        </span>
+                      </div>
+                    )}
 
                     {process.portaria_number && (
                       <div className="text-sm text-gray-600">
