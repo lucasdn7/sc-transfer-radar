@@ -88,7 +88,9 @@ export function ProcessList() {
           const today = new Date();
           
           try {
-            console.log('Aplicando filtro de última atualização:', advancedFilters.lastUpdateStatus);
+            console.log('=== DEBUG: Aplicando filtro de última atualização ===');
+            console.log('Filtro selecionado:', advancedFilters.lastUpdateStatus);
+            console.log('Data atual:', today.toISOString());
             
             if (advancedFilters.lastUpdateStatus === 'recent') {
               // Últimos 7 dias
@@ -120,8 +122,9 @@ export function ProcessList() {
               const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
               console.log('Filtro old (mais de 180 dias):', halfYearAgoStr);
               // Incluir processos com updated_at NULL (considerados muito antigos)
-              // Para incluir NULL, precisamos usar OR condition de forma diferente
-              query = query.or(`updated_at.lt.${halfYearAgoStr},updated_at.is.null`);
+              // Usar lt diretamente, já que não há processos com NULL
+              console.log('Aplicando filtro lt:', halfYearAgoStr);
+              query = query.lt('updated_at', halfYearAgoStr);
             }
           } catch (error) {
             console.error('Erro ao aplicar filtro de última atualização:', error);
@@ -133,6 +136,10 @@ export function ProcessList() {
         query = query.range((page - 1) * pageSize, page * pageSize - 1);
 
         const { data, error, count } = await query;
+        console.log('=== DEBUG: Resultado da query ===');
+        console.log('Erro:', error);
+        console.log('Count:', count);
+        console.log('Data length:', data?.length || 0);
         if (error) throw error;
         return { data: data || [], count: count || 0 };
       } catch (error) {
