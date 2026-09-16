@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid, Clock, ArrowRight, AlertTriangle } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid, Clock, ArrowRight, AlertTriangle, Edit3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link, useSearchParams } from "react-router-dom";
 import { formatDateDisplay } from "@/utils/dateUtils";
+import { format, differenceInDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
@@ -31,6 +33,7 @@ export default function Processes() {
   const [filterMunicipality, setFilterMunicipality] = useState('all');
   const [filterNucleus, setFilterNucleus] = useState('all');
   const [filterType, setFilterType] = useState<'all' | 'obras' | 'eventos'>('all');
+  const [filterLastUpdate, setFilterLastUpdate] = useState('all');
   const [sortField, setSortField] = useState('total_portaria_value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'alpha'>('desc');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
@@ -109,6 +112,15 @@ export default function Processes() {
           const parcels = parcelsMap[process.id] || [];
           return parcels.some((parcel) => !parcel.payment_date);
         })()) &&
+        (filterLastUpdate === 'all' || (() => {
+          const daysSinceUpdate = getDaysSinceUpdate(process.updated_at);
+          if (filterLastUpdate === 'recent') return daysSinceUpdate <= 7;
+          if (filterLastUpdate === 'month') return daysSinceUpdate <= 30;
+          if (filterLastUpdate === 'quarter') return daysSinceUpdate <= 90;
+          if (filterLastUpdate === 'halfyear') return daysSinceUpdate <= 180;
+          if (filterLastUpdate === 'old') return daysSinceUpdate > 180;
+          return true;
+        })()) &&
         (
           process.process_number.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
           process.object.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
@@ -162,6 +174,28 @@ export default function Processes() {
     } else {
       await addToFavorites.mutateAsync(processId);
     }
+  };
+
+  const getDaysSinceUpdate = (updatedDate: string) => {
+    const updated = new Date(updatedDate);
+    const today = new Date();
+    return differenceInDays(today, updated);
+  };
+
+  const getUpdateStatusColor = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate <= 7) return 'text-green-600';
+    if (daysSinceUpdate <= 30) return 'text-yellow-600';
+    if (daysSinceUpdate <= 90) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const formatUpdateLabel = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate === 0) return 'Hoje';
+    if (daysSinceUpdate === 1) return 'Ontem';
+    if (daysSinceUpdate < 7) return `${daysSinceUpdate} dias atrás`;
+    if (daysSinceUpdate < 30) return `${Math.floor(daysSinceUpdate / 7)} semanas atrás`;
+    if (daysSinceUpdate < 365) return `${Math.floor(daysSinceUpdate / 30)} meses atrás`;
+    return `${Math.floor(daysSinceUpdate / 365)} anos atrás`;
   };
 
   if (isLoading) {
@@ -298,6 +332,18 @@ export default function Processes() {
                   {(processes || []).map(p => p.regional_nuclei?.name).filter((v, i, arr) => v && arr.indexOf(v) === i).map(name => (
                     <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <label className="text-xs font-semibold" htmlFor="filter-lastupdate">Última Atualização</label>
+              <Select value={filterLastUpdate} onValueChange={setFilterLastUpdate}>
+                <SelectTrigger id="filter-lastupdate"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="recent">Recentes (7 dias)</SelectItem>
+                  <SelectItem value="month">Último mês</SelectItem>
+                  <SelectItem value="quarter">Últimos 3 meses</SelectItem>
+                  <SelectItem value="halfyear">Últimos 6 meses</SelectItem>
+                  <SelectItem value="old">Não modificados há muito (6+ meses)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -465,6 +511,14 @@ export default function Processes() {
                           Vigência: {formatDateDisplay(process.vigencia_date)}
                         </span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center text-xs text-gray-500">
+                      <Edit3 className="h-3 w-3 mr-2" />
+                      <span className={getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}>
+                        Atualizado: {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })} 
+                        ({formatUpdateLabel(getDaysSinceUpdate(process.updated_at))})
+                      </span>
                     </div>
 
                     {process.portaria_number && (
