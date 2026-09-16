@@ -119,7 +119,8 @@ export function ProcessList() {
               const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
               const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
               console.log('Filtro old (mais de 180 dias):', halfYearAgoStr);
-              query = query.lt('updated_at', halfYearAgoStr);
+              // Incluir processos com updated_at NULL (considerados muito antigos)
+              query = query.or(`updated_at.lt.${halfYearAgoStr},updated_at.is.null`);
             }
           } catch (error) {
             console.error('Erro ao aplicar filtro de última atualização:', error);
