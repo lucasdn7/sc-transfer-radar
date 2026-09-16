@@ -42,6 +42,38 @@ export default function Processes() {
   const transferFilter = searchParams.get('transfer');
   const contractFilter = searchParams.get('contract');
 
+  // Helper functions
+  const getDaysSinceUpdate = (updatedDate: string) => {
+    try {
+      if (!updatedDate) return 999;
+      const updated = new Date(updatedDate);
+      const today = new Date();
+      return differenceInDays(today, updated);
+    } catch (error) {
+      console.error('Erro ao calcular dias desde atualização:', error);
+      return 999;
+    }
+  };
+
+  const getUpdateStatusColor = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate <= 7) return 'text-green-600';
+    if (daysSinceUpdate <= 30) return 'text-yellow-600';
+    if (daysSinceUpdate <= 90) return 'text-orange-600';
+    if (daysSinceUpdate <= 180) return 'text-blue-600';
+    return 'text-red-600';
+  };
+
+  const formatUpdateLabel = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate <= 0) return 'Hoje';
+    if (daysSinceUpdate === 1) return '1 dia atrás';
+    if (daysSinceUpdate < 30) return `${daysSinceUpdate} dias atrás`;
+    if (daysSinceUpdate < 60) return '1 mês atrás';
+    if (daysSinceUpdate < 90) return '2 meses atrás';
+    if (daysSinceUpdate < 180) return '3-6 meses atrás';
+    if (daysSinceUpdate < 365) return '6-12 meses atrás';
+    return `${Math.floor(daysSinceUpdate / 365)} anos atrás`;
+  };
+
   const { data: processes, isLoading, error, refetch } = useQuery({
     queryKey: ['processes'],
     queryFn: async () => {
@@ -180,34 +212,6 @@ export default function Processes() {
     } else {
       await addToFavorites.mutateAsync(processId);
     }
-  };
-
-  const getDaysSinceUpdate = (updatedDate: string) => {
-    try {
-      if (!updatedDate) return 999; // Return large number for missing dates
-      const updated = new Date(updatedDate);
-      const today = new Date();
-      return differenceInDays(today, updated);
-    } catch (error) {
-      console.error('Erro ao calcular dias desde atualização:', error);
-      return 999; // Return large number for invalid dates
-    }
-  };
-
-  const getUpdateStatusColor = (daysSinceUpdate: number) => {
-    if (daysSinceUpdate <= 7) return 'text-green-600';
-    if (daysSinceUpdate <= 30) return 'text-yellow-600';
-    if (daysSinceUpdate <= 90) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const formatUpdateLabel = (daysSinceUpdate: number) => {
-    if (daysSinceUpdate === 0) return 'Hoje';
-    if (daysSinceUpdate === 1) return 'Ontem';
-    if (daysSinceUpdate < 7) return `${daysSinceUpdate} dias atrás`;
-    if (daysSinceUpdate < 30) return `${Math.floor(daysSinceUpdate / 7)} semanas atrás`;
-    if (daysSinceUpdate < 365) return `${Math.floor(daysSinceUpdate / 30)} meses atrás`;
-    return `${Math.floor(daysSinceUpdate / 365)} anos atrás`;
   };
 
   if (isLoading) {
