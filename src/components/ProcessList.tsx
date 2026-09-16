@@ -120,6 +120,7 @@ export function ProcessList() {
               const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
               console.log('Filtro old (mais de 180 dias):', halfYearAgoStr);
               // Incluir processos com updated_at NULL (considerados muito antigos)
+              // Para incluir NULL, precisamos usar OR condition de forma diferente
               query = query.or(`updated_at.lt.${halfYearAgoStr},updated_at.is.null`);
             }
           } catch (error) {
