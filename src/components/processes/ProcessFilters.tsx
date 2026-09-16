@@ -254,6 +254,12 @@ export function ProcessFilters({
                 <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('contratoAssinado', false)} />
               </Badge>
             )}
+            {filters?.lastUpdateStatus && filters.lastUpdateStatus !== 'all' && (
+              <Badge variant="secondary">
+                Última Atualização: {filters.lastUpdateStatus}
+                <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => handleFilterChange('lastUpdateStatus', 'all')} />
+              </Badge>
+            )}
           </div>
         )}
       </CardContent>
