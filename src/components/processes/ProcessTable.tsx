@@ -2,9 +2,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star, FileCheck } from "lucide-react";
+import { Eye, Download, Clock, MapPin, Calendar, ExternalLink, Star, FileCheck, Edit3 } from "lucide-react";
 import { formatCurrency } from "@/utils/processUtils";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -41,6 +41,28 @@ export function ProcessTable({ processes }: ProcessTableProps) {
     const diffTime = deadline.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const getDaysSinceUpdate = (updatedDate: string) => {
+    const updated = new Date(updatedDate);
+    const today = new Date();
+    return differenceInDays(today, updated);
+  };
+
+  const getUpdateStatusColor = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate <= 7) return 'text-green-600';
+    if (daysSinceUpdate <= 30) return 'text-yellow-600';
+    if (daysSinceUpdate <= 90) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const formatUpdateLabel = (daysSinceUpdate: number) => {
+    if (daysSinceUpdate === 0) return 'Hoje';
+    if (daysSinceUpdate === 1) return 'Ontem';
+    if (daysSinceUpdate < 7) return `${daysSinceUpdate} dias atrás`;
+    if (daysSinceUpdate < 30) return `${Math.floor(daysSinceUpdate / 7)} semanas atrás`;
+    if (daysSinceUpdate < 365) return `${Math.floor(daysSinceUpdate / 30)} meses atrás`;
+    return `${Math.floor(daysSinceUpdate / 365)} anos atrás`;
   };
 
   const handleFavoriteToggle = async (processId: number) => {
@@ -88,6 +110,7 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                 <TableHead>Status</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Vigência</TableHead>
+                <TableHead>Última Atualização</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -156,6 +179,19 @@ export function ProcessTable({ processes }: ProcessTableProps) {
                               ? `Vencido há ${Math.abs(daysLeft)} dias`
                               : `${daysLeft} dias restantes`
                             }
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="h-3 w-3 text-gray-400" />
+                        <div>
+                          <div className="text-sm font-medium">
+                            {format(new Date(process.updated_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                          <div className={`text-xs ${getUpdateStatusColor(getDaysSinceUpdate(process.updated_at))}`}>
+                            {formatUpdateLabel(getDaysSinceUpdate(process.updated_at))}
                           </div>
                         </div>
                       </div>

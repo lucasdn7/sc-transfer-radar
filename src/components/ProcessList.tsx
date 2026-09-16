@@ -29,7 +29,8 @@ export function ProcessList() {
     maxValue: "",
     deadline: null as Date | null,
     vigenciaStatus: 'all' as string,
-    contratoAssinado: false
+    contratoAssinado: false,
+    lastUpdateStatus: 'all' as string
   });
   const [page, setPage] = useState(1);
   const pageSize = 20;
@@ -80,6 +81,39 @@ export function ProcessList() {
       // Filtro de contratos assinados
       if (advancedFilters.contratoAssinado) {
         query = query.eq('contrato_assinado', true);
+      }
+
+      // Filtro de última atualização
+      if (advancedFilters.lastUpdateStatus && advancedFilters.lastUpdateStatus !== 'all') {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        if (advancedFilters.lastUpdateStatus === 'recent') {
+          // Últimos 7 dias
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const weekAgoStr = weekAgo.toISOString().split('T')[0];
+          query = query.gte('updated_at', weekAgoStr);
+        } else if (advancedFilters.lastUpdateStatus === 'month') {
+          // Último mês
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const monthAgoStr = monthAgo.toISOString().split('T')[0];
+          query = query.gte('updated_at', monthAgoStr);
+        } else if (advancedFilters.lastUpdateStatus === 'quarter') {
+          // Últimos 3 meses
+          const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+          const quarterAgoStr = quarterAgo.toISOString().split('T')[0];
+          query = query.gte('updated_at', quarterAgoStr);
+        } else if (advancedFilters.lastUpdateStatus === 'halfyear') {
+          // Últimos 6 meses
+          const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
+          const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+          query = query.gte('updated_at', halfYearAgoStr);
+        } else if (advancedFilters.lastUpdateStatus === 'old') {
+          // Não modificados há muito tempo (6+ meses)
+          const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
+          const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+          query = query.lt('updated_at', halfYearAgoStr);
+        }
       }
 
       const { data, error, count } = await query;

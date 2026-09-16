@@ -27,6 +27,7 @@ interface ProcessFiltersProps {
     deadline: Date | null;
     vigenciaStatus?: string;
     contratoAssinado?: boolean;
+    lastUpdateStatus?: string;
   };
   onFiltersChange?: (filters: any) => void;
 }
@@ -61,13 +62,14 @@ export function ProcessFilters({
         maxValue: "",
         deadline: null,
         vigenciaStatus: 'all',
-        contratoAssinado: false
+        contratoAssinado: false,
+        lastUpdateStatus: 'all'
       });
     }
   };
 
   const hasActiveFilters = searchTerm || statusFilter !== "all" || 
-    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline || filters.contratoAssinado));
+    (filters && (filters.municipality || filters.regionalNucleus || filters.minValue || filters.maxValue || filters.deadline || filters.contratoAssinado || filters.lastUpdateStatus));
 
   return (
     <Card>
@@ -202,6 +204,22 @@ export function ProcessFilters({
                   <SelectItem value="vencidos">Vencidos</SelectItem>
                   <SelectItem value="vigentes">Vigentes</SelectItem>
                   <SelectItem value="proximos">Próximos do vencimento (30 dias)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Última Atualização</label>
+              <Select value={filters.lastUpdateStatus || 'all'} onValueChange={v => handleFilterChange('lastUpdateStatus', v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="recent">Atualizados recentemente (7 dias)</SelectItem>
+                  <SelectItem value="month">Último mês</SelectItem>
+                  <SelectItem value="quarter">Últimos 3 meses</SelectItem>
+                  <SelectItem value="halfyear">Últimos 6 meses</SelectItem>
+                  <SelectItem value="old">Não modificados há muito tempo (6+ meses)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
