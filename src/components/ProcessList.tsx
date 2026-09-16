@@ -49,8 +49,7 @@ export function ProcessList() {
             regional_nuclei (name, acronym),
             status_processos (nome, cor)
           `, { count: 'exact' })
-          .order('created_at', { ascending: false })
-          .range((page - 1) * pageSize, page * pageSize - 1);
+          .order('created_at', { ascending: false });
 
         if (debouncedSearchTerm) {
           query = query.or(`process_number.ilike.%${debouncedSearchTerm}%,object.ilike.%${debouncedSearchTerm}%`);
@@ -89,30 +88,37 @@ export function ProcessList() {
           const today = new Date();
           
           try {
+            console.log('Aplicando filtro de última atualização:', advancedFilters.lastUpdateStatus);
+            
             if (advancedFilters.lastUpdateStatus === 'recent') {
               // Últimos 7 dias
               const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
               const weekAgoStr = weekAgo.toISOString().split('T')[0];
+              console.log('Filtro recent (7 dias):', weekAgoStr);
               query = query.gte('updated_at', weekAgoStr);
             } else if (advancedFilters.lastUpdateStatus === 'month') {
               // Último mês
               const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
               const monthAgoStr = monthAgo.toISOString().split('T')[0];
+              console.log('Filtro month (30 dias):', monthAgoStr);
               query = query.gte('updated_at', monthAgoStr);
             } else if (advancedFilters.lastUpdateStatus === 'quarter') {
               // Últimos 3 meses
               const quarterAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
               const quarterAgoStr = quarterAgo.toISOString().split('T')[0];
+              console.log('Filtro quarter (90 dias):', quarterAgoStr);
               query = query.gte('updated_at', quarterAgoStr);
             } else if (advancedFilters.lastUpdateStatus === 'halfyear') {
               // Últimos 6 meses
               const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
               const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+              console.log('Filtro halfyear (180 dias):', halfYearAgoStr);
               query = query.gte('updated_at', halfYearAgoStr);
             } else if (advancedFilters.lastUpdateStatus === 'old') {
               // Não modificados há muito tempo (6+ meses)
               const halfYearAgo = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000);
               const halfYearAgoStr = halfYearAgo.toISOString().split('T')[0];
+              console.log('Filtro old (mais de 180 dias):', halfYearAgoStr);
               query = query.lt('updated_at', halfYearAgoStr);
             }
           } catch (error) {
@@ -120,6 +126,9 @@ export function ProcessList() {
             // Continua sem o filtro se houver erro
           }
         }
+
+        // Apply pagination range AFTER all filters
+        query = query.range((page - 1) * pageSize, page * pageSize - 1);
 
         const { data, error, count } = await query;
         if (error) throw error;
