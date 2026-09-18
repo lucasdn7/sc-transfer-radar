@@ -6,12 +6,13 @@ O sistema de notificações agora é **totalmente automático** e funciona da se
 
 ### 1. Automação Baseada em Vigência de Processos
 
-As notificações são criadas automaticamente quando os processos entram em períodos específicos de vencimento:
+As notificações são criadas automaticamente quando os processos entram em períodos específicos de vencimento, com sistema de cores diferenciado:
 
-- **30 dias antes do vencimento**: Notificação importante (laranja)
-- **15 dias antes do vencimento**: Notificação importante (laranja)  
-- **7 dias antes do vencimento**: Notificação importante (laranja)
-- **No dia do vencimento**: Notificação crítica (vermelha)
+- **30 dias antes do vencimento**: Notificação info (🔵 Azul)
+- **15 dias antes do vencimento**: Notificação warning (🟡 Amarelo)  
+- **7 dias antes do vencimento**: Notificação important (🟠 Laranja)
+- **No dia do vencimento**: Notificação critical (🔴 Vermelho)
+- **Atualizações de vigência**: Notificação informative (⚪ Cinza)
 
 ### 2. Mecanismo de Automação
 
@@ -43,11 +44,20 @@ No frontend:
 - Notificações podem ser marcadas como lidas individualmente
 - Atualização automática a cada 60 segundos sem necessidade de ação manual
 
-### 5. Tipos de Notificações
+### 5. Tipos de Notificações e Sistema de Cores
 
-- **Critical (🔴)**: Processos vencidos
-- **Important (🟠)**: Processos próximos do vencimento (30, 15, 7 dias)
-- **Informative (🔵)**: Atualizações de vigência de processos
+O sistema utiliza uma escala de cores para indicar urgência:
+
+- **Critical (🔴 Vermelho)**: Processos vencidos ou vencendo hoje
+- **Important (🟠 Laranja)**: Processos vencendo em 7 dias
+- **Warning (🟡 Amarelo)**: Processos vencendo em 15 dias
+- **Info (🔵 Azul)**: Processos vencendo em 30 dias
+- **Informative (⚪ Cinza)**: Atualizações de vigência de processos
+
+As notificações agora são simplificadas, mostrando apenas:
+- Número do processo
+- Tempo restante para vencimento
+- Cor correspondente ao nível de urgência
 
 ### 6. Segurança
 
@@ -60,6 +70,9 @@ No frontend:
 2. **Tipo de dados notification_type**: Corrigido o tipo de parâmetro na função SQL para usar o tipo enum correto
 3. **Automação real**: Removida dependência de ação manual, agora é automático a cada 60 segundos
 4. **Filtro de duplicatas**: Melhorado para verificar especificamente notificações de vencimento vs notificações de atualização
+5. **Sistema de cores melhorado**: Implementado sistema de cores diferenciado (azul > amarelo > laranja > vermelho) para indicar urgência
+6. **Notificações simplificadas**: Removido objeto das notificações, agora mostram apenas número do processo e prazo
+7. **Legenda visual**: Adicionada legenda de cores dentro da caixa de notificação para fácil entendimento
 
 ## Como Testar
 

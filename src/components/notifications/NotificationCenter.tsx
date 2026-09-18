@@ -43,8 +43,10 @@ export function NotificationCenter() {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'critical': return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'important': return <Bell className="h-4 w-4 text-orange-500" />;
-      case 'informative': return <Info className="h-4 w-4 text-blue-500" />;
+      case 'important': return <AlertCircle className="h-4 w-4 text-orange-500" />;
+      case 'warning': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      case 'info': return <AlertCircle className="h-4 w-4 text-blue-500" />;
+      case 'informative': return <Info className="h-4 w-4 text-gray-500" />;
       default: return <CheckCircle className="h-4 w-4 text-green-500" />;
     }
   };
@@ -52,10 +54,24 @@ export function NotificationCenter() {
   // Título por tipo
   const getNotificationTitle = (type: string) => {
     switch (type) {
-      case 'critical': return 'Vencimento Crítico';
-      case 'important': return 'Vencimento Próximo';
-      case 'informative': return 'Informação';
+      case 'critical': return 'Vencido';
+      case 'important': return '7 dias';
+      case 'warning': return '15 dias';
+      case 'info': return '30 dias';
+      case 'informative': return 'Atualização';
       default: return 'Notificação';
+    }
+  };
+
+  // Cor de fundo por tipo
+  const getNotificationBgColor = (type: string) => {
+    switch (type) {
+      case 'critical': return 'bg-red-50';
+      case 'important': return 'bg-orange-50';
+      case 'warning': return 'bg-yellow-50';
+      case 'info': return 'bg-blue-50';
+      case 'informative': return 'bg-gray-50';
+      default: return 'bg-green-50';
     }
   };
 
@@ -95,6 +111,28 @@ export function NotificationCenter() {
             </Button>
           </CardHeader>
           <CardContent className="max-h-96 overflow-y-auto">
+            {/* Legenda de cores */}
+            <div className="mb-3 pb-2 border-b text-xs">
+              <div className="font-medium mb-1">Legenda de urgência:</div>
+              <div className="flex gap-2 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>30 dias</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span>15 dias</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span>7 dias</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span>Vencido</span>
+                </div>
+              </div>
+            </div>
             {isLoading ? (
               <div className="text-sm text-gray-500">Carregando...</div>
             ) : notifications && notifications.length > 0 ? (
@@ -102,7 +140,7 @@ export function NotificationCenter() {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-2 rounded text-sm flex gap-2 items-start ${!notification.is_read ? 'bg-blue-50' : 'bg-gray-50'}`}
+                    className={`p-2 rounded text-sm flex gap-2 items-start ${getNotificationBgColor(notification.type)}`}
                   >
                     <div className="pt-1">{getNotificationIcon(notification.type)}</div>
                     <div className="flex-1 min-w-0">
