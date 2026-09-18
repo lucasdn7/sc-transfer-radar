@@ -5,7 +5,6 @@ import { NotificationCenter } from "@/components/notifications/NotificationCente
 import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User, Shield, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { TestGoogleSheetsButton } from "./TestGoogleSheetsButton";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
@@ -59,7 +58,6 @@ export function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
                   Área Técnica
                 </Badge>
               </div>
-              <TestGoogleSheetsButton />
             </>
           )}
 
