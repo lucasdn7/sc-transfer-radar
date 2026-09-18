@@ -1,7 +1,6 @@
-const express = require('express');
-const cors = require('cors');
-const sheetsRoute = require('./sheets');
-const notificationsRoute = require('./notifications');
+import express from 'express';
+import cors from 'cors';
+import sheetsRoute from './sheets.js';
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
@@ -15,7 +14,6 @@ app.use(express.json());
 
 // Routes
 app.use('/api', sheetsRoute);
-app.use('/api', notificationsRoute);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -25,7 +23,6 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor da API rodando na porta ${PORT}`);
   console.log(`📊 Endpoint Google Sheets: http://localhost:${PORT}/api/sheets`);
-  console.log(`🔔 Endpoint Notificações: http://localhost:${PORT}/api/notifications`);
 });
 
-module.exports = app;
+export default app;
