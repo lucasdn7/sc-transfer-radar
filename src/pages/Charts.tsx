@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { CategorySelector } from "@/components/transfers/CategorySelector";
+import { useCategory } from "@/contexts/CategoryContext";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280", "#ef4444"];
 
@@ -80,6 +82,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
 }
 
 export default function Charts() {
+  const { category } = useCategory();
   const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics(false);
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
@@ -111,8 +114,36 @@ export default function Charts() {
   const metricLabel = METRICS.find(m => m.key === metric)?.label || "";
   const groupLabel = GROUPS.find(g => g.key === group)?.label || "";
 
+  if (category === 'promo') {
+    return (
+      <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }}>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--transfers-text-primary)' }}>Gráficos</h1>
+          <p className="text-sm" style={{ color: 'var(--transfers-text-muted)' }}>Visualizações ricas</p>
+        </div>
+        <CategorySelector />
+        <div className="mt-6">
+          <div className="rounded-3xl p-12 px-6 text-center" style={{
+            backgroundColor: 'var(--transfers-surface)',
+            border: '1px dashed var(--transfers-border-strong)',
+          }}>
+            <div className="mb-4 flex justify-center" style={{ fontSize: '48px', opacity: 0.25, color: 'var(--transfers-text-muted)' }}>
+              🏗️
+            </div>
+            <div className="text-[15px] mb-2" style={{ color: 'var(--transfers-text-secondary)' }}>
+              Ainda não há dados de promoção turística cadastrados
+            </div>
+            <div className="text-[13px]" style={{ color: 'var(--transfers-text-muted)' }}>
+              Os indicadores aparecerão automaticamente quando os dados forem inseridos
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6" role="main" aria-label="Gráficos e visualizações de dados">
+    <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Gráficos e visualizações de dados">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -134,173 +165,190 @@ export default function Charts() {
         </div>
       </div>
 
-      {/* Gráfico Principal Personalizável */}
-      <section aria-labelledby="grafico-principal">
-        <Card>
-          <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle className="text-lg font-semibold" id="grafico-principal">{metricLabel} por {groupLabel}</CardTitle>
-            <div className="flex gap-2 flex-wrap">
-              <Select value={metric} onValueChange={setMetric} aria-label="Selecionar métrica">
-                <SelectTrigger className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {METRICS.map(m => (
-                    <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={group} onValueChange={setGroup} aria-label="Selecionar agrupamento">
-                <SelectTrigger className="w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GROUPS.map(g => (
-                    <SelectItem key={g.key} value={g.key}>{g.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={chartType} onValueChange={setChartType} aria-label="Selecionar tipo de gráfico">
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHART_TYPES.map(t => (
-                    <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 flex items-center justify-center" role="status" aria-live="polite" aria-label="Carregando gráfico">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <div className="w-full h-[350px]" role="img" aria-label={`Gráfico de ${metricLabel} por ${groupLabel}`}>
-                <ChartRenderer type={chartType} data={chartData} metricLabel={metricLabel} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+      {/* CategorySelector */}
+      <CategorySelector />
 
-      {/* Gráfico de valores pagos por mês */}
-      <section aria-labelledby="grafico-mes">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle className="text-lg font-semibold" id="grafico-mes">Valores Pagos por Mês</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por mês">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresPagosPorMes}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
-                    <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
-                    <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+      {/* Conteúdo baseado na categoria */}
+      <div className="mt-6">
+        {category === 'todos' && (
+          <>
+            {/* Gráfico Principal Personalizável */}
+            <section aria-labelledby="grafico-principal">
+              <Card>
+                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <CardTitle className="text-lg font-semibold" id="grafico-principal">{metricLabel} por {groupLabel}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Select value={metric} onValueChange={setMetric} aria-label="Selecionar métrica">
+                      <SelectTrigger className="w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {METRICS.map(m => (
+                          <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={group} onValueChange={setGroup} aria-label="Selecionar agrupamento">
+                      <SelectTrigger className="w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GROUPS.map(g => (
+                          <SelectItem key={g.key} value={g.key}>{g.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={chartType} onValueChange={setChartType} aria-label="Selecionar tipo de gráfico">
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHART_TYPES.map(t => (
+                          <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="h-64 flex items-center justify-center" role="status" aria-live="polite" aria-label="Carregando gráfico">
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[350px]" role="img" aria-label={`Gráfico de ${metricLabel} por ${groupLabel}`}>
+                      <ChartRenderer type={chartType} data={chartData} metricLabel={metricLabel} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
 
-      {/* Gráfico de valores pagos por ano */}
-      <section aria-labelledby="grafico-ano">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle className="text-lg font-semibold" id="grafico-ano">Valores Pagos por Ano</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por ano">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresPagosPorAno}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
-                    <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
-                    <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+            {/* Gráfico de valores pagos por mês */}
+            <section aria-labelledby="grafico-mes">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <CardTitle className="text-lg font-semibold" id="grafico-mes">Valores Pagos por Mês</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por mês">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={valoresPagosPorMes}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
+                          <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
+                          <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
 
-      {/* Gráfico empilhado por município */}
-      <section aria-labelledby="grafico-municipio">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle className="text-lg font-semibold" id="grafico-municipio">Valores Repassados e a Repassar por Município</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por município">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresEmpilhadosPorMunicipio} stackOffset="none">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
-                    <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
-                    <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+            {/* Gráfico de valores pagos por ano */}
+            <section aria-labelledby="grafico-ano">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <CardTitle className="text-lg font-semibold" id="grafico-ano">Valores Pagos por Ano</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por ano">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={valoresPagosPorAno}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, 'Valor']} />
+                          <Bar dataKey="value" fill="#3b82f6" name="Valor Pago" />
+                          <Line type="monotone" dataKey="value" stroke="#10b981" name="Valor Pago" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
 
-      {/* Gráfico empilhado por núcleo */}
-      <section aria-labelledby="grafico-nucleo">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle className="text-lg font-semibold" id="grafico-nucleo">Valores Repassados e a Repassar por Núcleo Regional</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por núcleo regional">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={valoresEmpilhadosPorNucleo} stackOffset="none">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
-                    <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
-                    <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+            {/* Gráfico empilhado por município */}
+            <section aria-labelledby="grafico-municipio">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <CardTitle className="text-lg font-semibold" id="grafico-municipio">Valores Repassados e a Repassar por Município</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por município">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={valoresEmpilhadosPorMunicipio} stackOffset="none">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
+                          <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
+                          <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* Gráfico empilhado por núcleo */}
+            <section aria-labelledby="grafico-nucleo">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <CardTitle className="text-lg font-semibold" id="grafico-nucleo">Valores Repassados e a Repassar por Núcleo Regional</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="h-64 flex items-center justify-center" role="status" aria-live="polite">
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por núcleo regional">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={valoresEmpilhadosPorNucleo} stackOffset="none">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value, name) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, name === 'repassado' ? 'Repassado' : 'A Repassar']} />
+                          <Bar dataKey="repassado" stackId="a" fill="#2563eb" name="Repassado" />
+                          <Bar dataKey="aRepassar" stackId="a" fill="#93c5fd" name="A Repassar" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+          </>
+        )}
+        
+        {/* Para 'obras' e 'eventos', manter o conteúdo existente com filtro por categoria */}
+        {(category === 'obras' || category === 'eventos') && (
+          <div className="text-center py-8" style={{ color: 'var(--transfers-text-muted)' }}>
+            <p>Gráficos específicos para {category === 'obras' ? 'obras turísticas' : 'eventos turísticos'} serão implementados nas próximas etapas.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

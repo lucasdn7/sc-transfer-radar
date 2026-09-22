@@ -24,7 +24,6 @@ import {
   Settings,
   Star,
   TrendingUp,
-  LayoutDashboard,
 } from "lucide-react";
 
 export interface NavItem {
@@ -94,26 +93,6 @@ export const navigationConfig: NavGroup[] = [
         name: "Mapa",
         href: "/map",
         icon: Map,
-      },
-    ],
-  },
-  {
-    title: "Transferências SC",
-    items: [
-      {
-        name: "Dashboard",
-        href: "/transfer-dashboard",
-        icon: LayoutDashboard,
-      },
-      {
-        name: "Indicadores",
-        href: "/transfer-indicators",
-        icon: TrendingUp,
-      },
-      {
-        name: "Gráficos",
-        href: "/transfer-charts",
-        icon: BarChart3,
       },
     ],
   },

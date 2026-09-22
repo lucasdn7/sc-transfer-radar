@@ -32,9 +32,6 @@ import TerritorialInconsistencies from "./pages/TerritorialInconsistencies";
 import Indicators from "./pages/Indicators";
 import Charts from "./pages/Charts";
 import Assistente from "./pages/Assistente";
-import TransferDashboard from "./pages/TransferDashboard";
-import TransferIndicators from "./pages/TransferIndicators";
-import TransferCharts from "./pages/TransferCharts";
 
 const queryClient = new QueryClient();
 
@@ -102,10 +99,6 @@ const App = () => (
                     <Route path="/dart" element={<DART />} />
                     <Route path="/fluxograma" element={<Flowchart />} />
                     <Route path="/assistente" element={<Assistente />} />
-                    {/* Novas rotas do sistema de transferências */}
-                    <Route path="/transfer-dashboard" element={<TransferDashboard />} />
-                    <Route path="/transfer-indicators" element={<TransferIndicators />} />
-                    <Route path="/transfer-charts" element={<TransferCharts />} />
                   </Routes>
                 </AppLayout>
               </BrowserRouter>

@@ -5,6 +5,8 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/utils/processUtils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CategorySelector } from "@/components/transfers/CategorySelector";
+import { useCategory } from "@/contexts/CategoryContext";
 
 interface StatCardProps {
   title: string;
@@ -41,7 +43,36 @@ function StatCard({ title, value, change, trend, icon: Icon, color = "text-blue-
 }
 
 export default function Indicators() {
+  const { category } = useCategory();
   const { data: stats, isLoading, error, refetch } = useDashboardStats();
+
+  if (category === 'promo') {
+    return (
+      <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }}>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--transfers-text-primary)' }}>Indicadores</h1>
+          <p className="text-sm" style={{ color: 'var(--transfers-text-muted)' }}>Análise detalhada</p>
+        </div>
+        <CategorySelector />
+        <div className="mt-6">
+          <div className="rounded-3xl p-12 px-6 text-center" style={{
+            backgroundColor: 'var(--transfers-surface)',
+            border: '1px dashed var(--transfers-border-strong)',
+          }}>
+            <div className="mb-4 flex justify-center" style={{ fontSize: '48px', opacity: 0.25, color: 'var(--transfers-text-muted)' }}>
+              🏗️
+            </div>
+            <div className="text-[15px] mb-2" style={{ color: 'var(--transfers-text-secondary)' }}>
+              Ainda não há dados de promoção turística cadastrados
+            </div>
+            <div className="text-[13px]" style={{ color: 'var(--transfers-text-muted)' }}>
+              Os indicadores aparecerão automaticamente quando os dados forem inseridos
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -197,7 +228,7 @@ export default function Indicators() {
   ];
 
   return (
-    <div className="space-y-6" role="main" aria-label="Indicadores e métricas">
+    <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Indicadores e métricas">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -226,82 +257,99 @@ export default function Indicators() {
         </Button>
       </div>
 
-      {/* Indicadores Principais */}
-      <section aria-labelledby="indicadores-principais">
-        <h2 id="indicadores-principais" className="text-xl font-semibold mb-4">Indicadores Principais</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {statsData.map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </div>
-      </section>
+      {/* CategorySelector */}
+      <CategorySelector />
 
-      {/* Indicadores de Repasse */}
-      <section aria-labelledby="indicadores-repasse">
-        <h2 id="indicadores-repasse" className="text-xl font-semibold mb-4">Indicadores de Repasse</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[...repasseCards, ...saldoCards, ...insightsCards].map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </div>
-      </section>
-
-      {/* Distribuição por Status */}
-      {stats?.statusData && stats.statusData.length > 0 && (
-        <section aria-labelledby="distribuicao-status">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" id="distribuicao-status">
-                <BarChart3 className="h-5 w-5" aria-hidden="true" />
-                Distribuição por Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {stats.statusData.map((item) => (
-                  <div key={item.status} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500" aria-hidden="true"></div>
-                      <span className="text-sm">{item.status}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium">{item.count}</span>
-                      <span className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</span>
-                    </div>
-                  </div>
+      {/* Conteúdo baseado na categoria */}
+      <div className="mt-6">
+        {category === 'todos' && (
+          <>
+            {/* Indicadores Principais */}
+            <section aria-labelledby="indicadores-principais">
+              <h2 id="indicadores-principais" className="text-xl font-semibold mb-4">Indicadores Principais</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {statsData.map((stat, index) => (
+                  <StatCard key={index} {...stat} />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </section>
-      )}
+            </section>
 
-      {/* Distribuição por Região */}
-      {stats?.regionalData && stats.regionalData.length > 0 && (
-        <section aria-labelledby="distribuicao-regiao">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" id="distribuicao-regiao">
-                <MapPin className="h-5 w-5" aria-hidden="true" />
-                Distribuição por Região
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {stats.regionalData.map((item) => (
-                  <div key={item.region} className="flex items-center justify-between">
-                    <span className="text-sm">{item.region}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium">{item.count}</span>
-                      <span className="text-xs text-muted-foreground">{formatCurrency(item.value)}</span>
-                    </div>
-                  </div>
+            {/* Indicadores de Repasse */}
+            <section aria-labelledby="indicadores-repasse">
+              <h2 id="indicadores-repasse" className="text-xl font-semibold mb-4">Indicadores de Repasse</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {[...repasseCards, ...saldoCards, ...insightsCards].map((stat, index) => (
+                  <StatCard key={index} {...stat} />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </section>
-      )}
+            </section>
+
+            {/* Distribuição por Status */}
+            {stats?.statusData && stats.statusData.length > 0 && (
+              <section aria-labelledby="distribuicao-status">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2" id="distribuicao-status">
+                      <BarChart3 className="h-5 w-5" aria-hidden="true" />
+                      Distribuição por Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {stats.statusData.map((item) => (
+                        <div key={item.status} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-500" aria-hidden="true"></div>
+                            <span className="text-sm">{item.status}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium">{item.count}</span>
+                            <span className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
+            {/* Distribuição por Região */}
+            {stats?.regionalData && stats.regionalData.length > 0 && (
+              <section aria-labelledby="distribuicao-regiao">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2" id="distribuicao-regiao">
+                      <MapPin className="h-5 w-5" aria-hidden="true" />
+                      Distribuição por Região
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {stats.regionalData.map((item) => (
+                        <div key={item.region} className="flex items-center justify-between">
+                          <span className="text-sm">{item.region}</span>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium">{item.count}</span>
+                            <span className="text-xs text-muted-foreground">{formatCurrency(item.value)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+          </>
+        )}
+        
+        {/* Para 'obras' e 'eventos', manter o conteúdo existente com filtro por categoria */}
+        {(category === 'obras' || category === 'eventos') && (
+          <div className="text-center py-8" style={{ color: 'var(--transfers-text-muted)' }}>
+            <p>Indicadores específicos para {category === 'obras' ? 'obras turísticas' : 'eventos turísticos'} serão implementados nas próximas etapas.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
