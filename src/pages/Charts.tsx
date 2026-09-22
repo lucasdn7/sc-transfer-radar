@@ -9,6 +9,10 @@ import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { CategorySelector } from "@/components/transfers/CategorySelector";
 import { useCategory } from "@/contexts/CategoryContext";
+import { useChartsData } from "@/hooks/useChartsData";
+import { ChartsTodos } from "@/components/dashboard/ChartsTodos";
+import { ChartsObras } from "@/components/dashboard/ChartsObras";
+import { ChartsEventos } from "@/components/dashboard/ChartsEventos";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280", "#ef4444"];
 
@@ -84,6 +88,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
 export default function Charts() {
   const { category } = useCategory();
   const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics(false);
+  const { data: chartsData, isLoading: isLoadingCharts } = useChartsData();
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
@@ -171,7 +176,16 @@ export default function Charts() {
       {/* Conteúdo baseado na categoria */}
       <div className="mt-6">
         {category === 'todos' && (
-          <>
+          <div className="space-y-6">
+            {isLoadingCharts ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Skeleton className="h-[400px] w-full rounded-xl" />
+                <Skeleton className="h-[400px] w-full rounded-xl" />
+              </div>
+            ) : (
+              <ChartsTodos data={chartsData} />
+            )}
+            
             {/* Gráfico Principal Personalizável */}
             <section aria-labelledby="grafico-principal">
               <Card>
@@ -339,14 +353,29 @@ export default function Charts() {
                 </CardContent>
               </Card>
             </section>
-          </>
+          </div>
         )}
         
-        {/* Para 'obras' e 'eventos', manter o conteúdo existente com filtro por categoria */}
-        {(category === 'obras' || category === 'eventos') && (
-          <div className="text-center py-8" style={{ color: 'var(--transfers-text-muted)' }}>
-            <p>Gráficos específicos para {category === 'obras' ? 'obras turísticas' : 'eventos turísticos'} serão implementados nas próximas etapas.</p>
-          </div>
+        {category === 'obras' && (
+          isLoadingCharts ? (
+            <div className="space-y-6">
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+            </div>
+          ) : (
+            <ChartsObras data={chartsData} />
+          )
+        )}
+        
+        {category === 'eventos' && (
+          isLoadingCharts ? (
+            <div className="space-y-6">
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+            </div>
+          ) : (
+            <ChartsEventos data={chartsData} />
+          )
         )}
       </div>
     </div>
