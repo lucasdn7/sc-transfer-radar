@@ -10,6 +10,25 @@ export const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+// Função específica para o Dashboard (Parte 2)
+export const formatCurrencyShort = (value: number) => {
+  if (value >= 1_000_000_000) {
+    return `R$ ${(value / 1_000_000_000).toFixed(2)} B`;
+  }
+  if (value >= 1_000_000) {
+    return `R$ ${(value / 1_000_000).toFixed(1)} M`;
+  }
+  if (value >= 1_000) {
+    return `R$ ${Math.floor(value).toLocaleString('pt-BR')}`;
+  }
+  return `R$ ${value.toFixed(2)}`;
+};
+
+export const formatPercent = (a: number, b: number) => {
+  if (b === 0) return '0%';
+  return Math.round((a / b) * 100) + '%';
+};
+
 export const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('pt-BR');
 };
