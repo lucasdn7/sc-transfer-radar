@@ -99,7 +99,7 @@ export function NotificationCenter() {
       </Button>
 
       {isOpen && (
-        <Card className="absolute right-0 top-full mt-2 w-96 z-50 shadow-lg">
+        <Card className="absolute right-0 top-full mt-2 w-[28rem] z-50 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Notificações</CardTitle>
             <Button
@@ -140,12 +140,12 @@ export function NotificationCenter() {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-2 rounded text-sm flex gap-2 items-start ${getNotificationBgColor(notification.type)}`}
+                    className={`p-3 rounded text-sm flex gap-2 items-start ${getNotificationBgColor(notification.type)}`}
                   >
                     <div className="pt-1">{getNotificationIcon(notification.type)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{getNotificationTitle(notification.type)}</div>
-                      <div className="text-xs text-gray-700 truncate">{notification.message}</div>
+                      <div className="font-medium">{getNotificationTitle(notification.type)}</div>
+                      <div className="text-xs text-gray-700 break-words">{notification.message}</div>
                       <div className="text-xs text-gray-500 mt-1">
                         {new Date(notification.created_at).toLocaleString('pt-BR')}
                       </div>
