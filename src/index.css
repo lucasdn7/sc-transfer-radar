@@ -375,3 +375,107 @@ input::placeholder,
 textarea::placeholder {
   color: var(--text-muted);
 }
+
+/* Transfer SC - Design System Variables */
+@layer base {
+  :root {
+    /* Fundos */
+    --transfers-bg: #F5F4F1;
+    --transfers-surface: #FFFFFF;
+    --transfers-surface-alt: #F8F7F4;
+    
+    /* Bordas */
+    --transfers-border: #E2E0D9;
+    --transfers-border-strong: #C8C6BD;
+    
+    /* Texto */
+    --transfers-text-primary: #1A1A18;
+    --transfers-text-secondary: #5F5E5A;
+    --transfers-text-muted: #9B9990;
+    
+    /* Categorias */
+    --transfers-color-todos: #1A1A18;
+    --transfers-color-obras: #1D6FCC;
+    --transfers-color-eventos: #0F6E56;
+    --transfers-color-promo: #7C3AED;
+    
+    /* Semântico */
+    --transfers-success: #1A7340;
+    --transfers-success-bg: #E8F5EE;
+    --transfers-warning: #8A5A00;
+    --transfers-warning-bg: #FEF3D0;
+    --transfers-danger: #C0392B;
+    --transfers-danger-bg: #FDECEA;
+    --transfers-info: #1D6FCC;
+    --transfers-info-bg: #EBF3FD;
+    
+    /* Sombra */
+    --transfers-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  }
+
+  [data-theme="dark"] {
+    /* Fundos */
+    --transfers-bg: #18181A;
+    --transfers-surface: #242426;
+    --transfers-surface-alt: #2C2C2E;
+    
+    /* Bordas */
+    --transfers-border: #3A3A3C;
+    --transfers-border-strong: #4A4A4C;
+    
+    /* Texto */
+    --transfers-text-primary: #F2F1ED;
+    --transfers-text-secondary: #A8A7A3;
+    --transfers-text-muted: #6B6A67;
+    
+    /* Semântico - versões dark */
+    --transfers-success: #2ECC71;
+    --transfers-success-bg: rgba(46,204,113,0.15);
+    --transfers-warning: #F39C12;
+    --transfers-warning-bg: rgba(243,156,18,0.15);
+    --transfers-danger: #E74C3C;
+    --transfers-danger-bg: rgba(231,76,60,0.15);
+    --transfers-info: #3498DB;
+    --transfers-info-bg: rgba(52,152,219,0.15);
+  }
+}
+
+@layer utilities {
+  .bg-transfers-bg { background-color: var(--transfers-bg); }
+  .bg-transfers-surface { background-color: var(--transfers-surface); }
+  .bg-transfers-surface-alt { background-color: var(--transfers-surface-alt); }
+  .border-transfers-border { border-color: var(--transfers-border); }
+  .border-transfers-border-strong { border-color: var(--transfers-border-strong); }
+  .text-transfers-primary { color: var(--transfers-text-primary); }
+  .text-transfers-secondary { color: var(--transfers-text-secondary); }
+  .text-transfers-muted { color: var(--transfers-text-muted); }
+  
+  /* Cores de categoria */
+  .bg-todos { background-color: var(--transfers-color-todos); }
+  .bg-obras { background-color: var(--transfers-color-obras); }
+  .bg-eventos { background-color: var(--transfers-color-eventos); }
+  .bg-promo { background-color: var(--transfers-color-promo); }
+  
+  .text-todos { color: var(--transfers-color-todos); }
+  .text-obras { color: var(--transfers-color-obras); }
+  .text-eventos { color: var(--transfers-color-eventos); }
+  .text-promo { color: var(--transfers-color-promo); }
+  
+  /* Cores semânticas */
+  .bg-transfers-success { background-color: var(--transfers-success-bg); }
+  .bg-transfers-warning { background-color: var(--transfers-warning-bg); }
+  .bg-transfers-danger { background-color: var(--transfers-danger-bg); }
+  .bg-transfers-info { background-color: var(--transfers-info-bg); }
+  
+  .text-transfers-success { color: var(--transfers-success); }
+  .text-transfers-warning { color: var(--transfers-warning); }
+  .text-transfers-danger { color: var(--transfers-danger); }
+  .text-transfers-info { color: var(--transfers-info); }
+}
+
+/* Tailwind config extend - adicionar cores customizadas */
+@layer base {
+  * {
+    --tw-ring-offset-color: var(--transfers-bg);
+  }
+}

@@ -61,6 +61,25 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Transfer SC custom colors
+				transfers: {
+					bg: 'var(--transfers-bg)',
+					surface: 'var(--transfers-surface)',
+					'surface-alt': 'var(--transfers-surface-alt)',
+					border: 'var(--transfers-border)',
+					'border-strong': 'var(--transfers-border-strong)',
+					primary: 'var(--transfers-text-primary)',
+					secondary: 'var(--transfers-text-secondary)',
+					muted: 'var(--transfers-text-muted)',
+					todos: 'var(--transfers-color-todos)',
+					obras: 'var(--transfers-color-obras)',
+					eventos: 'var(--transfers-color-eventos)',
+					promo: 'var(--transfers-color-promo)',
+					success: 'var(--transfers-success)',
+					warning: 'var(--transfers-warning)',
+					danger: 'var(--transfers-danger)',
+					info: 'var(--transfers-info)',
 				}
 			},
 			borderRadius: {

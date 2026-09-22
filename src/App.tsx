@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ThemeProvider } from "./components/providers/ThemeProvider";
+import { CategoryProvider } from "./contexts/CategoryContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Processes from "./pages/Processes";
@@ -31,6 +32,9 @@ import TerritorialInconsistencies from "./pages/TerritorialInconsistencies";
 import Indicators from "./pages/Indicators";
 import Charts from "./pages/Charts";
 import Assistente from "./pages/Assistente";
+import TransferDashboard from "./pages/TransferDashboard";
+import TransferIndicators from "./pages/TransferIndicators";
+import TransferCharts from "./pages/TransferCharts";
 
 const queryClient = new QueryClient();
 
@@ -67,40 +71,46 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/processes" element={<Processes />} />
-                  <Route path="/process-timeline" element={<ProcessTimeline />} />
-                  <Route path="/process-calendar" element={<ProcessCalendar />} />
-                  <Route path="/monitoring/alerts" element={<MonitoringAlerts />} />
-                  <Route path="/municipalities" element={<Municipalities />} />
-                  <Route path="/municipalities/:id" element={<MunicipalityDetail />} />
-                  <Route path="/municipalities/inconsistencies" element={<TerritorialInconsistencies />} />
-                  <Route path="/indicators" element={<Indicators />} />
-                  <Route path="/charts" element={<Charts />} />
-                  <Route path="/regional-nuclei" element={<RegionalNuclei />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/map" element={<Map />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/app-settings" element={<AppSettings />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/technical-auth" element={<TechnicalAuth />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="*" element={<NotFound />} />
-                  <Route path="/dart" element={<DART />} />
-                  <Route path="/fluxograma" element={<Flowchart />} />
-                  <Route path="/assistente" element={<Assistente />} />
-                </Routes>
-              </AppLayout>
-            </BrowserRouter>
-          </TooltipProvider>
+          <CategoryProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/processes" element={<Processes />} />
+                    <Route path="/process-timeline" element={<ProcessTimeline />} />
+                    <Route path="/process-calendar" element={<ProcessCalendar />} />
+                    <Route path="/monitoring/alerts" element={<MonitoringAlerts />} />
+                    <Route path="/municipalities" element={<Municipalities />} />
+                    <Route path="/municipalities/:id" element={<MunicipalityDetail />} />
+                    <Route path="/municipalities/inconsistencies" element={<TerritorialInconsistencies />} />
+                    <Route path="/indicators" element={<Indicators />} />
+                    <Route path="/charts" element={<Charts />} />
+                    <Route path="/regional-nuclei" element={<RegionalNuclei />} />
+                    <Route path="/documents" element={<Documents />} />
+                    <Route path="/map" element={<Map />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/app-settings" element={<AppSettings />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/technical-auth" element={<TechnicalAuth />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                    <Route path="*" element={<NotFound />} />
+                    <Route path="/dart" element={<DART />} />
+                    <Route path="/fluxograma" element={<Flowchart />} />
+                    <Route path="/assistente" element={<Assistente />} />
+                    {/* Novas rotas do sistema de transferências */}
+                    <Route path="/transfer-dashboard" element={<TransferDashboard />} />
+                    <Route path="/transfer-indicators" element={<TransferIndicators />} />
+                    <Route path="/transfer-charts" element={<TransferCharts />} />
+                  </Routes>
+                </AppLayout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </CategoryProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
