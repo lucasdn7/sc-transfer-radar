@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CategorySelector } from "@/components/transfers/CategorySelector";
 import { useCategory } from "@/contexts/CategoryContext";
 import { useIndicatorsObras } from "@/hooks/useIndicatorsObras";
+import { useIndicatorsEventos } from "@/hooks/useIndicatorsEventos";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -43,6 +44,409 @@ function StatCard({ title, value, change, trend, icon: Icon, color = "text-blue-
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function formatPercentValue(value: number): string {
+  if (!Number.isFinite(value)) return "0%";
+  return `${value.toFixed(1)}%`;
+}
+
+function EventosIndicators() {
+  const { data, isLoading, error, refetch } = useIndicatorsEventos();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 mt-6" role="status" aria-live="polite" aria-label="Carregando indicadores de eventos">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <Skeleton key={item} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6" role="alert" aria-live="assertive">
+        <Card className="border-red-200">
+          <CardContent className="p-6">
+            <p className="text-red-600">Erro ao carregar indicadores de eventos</p>
+            <Button onClick={() => refetch()} variant="outline" className="mt-4" aria-label="Tentar carregar indicadores de eventos novamente">
+              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
+              Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="mt-6">
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            Nenhum dado de eventos encontrado.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const { visaoGeral, statusContratos, evolucaoAnual, tiposInstrumento, regioesTuristicas, nucleosRegionais, topMunicipios, engajamento } = data;
+
+  const summaryBadges = [
+    { label: "Eventos", value: visaoGeral.totalEventos.toLocaleString('pt-BR') },
+    { label: "Valor publicado", value: formatCurrency(visaoGeral.valorPublicado) },
+    { label: "Taxa de pagamento", value: formatPercentValue(visaoGeral.taxaPagamento) },
+  ];
+
+  return (
+    <div className="space-y-8 mt-6">
+      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white p-4 dark:from-emerald-950/20 dark:to-slate-900 dark:border-emerald-900/60">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">Painel de eventos</p>
+            <h2 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">Indicadores de eventos turísticos</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {summaryBadges.map((item) => (
+              <Badge key={item.label} variant="secondary" className="rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-emerald-900 dark:bg-slate-900/70 dark:text-slate-200">
+                {item.label}: {item.value}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <section aria-labelledby="eventos-visao-geral">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-visao-geral" className="text-xl font-semibold">Visão geral</h2>
+          <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">6 indicadores</Badge>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total de eventos</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{visaoGeral.totalEventos.toLocaleString('pt-BR')}</div>
+              <div className="text-xs text-muted-foreground mt-1">{visaoGeral.municipiosAtendidos.toLocaleString('pt-BR')} municípios atendidos</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Municípios atendidos</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{visaoGeral.municipiosAtendidos.toLocaleString('pt-BR')}</div>
+              <div className="text-xs text-muted-foreground mt-1">Registros com município identificado</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Valor publicado</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(visaoGeral.valorPublicado)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Total apoiado em eventos</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Valor contratado</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(visaoGeral.valorContratado)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Eventos com contrato assinado</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Valor pago</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(visaoGeral.valorPago)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Pagamentos consolidados</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Taxa de pagamento</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPercentValue(visaoGeral.taxaPagamento)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Valor pago / valor contratado</div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section aria-labelledby="eventos-status-contratos">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-status-contratos" className="text-xl font-semibold">Status dos contratos</h2>
+          <Badge variant="outline" className="border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300">Distribuição</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[
+                { label: 'Assinados', value: statusContratos.assinados, percentage: statusContratos.percAssinados, color: '#1A7340', badge: 'text-green-700 bg-green-100' },
+                { label: 'Pendentes', value: statusContratos.pendentes, percentage: statusContratos.percPendentes, color: '#C9903A', badge: 'text-amber-700 bg-amber-100' },
+                { label: 'Arquivados', value: statusContratos.arquivados, percentage: statusContratos.percArquivados, color: '#888888', badge: 'text-slate-700 bg-slate-100' },
+                { label: 'Não definido', value: statusContratos.naoDefinido, percentage: statusContratos.percNaoDefinido, color: '#D1D5DB', badge: 'text-slate-700 bg-slate-100' },
+              ].map((status) => (
+                <div key={status.label} className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: status.color }} aria-hidden="true" />
+                      <span className="font-medium">{status.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{status.value}</span>
+                      <Badge className={status.badge}>{formatPercentValue(status.percentage)}</Badge>
+                    </div>
+                  </div>
+                  <Progress value={status.percentage} className="h-2" style={{ backgroundColor: '#e5e7eb' }} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-evolucao-ano">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-evolucao-ano" className="text-xl font-semibold">Evolução por ano</h2>
+          <Badge variant="outline" className="border-sky-200 text-sky-700 dark:border-sky-800 dark:text-sky-300">2023–2026</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ano</TableHead>
+                    <TableHead className="text-right">Assinados</TableHead>
+                    <TableHead className="text-right">Pendentes</TableHead>
+                    <TableHead className="text-right">Arquivados</TableHead>
+                    <TableHead className="text-right">Valor assinado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {evolucaoAnual.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Sem dados de evolução anual.</TableCell>
+                    </TableRow>
+                  ) : (
+                    evolucaoAnual.map((row) => (
+                      <TableRow key={row.ano}>
+                        <TableCell className="font-medium">{row.ano}</TableCell>
+                        <TableCell className="text-right">{row.assinados}</TableCell>
+                        <TableCell className="text-right">{row.pendentes}</TableCell>
+                        <TableCell className="text-right">{row.arquivados}</TableCell>
+                        <TableCell className="text-right text-green-700 font-medium">{formatCurrency(row.valorAssinado)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-tipos-instrumento">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-tipos-instrumento" className="text-xl font-semibold">Por tipo de instrumento</h2>
+          <Badge variant="outline" className="border-violet-200 text-violet-700 dark:border-violet-800 dark:text-violet-300">{tiposInstrumento.length} grupos</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Quantidade</TableHead>
+                    <TableHead className="text-right">Valor total</TableHead>
+                    <TableHead className="text-right">% quantidade</TableHead>
+                    <TableHead className="text-right">% valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tiposInstrumento.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nenhum tipo de instrumento encontrado.</TableCell>
+                    </TableRow>
+                  ) : (
+                    tiposInstrumento.map((item) => (
+                      <TableRow key={item.tipo}>
+                        <TableCell className="font-medium">{item.tipo}</TableCell>
+                        <TableCell className="text-right">{item.quantidade}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.valor)}</TableCell>
+                        <TableCell className="text-right">{formatPercentValue(item.percQuantidade)}</TableCell>
+                        <TableCell className="text-right">{formatPercentValue(item.percValor)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-regiao-turistica">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-regiao-turistica" className="text-xl font-semibold">Por região turística</h2>
+          <Badge variant="outline" className="border-cyan-200 text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">{regioesTuristicas.length} regiões</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Região</TableHead>
+                    <TableHead className="text-right">Eventos</TableHead>
+                    <TableHead className="text-right">Valor apoiado</TableHead>
+                    <TableHead className="text-right">Média por evento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {regioesTuristicas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nenhuma região cadastrada.</TableCell>
+                    </TableRow>
+                  ) : (
+                    regioesTuristicas.map((item) => (
+                      <TableRow key={item.regiao}>
+                        <TableCell className="font-medium">{item.regiao}</TableCell>
+                        <TableCell className="text-right">{item.eventos}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.valorApoiado)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.mediaPorEvento)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-nucleos-regionais">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-nucleos-regionais" className="text-xl font-semibold">Por núcleo regional</h2>
+          <Badge variant="outline" className="border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-300">{nucleosRegionais.length} núcleos</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sigla</TableHead>
+                    <TableHead>Núcleo</TableHead>
+                    <TableHead className="text-right">Eventos</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nucleosRegionais.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nenhum núcleo regional cadastrado.</TableCell>
+                    </TableRow>
+                  ) : (
+                    nucleosRegionais.map((item) => (
+                      <TableRow key={`${item.sigla}-${item.nome}`}>
+                        <TableCell className="font-medium">{item.sigla}</TableCell>
+                        <TableCell>{item.nome}</TableCell>
+                        <TableCell className="text-right">{item.eventos}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.valor)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-top-municipios">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-top-municipios" className="text-xl font-semibold">Top 15 municípios por valor de eventos</h2>
+          <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">Top 15</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 text-center">#</TableHead>
+                    <TableHead>Município</TableHead>
+                    <TableHead>Região</TableHead>
+                    <TableHead className="text-right">Eventos</TableHead>
+                    <TableHead className="text-right">Valor recebido</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topMunicipios.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nenhum município encontrado.</TableCell></TableRow>
+                  ) : (
+                    topMunicipios.map((municipio) => (
+                      <TableRow key={`${municipio.posicao}-${municipio.municipio}`}>
+                        <TableCell className="text-center font-medium text-muted-foreground">{municipio.posicao}</TableCell>
+                        <TableCell className="font-medium">{municipio.municipio}</TableCell>
+                        <TableCell>{municipio.regiao}</TableCell>
+                        <TableCell className="text-right">{municipio.eventos}</TableCell>
+                        <TableCell className="text-right text-green-700 font-medium">{formatCurrency(municipio.valor)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section aria-labelledby="eventos-engajamento-combinado">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="eventos-engajamento-combinado" className="text-xl font-semibold">Municípios com mais engajamento: obras + eventos</h2>
+          <Badge variant="outline" className="border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300">Interações</Badge>
+        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 text-center">#</TableHead>
+                    <TableHead>Município</TableHead>
+                    <TableHead>Região</TableHead>
+                    <TableHead className="text-right">Obras</TableHead>
+                    <TableHead className="text-right">Eventos</TableHead>
+                    <TableHead className="text-right">Total interações</TableHead>
+                    <TableHead className="text-right">Valor total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {engajamento.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Nenhum município com engajamento combinado.</TableCell></TableRow>
+                  ) : (
+                    engajamento.map((item) => (
+                      <TableRow key={`${item.posicao}-${item.municipio}`}>
+                        <TableCell className="text-center font-medium text-muted-foreground">{item.posicao}</TableCell>
+                        <TableCell className="font-medium">{item.municipio}</TableCell>
+                        <TableCell>{item.regiao}</TableCell>
+                        <TableCell className="text-right">{item.obras}</TableCell>
+                        <TableCell className="text-right">{item.eventos}</TableCell>
+                        <TableCell className="text-right">{item.totalInteracoes}</TableCell>
+                        <TableCell className="text-right text-blue-700 font-medium">{formatCurrency(item.valorTotal)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
   );
 }
 
@@ -831,12 +1235,7 @@ export default function Indicators() {
         {/* Indicadores de obras */}
         {category === 'obras' && <ObrasIndicators />}
         
-        {/* Para 'eventos', manter o conteúdo existente */}
-        {category === 'eventos' && (
-          <div className="text-center py-8" style={{ color: 'var(--transfers-text-muted)' }}>
-            <p>Indicadores específicos para eventos turísticos serão implementados nas próximas etapas.</p>
-          </div>
-        )}
+        {category === 'eventos' && <EventosIndicators />}
       </div>
     </div>
   );
