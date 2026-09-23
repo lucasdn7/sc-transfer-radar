@@ -1,12 +1,16 @@
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin, BarChart3, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, FileText, Building, MapPin, BarChart3, RefreshCw, Calendar, CheckCircle2, Clock, AlertTriangle, XCircle, MapPinOff, Layers, Search } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { formatCurrency } from "@/utils/processUtils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CategorySelector } from "@/components/transfers/CategorySelector";
 import { useCategory } from "@/contexts/CategoryContext";
+import { useIndicatorsObras } from "@/hooks/useIndicatorsObras";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface StatCardProps {
   title: string;
@@ -39,6 +43,487 @@ function StatCard({ title, value, change, trend, icon: Icon, color = "text-blue-
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ObrasIndicators() {
+  const { data: stats, isLoading, error, refetch } = useIndicatorsObras();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200 mt-6">
+        <CardContent className="p-6">
+          <p className="text-red-600">Erro ao carregar indicadores de obras</p>
+          <Button onClick={() => refetch()} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
+            Tentar novamente
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!stats) return null;
+
+  const { visaoFinanceira, execucaoParcelas, parcelasAgrupadas, situacaoContratos, semaforoVigencia } = stats;
+
+  return (
+    <div className="space-y-8 mt-6">
+      {/* Bloco 1 — Visão geral financeira */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Visão Geral Financeira</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Valor Total da Portaria"
+            value={formatCurrency(visaoFinanceira.totalPortaria)}
+            icon={DollarSign}
+            color="text-blue-600"
+          />
+          <StatCard
+            title="Valor Concedente"
+            value={formatCurrency(visaoFinanceira.totalConcedente)}
+            icon={DollarSign}
+            color="text-green-600"
+          />
+          <StatCard
+            title="Valor Contrapartida"
+            value={formatCurrency(visaoFinanceira.totalProponente)}
+            icon={DollarSign}
+            color="text-orange-600"
+          />
+          <StatCard
+            title="Valor Licitado"
+            value={visaoFinanceira.hasLicitado ? formatCurrency(visaoFinanceira.totalLicitado) : "Sem dados"}
+            icon={DollarSign}
+            color="text-purple-600"
+          />
+        </div>
+      </section>
+
+      {/* Bloco 2 — Execução financeira das parcelas */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Execução Financeira das Parcelas</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Total de Parcelas"
+            value={execucaoParcelas.totalParcelas.toLocaleString('pt-BR')}
+            icon={Layers}
+            color="text-blue-500"
+          />
+          <StatCard
+            title="Parcelas Pagas"
+            value={execucaoParcelas.pagas.toLocaleString('pt-BR')}
+            change={`${execucaoParcelas.percQuantidadePaga.toFixed(1)}% do total`}
+            trend="up"
+            icon={CheckCircle2}
+            color="text-green-600"
+          />
+          <StatCard
+            title="Parcelas Pendentes"
+            value={execucaoParcelas.pendentes.toLocaleString('pt-BR')}
+            change={`${execucaoParcelas.percQuantidadePendente.toFixed(1)}% do total`}
+            trend="neutral"
+            icon={Clock}
+            color="text-amber-500"
+          />
+          <StatCard
+            title="Valor Total das Parcelas"
+            value={formatCurrency(execucaoParcelas.valorTotal)}
+            icon={DollarSign}
+            color="text-blue-600"
+          />
+          <StatCard
+            title="Valor Pago"
+            value={formatCurrency(execucaoParcelas.valorPago)}
+            change={`${execucaoParcelas.percValorPago.toFixed(1)}% do valor`}
+            trend="up"
+            icon={DollarSign}
+            color="text-green-600"
+          />
+          <StatCard
+            title="Valor Pendente"
+            value={formatCurrency(execucaoParcelas.valorPendente)}
+            change={`${execucaoParcelas.percValorPendente.toFixed(1)}% do valor`}
+            trend="neutral"
+            icon={DollarSign}
+            color="text-amber-500"
+          />
+        </div>
+        {execucaoParcelas.valorTotal > 0 && (
+          <div className="mt-4 p-4 bg-white rounded-xl border">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="font-medium text-slate-700">Progresso de Pagamento</span>
+              <span className="font-bold text-blue-600">{execucaoParcelas.percValorPago.toFixed(1)}%</span>
+            </div>
+            <Progress value={execucaoParcelas.percValorPago} className="h-3" />
+          </div>
+        )}
+      </section>
+
+      {/* Bloco 3 — Execução por número de parcela */}
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Execução por Número de Parcela</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parcela</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Pagas</TableHead>
+                    <TableHead className="text-right">Pendentes</TableHead>
+                    <TableHead className="text-right">% Pago</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
+                    <TableHead className="text-right">Valor Pago</TableHead>
+                    <TableHead className="text-right">Valor Pendente</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parcelasAgrupadas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground h-24">Nenhuma parcela encontrada</TableCell>
+                    </TableRow>
+                  ) : (
+                    parcelasAgrupadas.map(g => (
+                      <TableRow key={g.parcelNumber}>
+                        <TableCell className="font-medium">{g.parcelNumber}ª Parcela</TableCell>
+                        <TableCell className="text-right">{g.totalProcessos}</TableCell>
+                        <TableCell className="text-right">{g.pagas}</TableCell>
+                        <TableCell className="text-right">{g.pendentes}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={g.percPago === 100 ? "default" : "secondary"}>
+                            {g.percPago.toFixed(1)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(g.valorTotal)}</TableCell>
+                        <TableCell className="text-right text-green-600 font-medium">{formatCurrency(g.valorPago)}</TableCell>
+                        <TableCell className="text-right text-amber-600">{formatCurrency(g.valorPendente)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Bloco 4 — Situação dos contratos */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Situação dos Contratos</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Contrato Assinado"
+            value={situacaoContratos.comContrato.toString()}
+            icon={CheckCircle2}
+            color="text-green-600"
+          />
+          <StatCard
+            title="Sem Contrato"
+            value={situacaoContratos.semContrato.toString()}
+            icon={XCircle}
+            color="text-red-500"
+          />
+          <StatCard
+            title="Em Prestação de Contas"
+            value={situacaoContratos.prestacaoContas.toString()}
+            icon={Search}
+            color="text-purple-600"
+          />
+          <StatCard
+            title="Processos Finalizados"
+            value={situacaoContratos.finalizados.toString()}
+            icon={CheckCircle2}
+            color="text-blue-600"
+          />
+          <StatCard
+            title="Com Termo Aditivo"
+            value={situacaoContratos.comAditivo.toString()}
+            icon={FileText}
+            color="text-orange-600"
+          />
+          <StatCard
+            title="Total de Aditivos"
+            value={situacaoContratos.totalAditivos.toString()}
+            icon={Layers}
+            color="text-orange-500"
+          />
+          <StatCard
+            title="Com Localização"
+            value={situacaoContratos.comLocalizacao.toString()}
+            icon={MapPin}
+            color="text-green-500"
+          />
+        </div>
+      </section>
+
+      {/* Bloco 5 — Vigência: semáforo de prazos */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Vigência de Prazos</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Vencidos"
+            value={semaforoVigencia.vencidos.toString()}
+            icon={AlertTriangle}
+            color="text-[#C0392B]"
+          />
+          <StatCard
+            title="Vencem em até 30 dias"
+            value={semaforoVigencia.ate30.toString()}
+            icon={Clock}
+            color="text-orange-500"
+          />
+          <StatCard
+            title="Vencem em até 60 dias"
+            value={semaforoVigencia.ate60.toString()}
+            icon={Calendar}
+            color="text-amber-500"
+          />
+          <StatCard
+            title="Vencem em até 90 dias"
+            value={semaforoVigencia.ate90.toString()}
+            icon={Calendar}
+            color="text-amber-500"
+          />
+          <StatCard
+            title="Em dia (> 90 dias)"
+            value={semaforoVigencia.emDia.toString()}
+            icon={CheckCircle2}
+            color="text-[#1A7340]"
+          />
+          <StatCard
+            title="Sem Vigência"
+            value={semaforoVigencia.semVigencia.toString()}
+            icon={Calendar}
+            color="text-slate-400"
+          />
+        </div>
+      </section>
+      {/* Bloco 6 — Distribuição por status */}
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribuição por Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Percentual</TableHead>
+                    <TableHead className="text-right">Valor Concedente</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.distribuicaoStatus.map((s, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.cor || '#888888' }} />
+                          <span className="font-medium">{s.nome}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{s.quantidade}</TableCell>
+                      <TableCell className="text-right">{s.percentual.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right">{formatCurrency(s.valorTotal)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Bloco 7 — Por núcleo regional */}
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Por Núcleo Regional</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sigla</TableHead>
+                    <TableHead>Núcleo</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Valor Concedente</TableHead>
+                    <TableHead className="text-right">Contratos Assinados</TableHead>
+                    <TableHead className="text-right">% Contratos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.nucleosRegionais.map((n, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{n.sigla}</TableCell>
+                      <TableCell>{n.nome}</TableCell>
+                      <TableCell className="text-right">{n.processos}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(n.valorConcedente)}</TableCell>
+                      <TableCell className="text-right">{n.contratosAssinados}</TableCell>
+                      <TableCell className="text-right">{n.percContratosAssinados.toFixed(1)}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Bloco 8 — Por região turística */}
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Por Região Turística</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Região</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Municípios Atendidos</TableHead>
+                    <TableHead className="text-right">Valor Concedente</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.regioesTuristicas.map((r, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="font-medium">{r.regiao}</TableCell>
+                      <TableCell className="text-right">{r.processos}</TableCell>
+                      <TableCell className="text-right">{r.municipiosAtendidos}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(r.valorConcedente)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Bloco 9 — Top 15 municípios por valor */}
+      <section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 15 Municípios (por Valor Concedente)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 text-center">#</TableHead>
+                    <TableHead>Município</TableHead>
+                    <TableHead>Região</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Valor Concedente</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.topMunicipios.map(m => (
+                    <TableRow key={m.posicao}>
+                      <TableCell className="text-center font-medium text-muted-foreground">{m.posicao}</TableCell>
+                      <TableCell className="font-medium">{m.municipio}</TableCell>
+                      <TableCell>{m.regiao}</TableCell>
+                      <TableCell className="text-right">{m.processos}</TableCell>
+                      <TableCell className="text-right text-green-600 font-medium">{formatCurrency(m.valorConcedente)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Bloco 10 — Categoria do objeto */}
+      <section>
+        <div className="flex flex-col md:flex-row gap-6 mb-4">
+          <h2 className="text-xl font-semibold flex-1">Categoria do Objeto</h2>
+          
+          <Card className="flex-1 bg-slate-50">
+            <CardContent className="p-4">
+              <div className="text-sm text-muted-foreground mb-2">Completude do Cadastro (Categorias)</div>
+              <div className="flex justify-between items-end">
+                <div>
+                  <div className="text-2xl font-bold">{stats.completudeCategoria.percCompletude.toFixed(1)}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.completudeCategoria.comCategoria} classificados de {stats.completudeCategoria.totalProcessos} processos totais
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-amber-600">{stats.completudeCategoria.semCategoria} sem categoria</div>
+                </div>
+              </div>
+              <Progress value={stats.completudeCategoria.percCompletude} className="h-2 mt-3" />
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Processos</TableHead>
+                    <TableHead className="text-right">Valor Concedente</TableHead>
+                    <TableHead className="text-right min-w-[200px]">
+                      Percentual do valor entre os processos com categoria preenchida
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.categorias.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                        Nenhuma categoria preenchida cadastrada
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    stats.categorias.map((c, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{c.categoria}</TableCell>
+                        <TableCell className="text-right">{c.quantidade}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(c.valorConcedente)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="w-12 text-right">{c.percValor.toFixed(1)}%</span>
+                            <Progress value={c.percValor} className="w-24 h-2" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
   );
 }
 
@@ -343,10 +828,13 @@ export default function Indicators() {
           </>
         )}
         
-        {/* Para 'obras' e 'eventos', manter o conteúdo existente com filtro por categoria */}
-        {(category === 'obras' || category === 'eventos') && (
+        {/* Indicadores de obras */}
+        {category === 'obras' && <ObrasIndicators />}
+        
+        {/* Para 'eventos', manter o conteúdo existente */}
+        {category === 'eventos' && (
           <div className="text-center py-8" style={{ color: 'var(--transfers-text-muted)' }}>
-            <p>Indicadores específicos para {category === 'obras' ? 'obras turísticas' : 'eventos turísticos'} serão implementados nas próximas etapas.</p>
+            <p>Indicadores específicos para eventos turísticos serão implementados nas próximas etapas.</p>
           </div>
         )}
       </div>
