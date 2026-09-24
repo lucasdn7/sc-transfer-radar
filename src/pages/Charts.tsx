@@ -33,7 +33,9 @@ const CHART_TYPES = [
   { key: "pie", label: "Pizza" },
 ];
 
-function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[]; metricLabel: string }) {
+type GenericChartPoint = { name: string; value: number };
+
+function ChartRenderer({ type, data, metricLabel }: { type: string; data: GenericChartPoint[]; metricLabel: string }) {
   if (type === "bar") {
     return (
       <ResponsiveContainer width="100%" height="100%">
@@ -41,7 +43,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
-          <Tooltip formatter={(value: any) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, metricLabel]} />
+          <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : String(value), metricLabel]} />
           <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} name={metricLabel} />
         </BarChart>
       </ResponsiveContainer>
@@ -54,7 +56,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
-          <Tooltip formatter={(value: any) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, metricLabel]} />
+          <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : String(value), metricLabel]} />
           <Line type="monotone" dataKey="value" stroke="#10b981" name={metricLabel} />
         </LineChart>
       </ResponsiveContainer>
@@ -77,7 +79,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
               <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: any) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : value, metricLabel]} />
+          <Tooltip formatter={(value) => [typeof value === 'number' ? value.toLocaleString('pt-BR') : String(value), metricLabel]} />
         </PieChart>
       </ResponsiveContainer>
     );
@@ -88,7 +90,7 @@ function ChartRenderer({ type, data, metricLabel }: { type: string; data: any[];
 export default function Charts() {
   const { category } = useCategory();
   const { metricsData, isLoading, valoresPagosPorMes, valoresPagosPorAno, valoresEmpilhadosPorMunicipio, valoresEmpilhadosPorNucleo } = useDashboardMetrics(false);
-  const { data: chartsData, isLoading: isLoadingCharts } = useChartsData();
+  const { data: chartsData, isLoading: isLoadingCharts, error: chartsError, refetch: refetchCharts } = useChartsData();
   const [metric, setMetric] = useState("valor_concedente");
   const [group, setGroup] = useState("municipio");
   const [chartType, setChartType] = useState("bar");
@@ -172,6 +174,14 @@ export default function Charts() {
 
       {/* CategorySelector */}
       <CategorySelector />
+
+      {chartsError && (
+        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4" role="alert">
+          <p className="font-medium">Não foi possível carregar os gráficos.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Verifique a conexão com os dados e tente novamente.</p>
+          <Button type="button" variant="outline" className="mt-3" onClick={() => void refetchCharts()}><RefreshCw /> Tentar novamente</Button>
+        </div>
+      )}
 
       {/* Conteúdo baseado na categoria */}
       <div className="mt-6">

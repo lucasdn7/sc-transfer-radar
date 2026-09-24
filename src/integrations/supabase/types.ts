@@ -1066,6 +1066,7 @@ export type Database = {
       }
       processes: {
         Row: {
+          categoria: string | null
           address: string | null
           contrato_assinado: boolean
           created_at: string
@@ -1089,6 +1090,7 @@ export type Database = {
           vigencia_date: string
         }
         Insert: {
+          categoria?: string | null
           address?: string | null
           contrato_assinado?: boolean
           created_at?: string
@@ -1112,6 +1114,7 @@ export type Database = {
           vigencia_date: string
         }
         Update: {
+          categoria?: string | null
           address?: string | null
           contrato_assinado?: boolean
           created_at?: string
