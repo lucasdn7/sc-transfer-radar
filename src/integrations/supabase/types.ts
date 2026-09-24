@@ -803,6 +803,210 @@ export type Database = {
           },
         ]
       }
+      technical_notification_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          notification_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+        }
+        Relationships: []
+      }
+      technical_notification_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          email_error: string | null
+          email_sent_at: string | null
+          email_status: string
+          id: string
+          in_app_delivered: boolean
+          notification_id: string
+          occurrence_key: string
+          processing_attempts: number
+          scheduled_for: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          id?: string
+          in_app_delivered?: boolean
+          notification_id: string
+          occurrence_key: string
+          processing_attempts?: number
+          scheduled_for: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string
+          id?: string
+          in_app_delivered?: boolean
+          notification_id?: string
+          occurrence_key?: string
+          processing_attempts?: number
+          scheduled_for?: string
+        }
+        Relationships: []
+      }
+      technical_notification_email_recipients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          notification_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          notification_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          notification_id?: string
+        }
+        Relationships: []
+      }
+      technical_notification_processes: {
+        Row: {
+          created_at: string
+          notification_id: string
+          process_id: number
+        }
+        Insert: {
+          created_at?: string
+          notification_id: string
+          process_id: number
+        }
+        Update: {
+          created_at?: string
+          notification_id?: string
+          process_id?: number
+        }
+        Relationships: []
+      }
+      technical_notification_user_states: {
+        Row: {
+          created_at: string
+          dismissed_at: string | null
+          notification_id: string
+          occurrence_key: string
+          read_at: string | null
+          snoozed_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string | null
+          notification_id: string
+          occurrence_key: string
+          read_at?: string | null
+          snoozed_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string | null
+          notification_id?: string
+          occurrence_key?: string
+          read_at?: string | null
+          snoozed_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      technical_notifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          notification_type: string
+          recurrence_config: Json | null
+          schedule_type: string
+          scheduled_at: string
+          status: string
+          timezone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          notification_type?: string
+          recurrence_config?: Json | null
+          schedule_type?: string
+          scheduled_at: string
+          status?: string
+          timezone?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          notification_type?: string
+          recurrence_config?: Json | null
+          schedule_type?: string
+          scheduled_at?: string
+          status?: string
+          timezone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           created_at: string

@@ -32,6 +32,8 @@ import TerritorialInconsistencies from "./pages/TerritorialInconsistencies";
 import Indicators from "./pages/Indicators";
 import Charts from "./pages/Charts";
 import Assistente from "./pages/Assistente";
+import TechnicalNotifications from "./pages/TechnicalNotifications";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +94,7 @@ const App = () => (
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/app-settings" element={<AppSettings />} />
+                    <Route path="/technical-notifications" element={<AuthGuard requireRole="technical"><TechnicalNotifications /></AuthGuard>} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/technical-auth" element={<TechnicalAuth />} />
                     <Route path="/favorites" element={<Favorites />} />

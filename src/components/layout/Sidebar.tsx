@@ -81,7 +81,7 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
 
               // Filter items based on user role
               const filteredItems = group.items.filter((item) => {
-                if (item.requiredRole === "technical" && userRole !== "technical") {
+                if (item.requiredRole === "technical" && userRole !== "technical" && userRole !== "admin") {
                   return false;
                 }
                 return true;

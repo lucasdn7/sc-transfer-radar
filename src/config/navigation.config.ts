@@ -25,11 +25,12 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
   name: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
   requiresAuth?: boolean;
   requiredRole?: 'technical' | 'admin' | 'user';
 }
@@ -154,6 +155,12 @@ export const navigationConfig: NavGroup[] = [
         href: "/favorites",
         icon: Star,
         requiredRole: "technical", // Apenas usuários com role "technical"
+      },
+      {
+        name: "Notificações técnicas",
+        href: "/technical-notifications",
+        icon: BellRing,
+        requiredRole: "technical",
       },
     ],
   },
