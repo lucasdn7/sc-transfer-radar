@@ -384,7 +384,7 @@ export default function Charts() {
               <Skeleton className="h-[400px] w-full rounded-xl" />
             </div>
           ) : (
-            <ChartsEventos data={chartsData} />
+            <ChartsEventos data={chartsData} onRetry={() => void refetchCharts()} />
           )
         )}
       </div>

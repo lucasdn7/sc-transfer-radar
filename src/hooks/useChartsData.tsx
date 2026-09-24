@@ -5,6 +5,28 @@ import type { Database } from "@/integrations/supabase/types";
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type ParcelRow = { parcel_number: number; value: number; payment_date: string | null };
 
+export interface CombinedRegionItem {
+  name: string;
+  obras: number;
+  eventos: number;
+  total: number;
+  processos: number;
+  eventosQuantidade: number;
+  regionId: number | null;
+}
+
+export interface EngagementMunicipalityItem {
+  municipalityId: number | null;
+  municipality: string;
+  region: string;
+  obras: number;
+  eventos: number;
+  totalInteracoes: number;
+  valorObras: number;
+  valorEventos: number;
+  valorTotal: number;
+}
+
 export function useChartsData() {
   return useQuery({
     queryKey: ['charts-data-g1-g17'],
@@ -25,40 +47,44 @@ export function useChartsData() {
       // 2. Fetch Events
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*');
+        .select('id, ano, contrato_assinado, municipio_id, municipio_nome, nucleo_origem_id, nucleo_origem_texto, valor_concedente, foi_pago, regiao_turistica, tipo, created_at');
 
 
       // 3. Match events with municipalities/regions
+      const eventRows = eventsData || [];
       const eventMunicipalityIds = Array.from(new Set(
-        eventsData.map((e: EventRow) => e.municipio_id).filter((id): id is number => id !== null)
+        eventRows.map((e: EventRow) => e.municipio_id).filter((id): id is number => id !== null)
       ));
       const eventNucleusIds = Array.from(new Set(
-        [] as number[]
+        eventRows.map((e: EventRow) => e.nucleo_origem_id).filter((id): id is number => id !== null)
       ));
 
-      const [municipalitiesRes, nucleiRes] = await Promise.all([
+      const [municipalitiesRes, nucleiRes, regionsRes] = await Promise.all([
         eventMunicipalityIds.length > 0 
           ? supabase.from('municipalities').select('id, name').in('id', eventMunicipalityIds)
           : Promise.resolve({ data: [] }),
         eventNucleusIds.length > 0
           ? supabase.from('regional_nuclei').select('id, name, region_id, regioes(nome)').in('id', eventNucleusIds)
-          : Promise.resolve({ data: [] })
+          : Promise.resolve({ data: [] }),
+        supabase.from('regioes').select('id, nome, sigla')
       ]);
 
       const munMap = new Map(municipalitiesRes.data?.map(m => [m.id, m.name]));
       const nucMap = new Map(nucleiRes.data?.map(n => [n.id, n]));
+      const regionMapByName = new Map((regionsRes.data || []).map(region => [region.nome.trim().toLocaleLowerCase('pt-BR'), region]));
 
       // ---- PROCESS DATA PROCESSING (OBRAS) ----
       const processes = processesData || [];
-      const events = eventsData || [];
+      const events = eventRows;
 
       // G17 (Distribuição)
       const totalObras = processes.reduce((acc, p) => acc + (p.total_concedente_value || 0), 0);
       const totalEventos = events.reduce((acc: number, e: EventRow) => acc + (Number(e.valor_concedente) || 0), 0);
+      const totalCombined = totalObras + totalEventos;
       const g17Data = [
-        { name: "Obras turísticas", value: totalObras, fill: "#3b82f6" },
-        { name: "Eventos", value: totalEventos, fill: "#10b981" },
-        { name: "Promoção turística", value: 0, fill: "#f59e0b" }
+        { name: "Obras turísticas", value: totalObras, fill: "#1D6FCC", percentage: totalCombined ? totalObras / totalCombined * 100 : 0 },
+        { name: "Eventos", value: totalEventos, fill: "#0F6E56", percentage: totalCombined ? totalEventos / totalCombined * 100 : 0 },
+        { name: "Promoção turística", value: 0, fill: "#7C3AED", percentage: 0 }
       ];
 
       // Status das obras (Todos) & G1 (Funil)
@@ -205,103 +231,141 @@ export function useChartsData() {
         .sort((a, b) => b.value - a.value);
 
       // ---- EVENTS DATA PROCESSING ----
-      const parsedEvents = events.map((e: EventRow) => {
-        const ano = e.data_evento ? new Date(e.data_evento).getFullYear() : new Date().getFullYear();
-        
-        const valor = Number(e.valor_concedente) || 0;
-        const nucId = null;
-        const munId = e.municipio_id;
-        
-        const nucInfo = nucId ? nucMap.get(nucId) : null;
-        let regName = 'Não definido';
-        if (nucInfo && typeof nucInfo === 'object' && 'regioes' in nucInfo) {
-          const region = nucInfo.regioes as { nome?: string } | null;
-          if (region?.nome) regName = region.nome;
-        }
-        
-        return {
-          ...e,
-          parsedAno: ano,
-          parsedValor: valor,
-          munName: munId ? munMap.get(munId) : (e.municipio_nome || 'Não definido'),
-          regName: regName,
-          status: e.foi_pago ? 'Pago' : 'Pendente'
-        };
+      const normalizeText = (value: string | null | undefined) => value?.trim() || "Não definido";
+      const normalizeContract = (value: string | null | undefined) => {
+        const normalized = normalizeText(value).toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (normalized === "sim") return "Assinados";
+        if (normalized === "nao") return "Pendentes";
+        if (normalized === "arquivado") return "Arquivados";
+        return "Não definido";
+      };
+      const parseYear = (event: EventRow) => {
+        const year = Number(event.ano);
+        if (Number.isInteger(year) && year > 0) return year;
+        const fallback = event.created_at ? new Date(event.created_at).getFullYear() : NaN;
+        return Number.isInteger(fallback) && fallback > 0 ? fallback : null;
+      };
+      const parsedEvents = events.map(event => ({
+        ...event,
+        parsedYear: parseYear(event),
+        parsedValue: Number.isFinite(Number(event.valor_concedente)) ? Number(event.valor_concedente) : 0,
+        contractStatus: normalizeContract(event.contrato_assinado),
+        municipalityName: event.municipio_id ? munMap.get(event.municipio_id) || normalizeText(event.municipio_nome) : normalizeText(event.municipio_nome),
+        municipalityKey: event.municipio_id ? `id:${event.municipio_id}` : `name:${normalizeText(event.municipio_nome)}`,
+        regionName: normalizeText(event.regiao_turistica),
+        nucleusName: event.nucleo_origem_id ? nucMap.get(event.nucleo_origem_id)?.name || normalizeText(event.nucleo_origem_texto) : normalizeText(event.nucleo_origem_texto),
+        nucleusAcronym: event.nucleo_origem_id ? nucMap.get(event.nucleo_origem_id)?.acronym || "Não definido" : "Não definido",
+      }));
+
+      const evAnoStatusMap = new Map<string, { name: string; Assinados: number; Pendentes: number; Arquivados: number; NaoDefinidos: number; total: number }>();
+      parsedEvents.forEach(event => {
+        const name = event.parsedYear ? String(event.parsedYear) : "Não definido";
+        const item = evAnoStatusMap.get(name) || { name, Assinados: 0, Pendentes: 0, Arquivados: 0, NaoDefinidos: 0, total: 0 };
+        item[event.contractStatus === "Assinados" ? "Assinados" : event.contractStatus === "Pendentes" ? "Pendentes" : event.contractStatus === "Arquivados" ? "Arquivados" : "NaoDefinidos"] += 1;
+        item.total += 1;
+        evAnoStatusMap.set(name, item);
+      });
+      const g10Data = Array.from(evAnoStatusMap.values()).sort((a, b) => (Number(a.name) || Number.MAX_SAFE_INTEGER) - (Number(b.name) || Number.MAX_SAFE_INTEGER));
+
+      const evValorAnoMap = new Map<number, { value: number; count: number }>();
+      parsedEvents.forEach(event => {
+        if (event.contractStatus !== "Assinados" || !event.parsedYear) return;
+        const item = evValorAnoMap.get(event.parsedYear) || { value: 0, count: 0 };
+        item.value += event.parsedValue;
+        item.count += 1;
+        evValorAnoMap.set(event.parsedYear, item);
+      });
+      let accumulatedValue = 0;
+      const g11Data = Array.from(evValorAnoMap.entries()).sort(([yearA], [yearB]) => yearA - yearB).map(([year, item]) => {
+        accumulatedValue += item.value;
+        return { name: String(year), value: item.value, acumulado: accumulatedValue, quantidadeAssinada: item.count };
       });
 
-      // G10 (Eventos por ano e status)
-      const evAnoStatusMap = new Map<string, { name: string, Pago: number, Pendente: number, Arquivado: number }>();
-      parsedEvents.forEach(e => {
-        const ano = String(e.parsedAno);
-        if (!evAnoStatusMap.has(ano)) evAnoStatusMap.set(ano, { name: ano, Pago: 0, Pendente: 0, Arquivado: 0 });
-        
-        const s = e.status;
-        if (s === 'Pago') evAnoStatusMap.get(ano)!.Pago++;
-        else if (s === 'Pendente') evAnoStatusMap.get(ano)!.Pendente++;
-        else evAnoStatusMap.get(ano)!.Arquivado++;
-      });
-      const g10Data = Array.from(evAnoStatusMap.values()).sort((a, b) => Number(a.name) - Number(b.name));
+      const evTipoMap = new Map<string, { value: number; count: number }>();
+      parsedEvents.forEach(event => { const name = normalizeText(event.tipo); const item = evTipoMap.get(name) || { value: 0, count: 0 }; item.value += event.parsedValue; item.count += 1; evTipoMap.set(name, item); });
+      const totalInstrumentEvents = parsedEvents.length;
+      const totalInstrumentValue = Array.from(evTipoMap.values()).reduce((sum, item) => sum + item.value, 0);
+      const g12Data = Array.from(evTipoMap.entries()).map(([name, item]) => ({ name, value: item.value, quantidade: item.count, percentualQuantidade: totalInstrumentEvents ? item.count / totalInstrumentEvents * 100 : 0, percentualValor: totalInstrumentValue ? item.value / totalInstrumentValue * 100 : 0 })).sort((a, b) => b.value - a.value || b.quantidade - a.quantidade);
 
-      // G11 (Valor contratado por ano - eventos)
-      const evValorAnoMap = new Map<string, number>();
-      parsedEvents.forEach(e => {
-        const ano = String(e.parsedAno);
-        evValorAnoMap.set(ano, (evValorAnoMap.get(ano) || 0) + e.parsedValor);
-      });
-      const g11Data = Array.from(evValorAnoMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => Number(a.name) - Number(b.name));
+      const evRegMap = new Map<string, { value: number; count: number }>();
+      parsedEvents.forEach(event => { const item = evRegMap.get(event.regionName) || { value: 0, count: 0 }; item.value += event.parsedValue; item.count += 1; evRegMap.set(event.regionName, item); });
+      const g13Data = Array.from(evRegMap.entries()).map(([name, item]) => ({ name, value: item.value, quantidade: item.count, media: item.count ? item.value / item.count : 0 })).sort((a, b) => b.value - a.value || b.quantidade - a.quantidade || a.name.localeCompare(b.name, "pt-BR"));
 
-      // G12 (Por tipo de instrumento - eventos)
-      const evTipoMap = new Map<string, number>();
-      parsedEvents.forEach(e => {
-        const tipo = e.tipo_repasse || e.tipo || e.categoria || 'Não definido';
-        evTipoMap.set(tipo, (evTipoMap.get(tipo) || 0) + e.parsedValor);
-      });
-      const g12Data = Array.from(evTipoMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
+      const evNucleusMap = new Map<string, { name: string; acronym: string; value: number; count: number }>();
+      parsedEvents.forEach(event => { const key = event.nucleo_origem_id ? `id:${event.nucleo_origem_id}` : `text:${event.nucleusName}`; const item = evNucleusMap.get(key) || { name: event.nucleusName, acronym: event.nucleusAcronym, value: 0, count: 0 }; item.value += event.parsedValue; item.count += 1; evNucleusMap.set(key, item); });
+      const g14Data = Array.from(evNucleusMap.values()).map(item => ({ name: item.name, acronym: item.acronym, value: item.value, quantidade: item.count })).sort((a, b) => b.quantidade - a.quantidade || b.value - a.value || a.name.localeCompare(b.name, "pt-BR"));
 
-      // G13 (Eventos por região turística)
-      const evRegMap = new Map<string, number>();
-      parsedEvents.forEach(e => {
-        evRegMap.set(e.regName, (evRegMap.get(e.regName) || 0) + e.parsedValor);
-      });
-      const g13Data = Array.from(evRegMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
+      const evMunMap = new Map<string, { name: string; region: string; value: number; count: number }>();
+      parsedEvents.forEach(event => { const item = evMunMap.get(event.municipalityKey) || { name: event.municipalityName, region: event.regionName, value: 0, count: 0 }; item.value += event.parsedValue; item.count += 1; evMunMap.set(event.municipalityKey, item); });
+      const g15Data = Array.from(evMunMap.values()).sort((a, b) => b.value - a.value || b.count - a.count || a.name.localeCompare(b.name, "pt-BR")).slice(0, 10).map((item, index) => ({ name: item.name, region: item.region, value: item.value, quantidade: item.count, rank: index + 1 }));
 
-      // G15 (Top 15 municípios eventos)
-      const evMunMap = new Map<string, number>();
-      parsedEvents.forEach(e => {
-        const mun = e.munName || 'Não definido';
-        evMunMap.set(mun, (evMunMap.get(mun) || 0) + e.parsedValor);
-      });
-      const g15Data = Array.from(evMunMap.entries())
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 15);
+      const paidEvents = parsedEvents.filter(event => event.foi_pago === true);
+      const pendingEvents = parsedEvents.filter(event => event.foi_pago !== true);
+      const paidValue = paidEvents.reduce((sum, event) => sum + event.parsedValue, 0);
+      const pendingValue = pendingEvents.reduce((sum, event) => sum + event.parsedValue, 0);
+      const paymentTotal = paidValue + pendingValue;
+      const g16Data = [{ name: "Pago", value: paidValue, fill: "#1A7340", quantidade: paidEvents.length, percentage: paymentTotal ? paidValue / paymentTotal * 100 : 0 }, { name: "Pendente", value: pendingValue, fill: "#C9903A", quantidade: pendingEvents.length, percentage: paymentTotal ? pendingValue / paymentTotal * 100 : 0 }];
 
-      // G16 (Pagamento eventos)
-      let evPago = 0, evNaoPago = 0;
-      parsedEvents.forEach(e => {
-        if (e.foi_pago) evPago += e.parsedValor;
-        else evNaoPago += e.parsedValor;
+      const combinedRegionMap = new Map<string, CombinedRegionItem>();
+      (regionsRes.data || []).forEach(region => combinedRegionMap.set(region.nome.trim(), { name: region.nome.trim(), obras: 0, eventos: 0, total: 0, processos: 0, eventosQuantidade: 0, regionId: region.id }));
+      processes.forEach(process => {
+        const municipality = process.municipalities as { regioes?: { nome?: string } } | null;
+        const name = normalizeText(municipality?.regioes?.nome);
+        const region = combinedRegionMap.get(name) || { name, obras: 0, eventos: 0, total: 0, processos: 0, eventosQuantidade: 0, regionId: regionMapByName.get(name.toLocaleLowerCase('pt-BR'))?.id || null };
+        region.obras += Number(process.total_concedente_value) || 0;
+        region.processos += 1;
+        region.total = region.obras + region.eventos;
+        combinedRegionMap.set(name, region);
       });
-      const g16Data = [
-        { name: "Pago", value: evPago, fill: "#10b981" },
-        { name: "Pendente", value: evNaoPago, fill: "#f59e0b" }
-      ];
+      parsedEvents.forEach(event => {
+        const name = event.regionName;
+        const region = combinedRegionMap.get(name) || { name, obras: 0, eventos: 0, total: 0, processos: 0, eventosQuantidade: 0, regionId: regionMapByName.get(name.toLocaleLowerCase('pt-BR'))?.id || null };
+        region.eventos += event.parsedValue;
+        region.eventosQuantidade += 1;
+        region.total = region.obras + region.eventos;
+        combinedRegionMap.set(name, region);
+      });
+      const g18Data = Array.from(combinedRegionMap.values()).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'pt-BR'));
+
+      const combinedMunicipalityMap = new Map<string, EngagementMunicipalityItem>();
+      processes.forEach(process => {
+        const municipality = process.municipalities as { name?: string; regioes?: { nome?: string } } | null;
+        const key = `id:${process.municipality_id}`;
+        const current = combinedMunicipalityMap.get(key) || { municipalityId: process.municipality_id, municipality: municipality?.name?.trim() || 'Não definido', region: normalizeText(municipality?.regioes?.nome), obras: 0, eventos: 0, totalInteracoes: 0, valorObras: 0, valorEventos: 0, valorTotal: 0 };
+        current.obras += 1;
+        current.valorObras += Number(process.total_concedente_value) || 0;
+        current.totalInteracoes = current.obras + current.eventos;
+        current.valorTotal = current.valorObras + current.valorEventos;
+        combinedMunicipalityMap.set(key, current);
+      });
+      parsedEvents.forEach(event => {
+        const key = event.municipalityKey;
+        const current = combinedMunicipalityMap.get(key) || { municipalityId: event.municipio_id, municipality: event.municipalityName, region: event.regionName, obras: 0, eventos: 0, totalInteracoes: 0, valorObras: 0, valorEventos: 0, valorTotal: 0 };
+        current.eventos += 1;
+        current.valorEventos += event.parsedValue;
+        if (current.region === 'Não definido' && event.regionName !== 'Não definido') current.region = event.regionName;
+        current.totalInteracoes = current.obras + current.eventos;
+        current.valorTotal = current.valorObras + current.valorEventos;
+        combinedMunicipalityMap.set(key, current);
+      });
+      const g19Data = Array.from(combinedMunicipalityMap.values()).sort((a, b) => b.totalInteracoes - a.totalInteracoes || b.valorTotal - a.valorTotal || a.municipality.localeCompare(b.municipality, 'pt-BR'));
+      const g20Data = g18Data;
 
       return {
         g17Data, g1Data, g2Data, g3Data, g4Data, g5Data, g6Data, g7Data, g8Data, g9Data,
-        g10Data, g11Data, g12Data, g13Data, g15Data, g16Data,
+        g10Data, g11Data, g12Data, g13Data, g14Data, g15Data, g16Data,
+        g18Data, g19Data, g20Data,
         meta: {
           totalProcessos: processes.length,
           classificados: Array.from(catObraMap.values()).reduce((sum, value) => sum + value, 0),
           semCategoria: processes.length - Array.from(catObraMap.values()).reduce((sum, value) => sum + value, 0),
           completude: processes.length ? Array.from(catObraMap.values()).reduce((sum, value) => sum + value, 0) / processes.length * 100 : 0,
-          semVigencia
+          semVigencia,
+          eventError: eventsError?.message,
+          totalObras,
+          totalEventos,
+          totalPromocao: 0,
+          totalCombinado: totalCombined
         }
       };
     },

@@ -436,40 +436,79 @@ export type Database = {
       }
       events: {
         Row: {
+          ano: number | null
+          contrato_assinado: string | null
           created_at: string | null
           data_evento: string
           foi_pago: boolean | null
           id: number
           municipio_id: number | null
+          municipio_nome: string | null
           nome: string
+          nucleo_origem_id: number | null
+          nucleo_origem_texto: string | null
           numero_processo: string | null
           objeto: string
+          plano_de_trabalho_final: string | null
+          plano_de_trabalho_inicio: string | null
+          regiao_turistica: string | null
+          tipo: string | null
+          data_inicio: string | null
+          data_final: string | null
+          recebido_em: string | null
+          observacao: string | null
           updated_at: string | null
           valor_concedente: number | null
           valor_proponente: number | null
         }
         Insert: {
+          ano?: number | null
+          contrato_assinado?: string | null
           created_at?: string | null
           data_evento: string
           foi_pago?: boolean | null
           id?: number
           municipio_id?: number | null
+          municipio_nome?: string | null
           nome: string
+          nucleo_origem_id?: number | null
+          nucleo_origem_texto?: string | null
           numero_processo?: string | null
           objeto: string
+          plano_de_trabalho_final?: string | null
+          plano_de_trabalho_inicio?: string | null
+          regiao_turistica?: string | null
+          tipo?: string | null
+          data_inicio?: string | null
+          data_final?: string | null
+          recebido_em?: string | null
+          observacao?: string | null
           updated_at?: string | null
           valor_concedente?: number | null
           valor_proponente?: number | null
         }
         Update: {
+          ano?: number | null
+          contrato_assinado?: string | null
           created_at?: string | null
           data_evento?: string
           foi_pago?: boolean | null
           id?: number
           municipio_id?: number | null
+          municipio_nome?: string | null
           nome?: string
+          nucleo_origem_id?: number | null
+          nucleo_origem_texto?: string | null
           numero_processo?: string | null
           objeto?: string
+          plano_de_trabalho_final?: string | null
+          plano_de_trabalho_inicio?: string | null
+          regiao_turistica?: string | null
+          tipo?: string | null
+          data_inicio?: string | null
+          data_final?: string | null
+          recebido_em?: string | null
+          observacao?: string | null
           updated_at?: string | null
           valor_concedente?: number | null
           valor_proponente?: number | null
