@@ -34,7 +34,6 @@ export function Assistente() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Gerar session_id ao montar o componente
   useEffect(() => {
     const storedSessionId = sessionStorage.getItem('chat_session_id');
     if (storedSessionId) {
@@ -46,7 +45,6 @@ export function Assistente() {
     }
   }, []);
 
-  // Auto-scroll para a última mensagem
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -55,7 +53,7 @@ export function Assistente() {
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || input.trim();
-    
+
     if (!textToSend || isLoading) return;
 
     const userMessage: Message = {
@@ -64,6 +62,12 @@ export function Assistente() {
       content: textToSend,
       timestamp: new Date(),
     };
+
+    // Captura o histórico ANTES de adicionar a nova mensagem
+    const history = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
@@ -74,6 +78,7 @@ export function Assistente() {
         body: {
           message: textToSend,
           session_id: sessionId,
+          history, // histórico da conversa para manter contexto
         },
       });
 
@@ -89,7 +94,7 @@ export function Assistente() {
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('Erro ao chamar assistente:', error);
-      
+
       const errorMessage: Message = {
         id: uuidv4(),
         role: 'assistant',
