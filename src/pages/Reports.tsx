@@ -1,781 +1,572 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { ReportCard } from '@/components/reports/ReportCard';
-import { FileText, BarChart3, TrendingUp, Users, MapPin } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
-import { useProcesses } from '@/hooks/useProcesses';
+import {
+  AlertCircle,
+  BarChart3,
+  FileText,
+  MapPin,
+  RefreshCw,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useMemo } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ReportCard } from '@/components/reports/ReportCard';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { generateReport as requestReport } from '@/lib/reportApi';
+import {
+  generateReport,
+  REPORT_FIELD_LABELS,
+  sanitizeReportRequest,
+  type ReportField,
+  type ReportFilters,
+  type ReportResult,
+  type ReportSummary,
+  type ReportType,
+  type VigenciaFilter,
+} from '@/lib/reportApi';
 
-// Lista de campos importantes para relatório de repasses
-const ALL_FIELDS = [
-  { key: 'process_number', label: 'Número do Processo' },
-  { key: 'object', label: 'Objeto do Processo' },
-  { key: 'municipalities.name', label: 'Município' },
-  { key: 'municipalities.regioes.nome', label: 'Região' },
-  { key: 'regional_nuclei.name', label: 'Núcleo Regional' },
-  { key: 'status_processos.nome', label: 'Status do Processo' },
-  { key: 'contrato_assinado', label: 'Contrato Assinado' },
-  { key: 'total_portaria_value', label: 'Valor Total da Portaria' },
-  { key: 'total_proponente_value', label: 'Valor Total do Proponente' },
-  { key: 'total_concedente_value', label: 'Valor Total do Concedente' },
-  { key: 'licitado_value', label: 'Valor Licitado' },
-  { key: 'total_paid', label: 'Total Pago' },
-  { key: 'balance', label: 'Saldo a Repassar' },
-  { key: 'parcel_count', label: 'Quantidade de Parcelas' },
-  { key: 'paid_parcel_count', label: 'Parcelas Pagas' },
-  { key: 'vigencia_status', label: 'Situação da Vigência' },
-  { key: 'created_at', label: 'Data de Criação' },
-  { key: 'vigencia_date', label: 'Data de Vigência' },
-  { key: 'last_tramitacao', label: 'Última Tramitação' },
-  { key: 'address', label: 'Endereço da Obra/Projeto' },
-  { key: 'latitude', label: 'Latitude' },
-  { key: 'longitude', label: 'Longitude' },
-  { key: 'portaria_number', label: 'Número da Portaria' },
-];
-
-const DEFAULT_FIELDS = [
-  'process_number', 'object', 'municipalities.name', 'municipalities.regioes.nome',
-  'regional_nuclei.name', 'status_processos.nome', 'total_portaria_value',
-  'total_proponente_value', 'total_concedente_value', 'created_at', 'vigencia_date'
-];
-
-// Mapeamento de campos padrão para cada tipo de relatório
-const REPORT_FIELDS: Record<string, string[]> = {
-  process: [
-    'process_number', 'object', 'municipalities.name', 'regional_nuclei.name',
-    'status_processos.nome', 'total_portaria_value', 'created_at', 'vigencia_date'
-  ],
-  financial: [
-    'process_number', 'municipalities.name', 'regional_nuclei.name',
-    'total_portaria_value', 'total_concedente_value', 'total_proponente_value',
-    'licitado_value', 'created_at', 'vigencia_date'
-  ],
-  municipality: [
-    'municipalities.name', 'process_number', 'object', 'status_processos.nome',
-    'total_portaria_value', 'created_at', 'vigencia_date'
-  ],
-  dashboard: [
-    'process_number', 'municipalities.name', 'regional_nuclei.name',
-    'status_processos.nome', 'total_portaria_value', 'created_at'
-  ]
+const DEFAULT_FIELDS: Record<ReportType, ReportField[]> = {
+  executive: ['status', 'total_portaria_value', 'total_paid', 'balance'],
+  processes: ['process_number', 'object', 'municipality', 'status', 'total_portaria_value', 'vigencia_date', 'regional_nucleus', 'region'],
+  financial: ['process_number', 'municipality', 'total_concedente_value', 'total_paid', 'balance', 'total_portaria_value', 'total_proponente_value', 'licitado_value', 'parcel_count', 'paid_parcel_count'],
+  expiring: ['process_number', 'object', 'municipality', 'vigencia_date', 'vigencia_status', 'status', 'regional_nucleus'],
+  municipality: ['process_number', 'object', 'status', 'total_portaria_value', 'total_paid', 'balance', 'vigencia_date', 'regional_nucleus', 'region'],
+  custom: ['process_number', 'object', 'municipality', 'status', 'total_portaria_value'],
 };
 
+const REPORTS: Array<{ type: ReportType; title: string; description: string }> = [
+  { type: 'executive', title: 'Relatório Executivo Geral', description: 'Visão geral de processos, valores, municípios, núcleos e distribuição por status.' },
+  { type: 'processes', title: 'Carteira de Processos e Projetos', description: 'Carteira detalhada com processos, objetos, responsáveis, valores e prazos.' },
+  { type: 'financial', title: 'Relatório Financeiro', description: 'Valores concedidos, pagos, saldos, parcelas e composição financeira.' },
+  { type: 'expiring', title: 'Vigências e Alertas', description: 'Processos vencidos, próximos do vencimento e sem prazo informado.' },
+  { type: 'municipality', title: 'Relatório por Município', description: 'Detalhamento dos processos e valores por município, região e núcleo.' },
+];
+
+const FALLBACK_STATUSES = ['Criado', 'Em Análise', 'Aprovado', 'Em Execução', 'Finalizado', 'Cancelado'];
+const CURRENCY_FIELDS = new Set<ReportField>([
+  'total_portaria_value',
+  'total_concedente_value',
+  'total_proponente_value',
+  'licitado_value',
+  'total_paid',
+  'balance',
+]);
+const DATE_FIELDS = new Set<ReportField>(['created_at', 'vigencia_date']);
+
+type CardState = {
+  status: 'available' | 'processing' | 'error';
+  result?: ReportResult;
+  lastGenerated?: string;
+};
+
+function formatCurrency(value: unknown) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value ?? '');
+  return `R$ ${numeric.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatValue(value: unknown, field: ReportField) {
+  if (value === null || value === undefined || value === '') return '';
+  if (CURRENCY_FIELDS.has(field)) return formatCurrency(value);
+  if (DATE_FIELDS.has(field)) {
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('pt-BR');
+  }
+  if (field === 'contract_signed') return value === true ? 'Sim' : 'Não';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function slugify(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function filtersDescription(filters: Record<string, unknown>) {
+  const labels: Record<string, string> = {
+    municipality_ids: 'Municípios',
+    regional_nucleus_id: 'Núcleo regional',
+    region_name: 'Região',
+    status_names: 'Status',
+    date_from: 'Data inicial',
+    date_to: 'Data final',
+    vigencia: 'Vigência',
+    signed_contract_only: 'Contrato assinado',
+    min_proponent_value: 'Valor mínimo do proponente',
+  };
+  const entries = Object.entries(filters).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  if (!entries.length) return 'Sem filtros adicionais';
+  return entries.map(([key, value]) => `${labels[key] ?? key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`).join(' • ');
+}
+
+function translatedRows(result: ReportResult) {
+  return result.rows.map((row) => Object.fromEntries(
+    result.fields.map((field) => [REPORT_FIELD_LABELS[field], formatValue(row[field], field)]),
+  ));
+}
+
 export default function Reports() {
-  const [dateRange, setDateRange] = useState<{from?: Date, to?: Date}>({});
+  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [municipality, setMunicipality] = useState<string[]>([]);
   const [nucleus, setNucleus] = useState('all');
-  const [reportType, setReportType] = useState('');
-  const [showFieldSelector, setShowFieldSelector] = useState(false);
-  const [selectedFields, setSelectedFields] = useState<string[]>(DEFAULT_FIELDS);
+  const [region, setRegion] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [proponentValue, setProponentValue] = useState('');
   const [signedContractsOnly, setSignedContractsOnly] = useState(false);
-  const { toast } = useToast();
+  const [vigenciaStatus, setVigenciaStatus] = useState<VigenciaFilter>('all');
+  const [sortField, setSortField] = useState<ReportField>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedFields, setSelectedFields] = useState<ReportField[]>(DEFAULT_FIELDS.custom);
+  const [showFieldSelector, setShowFieldSelector] = useState(false);
+  const [cardStates, setCardStates] = useState<Record<ReportType, CardState>>({});
+  const [activeResult, setActiveResult] = useState<ReportResult | null>(null);
+  const [activeTitle, setActiveTitle] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
-  // --- NOVOS HOOKS PARA MUNICÍPIOS, NÚCLEOS E REGIÕES ---
   const { data: allMunicipalities = [] } = useQuery({
-    queryKey: ['all-municipalities'],
+    queryKey: ['report-municipalities'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('municipalities')
-        .select('id, name')
-        .order('name');
+      const { data, error } = await supabase.from('municipalities').select('id, name').order('name');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
   });
   const { data: allNuclei = [] } = useQuery({
-    queryKey: ['all-nuclei'],
+    queryKey: ['report-nuclei'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regional_nuclei')
-        .select('id, name')
-        .order('name');
+      const { data, error } = await supabase.from('regional_nuclei').select('id, name').order('name');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
   });
   const { data: allRegions = [] } = useQuery({
-    queryKey: ['all-regions'],
+    queryKey: ['report-regions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('regioes')
-        .select('id, nome')
-        .order('nome');
+      const { data, error } = await supabase.from('regioes').select('id, nome').order('nome');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
+    },
+  });
+  const { data: statusRows = [] } = useQuery({
+    queryKey: ['report-statuses'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('status_processos').select('id, nome').order('nome');
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
-  // --- ESTADO PARA FILTROS E ORDENAÇÃO ---
-  const [region, setRegion] = useState('all');
-  const [proponentValue, setProponentValue] = useState('');
-  const [sortField, setSortField] = useState('total_concedente_value');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [vigenciaStatus, setVigenciaStatus] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [reportSummary, setReportSummary] = useState<Record<string, unknown> | null>(null);
-
-  const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
-    searchTerm: '',
+  const statusOptions = statusRows.length ? statusRows.map((item) => item.nome) : FALLBACK_STATUSES;
+  const currentFilters = useMemo<ReportFilters>(() => sanitizeReportRequest({
+    report_type: 'executive',
+    filters: {
+      municipality_ids: municipality.map(Number),
+      regional_nucleus_id: nucleus === 'all' ? undefined : Number(nucleus),
+      region_name: region === 'all' ? undefined : region,
+      status_names: statusFilter,
+      date_from: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+      date_to: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      vigencia: vigenciaStatus,
+      signed_contract_only: signedContractsOnly,
+      min_proponent_value: proponentValue ? Number(proponentValue) : undefined,
+    },
+  }).filters ?? {}, [
+    dateRange.from,
+    dateRange.to,
     municipality,
     nucleus,
-    dateFrom: dateRange.from,
-    dateTo: dateRange.to,
-    contratoAssinado: signedContractsOnly,
-  });
+    proponentValue,
+    region,
+    signedContractsOnly,
+    statusFilter,
+    vigenciaStatus,
+  ]);
 
-  const selectedMunicipalityLabel = useMemo(() => {
-    if (municipality.length === 0) return 'Todos os municípios';
-    if (municipality.length === 1) {
-      return allMunicipalities.find((m: any) => String(m.id) === municipality[0])?.name || '1 município selecionado';
-    }
-    return `${municipality.length} municípios selecionados`;
-  }, [allMunicipalities, municipality]);
-
-  const toggleMunicipality = (municipalityId: string) => {
-    setMunicipality(prev => (
-      prev.includes(municipalityId)
-        ? prev.filter(id => id !== municipalityId)
-        : [...prev, municipalityId]
-    ));
-  };
-
-  const reportFilters = () => ({
-    municipality_ids: municipality.map(Number),
-    regional_nucleus_id: nucleus === 'all' ? undefined : Number(nucleus),
-    region_name: region === 'all' ? undefined : region,
-    status_names: statusFilter === 'all' ? undefined : [statusFilter],
-    date_from: dateRange.from?.toISOString().slice(0, 10),
-    date_to: dateRange.to?.toISOString().slice(0, 10),
-    vigencia: vigenciaStatus,
-    signed_contract_only: signedContractsOnly,
-    min_proponent_value: proponentValue ? Number(proponentValue) : undefined,
-  });
-
-  async function loadReport(reportType: string, fields?: string[]) {
-    const result = await requestReport({
-      report_type: reportType,
+  const executiveQuery = useQuery({
+    queryKey: ['report-executive-summary', JSON.stringify(currentFilters), sortField, sortDirection],
+    queryFn: () => generateReport({
+      report_type: 'executive',
       format: 'json',
-      filters: reportFilters(),
-      fields,
-      sort: { field: sortField, direction: sortOrder },
-    });
-    setReportSummary(result.summary);
-    return result.rows;
-  }
+      filters: currentFilters,
+      fields: DEFAULT_FIELDS.executive,
+      sort: { field: sortField, direction: sortDirection },
+    }),
+    staleTime: 30_000,
+  });
 
-  // --- FILTRAGEM E ORDENAÇÃO DOS DADOS ---
-  const filteredData = useMemo(() => {
-    let data = [...processesData];
-    if (municipality.length > 0) {
-      const selectedMunicipalityIds = municipality.map(Number);
-      data = data.filter(p => selectedMunicipalityIds.includes(p.municipality_id));
+  useEffect(() => {
+    setPage(1);
+  }, [activeResult]);
+
+  const summary: ReportSummary = executiveQuery.data?.summary ?? {};
+  const selectedMunicipalityLabel = municipality.length === 0
+    ? 'Todos os municípios'
+    : municipality.length === 1
+      ? allMunicipalities.find((item) => String(item.id) === municipality[0])?.name ?? '1 município selecionado'
+      : `${municipality.length} municípios selecionados`;
+
+  const toggleValue = (values: string[], value: string, setter: (next: string[]) => void) => {
+    setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  };
+
+  async function runReport(reportType: ReportType, fields = DEFAULT_FIELDS[reportType]) {
+    if (!fields.length) {
+      toast({ title: 'Selecione pelo menos um campo', description: 'Escolha os campos que deseja incluir no relatório.', variant: 'destructive' });
+      return;
     }
-    if (nucleus !== 'all') {
-      data = data.filter(p => p.regional_nucleus_id === Number(nucleus));
-    }
-    if (region !== 'all') {
-      data = data.filter(p => p.municipalities?.regioes?.nome === region);
-    }
-    if (proponentValue) {
-      data = data.filter(p => (p.total_proponente_value || 0) >= Number(proponentValue));
-    }
-    if (statusFilter !== 'all') {
-      data = data.filter(p => p.status_processos?.nome === statusFilter);
-    }
-    // Filtro de vigência
-    const today = new Date();
-    const plus30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-    if (vigenciaStatus === 'vencidos') {
-      data = data.filter(p => new Date(p.vigencia_date) < today);
-    } else if (vigenciaStatus === 'vigentes') {
-      data = data.filter(p => new Date(p.vigencia_date) >= today);
-    } else if (vigenciaStatus === 'proximos') {
-      data = data.filter(p => {
-        const d = new Date(p.vigencia_date);
-        return d >= today && d <= plus30;
+    setCardStates((previous) => ({ ...previous, [reportType]: { ...previous[reportType], status: 'processing' } }));
+    try {
+      const result = await generateReport({
+        report_type: reportType,
+        format: 'json',
+        filters: currentFilters,
+        fields,
+        sort: { field: sortField, direction: sortDirection },
       });
-    }
-    // Ordenação
-    data = data.sort((a, b) => {
-      const aValue = a[sortField] || 0;
-      const bValue = b[sortField] || 0;
-      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-    });
-    return data;
-  }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder, vigenciaStatus, statusFilter]);
-
-  const visibleSummary = reportSummary || {
-    process_count: filteredData.length,
-    total_portaria_value: filteredData.reduce((sum, item) => sum + Number(item.total_portaria_value || 0), 0),
-    municipality_count: new Set(filteredData.map(item => item.municipality_id).filter(Boolean)).size,
-    regional_nucleus_count: new Set(filteredData.map(item => item.regional_nucleus_id).filter(Boolean)).size,
-  };
-  const statusBreakdown = Object.entries((visibleSummary.by_status as Record<string, number> | undefined) || {});
-
-  // Função para filtrar os campos exportados, tratando nulos e aninhados
-  function filterFields(data: any[], fields: string[]) {
-    return data.map(item => {
-      const filtered: Record<string, any> = {};
-      fields.forEach(field => {
-        const serverField: Record<string, string> = {
-          'municipalities.name': 'municipality',
-          'municipalities.regioes.nome': 'region',
-          'regional_nuclei.name': 'regional_nucleus',
-          'status_processos.nome': 'status',
-          contrato_assinado: 'contract_signed',
-          categoria: 'category',
-        };
-        let value = item[serverField[field] || field];
-        if (value === undefined) value = field.split('.').reduce((acc, key) => acc?.[key], item);
-        if (value === null || value === undefined) value = '';
-        if (typeof value === 'object' && value !== null) value = JSON.stringify(value);
-        filtered[field] = value;
-      });
-      return filtered;
-    });
-  }
-
-  function exportToExcel(data: any[], fileName: string, fields: string[]) {
-    try {
-      const filtered = filterFields(data, fields);
-      const worksheet = XLSX.utils.json_to_sheet(filtered);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-      saveAs(blob, `${fileName}.xlsx`);
-      toast({ title: 'Download iniciado', description: 'Arquivo Excel gerado com sucesso.' });
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  function exportToCSV(data: any[], fileName: string, fields: string[]) {
-    try {
-      const filtered = filterFields(data, fields);
-      const worksheet = XLSX.utils.json_to_sheet(filtered);
-      const csv = XLSX.utils.sheet_to_csv(worksheet);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, `${fileName}.csv`);
-      toast({ title: 'Download iniciado', description: 'Arquivo CSV gerado com sucesso.' });
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  function formatCurrencyForPDF(value: any) {
-    if (value === null || value === undefined || value === '') return '';
-
-    const numericValue = Number(value);
-    if (Number.isNaN(numericValue)) return value;
-
-    return `R$${numericValue.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  }
-
-  function isCurrencyPDFColumn(field: string, title: string) {
-    const normalizedText = `${field} ${title}`
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-
-    return ['valor', 'value', 'saldo', 'licitado'].some(keyword => normalizedText.includes(keyword));
-  }
-
-  function exportToPDF(data: any[], fileName: string, fields: string[]) {
-    try {
-      const filtered = filterFields(data, fields);
-      const columns = fields.map(f => ALL_FIELDS.find(x => x.key === f)?.label || f);
-      const currencyColumns = fields.map((field, index) => isCurrencyPDFColumn(field, columns[index]));
-      const rows = filtered.map(obj => fields.map((col, index) => (
-        currencyColumns[index] ? formatCurrencyForPDF(obj[col]) : obj[col]
-      )));
-      // Usar orientação paisagem
-      const doc = new jsPDF({ orientation: 'landscape' });
-      autoTable(doc, { head: [columns], body: rows });
-      doc.save(`${fileName}.pdf`);
-      toast({ title: 'Download iniciado', description: 'Arquivo PDF gerado com sucesso.' });
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  // Função para exportar relatório pré-definido
-  async function handlePredefinedDownload(reportType: string, fileFormat: 'PDF' | 'XLSX' | 'CSV', reportName: string) {
-    const fields = REPORT_FIELDS[reportType] || DEFAULT_FIELDS;
-    try {
-      const serverType = reportType === 'process' ? 'processes' : reportType === 'dashboard' ? 'executive' : reportType;
-      const data = await loadReport(serverType, fields.map(field => ({
-        'municipalities.name': 'municipality',
-        'municipalities.regioes.nome': 'region',
-        'regional_nuclei.name': 'regional_nucleus',
-        'status_processos.nome': 'status',
-        contrato_assinado: 'contract_signed',
-      } as Record<string, string>)[field] || field));
-      if (!data.length) {
-        toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
-        return;
+      const title = reportType === 'custom'
+        ? 'Relatório Personalizado'
+        : REPORTS.find((item) => item.type === reportType)?.title ?? 'Relatório';
+      setCardStates((previous) => ({
+        ...previous,
+        [reportType]: { status: 'available', result, lastGenerated: result.generated_at },
+      }));
+      setActiveResult(result);
+      setActiveTitle(title);
+      if (result.row_count === 0) {
+        toast({ title: 'Nenhum registro encontrado', description: 'Nenhum registro foi encontrado com os filtros selecionados.' });
+      } else {
+        toast({ title: 'Relatório gerado com sucesso', description: `${result.row_count} registro(s) disponível(is) para visualização e download.` });
       }
-      if (fileFormat === 'PDF') exportToPDF(data, reportName, fields);
-      if (fileFormat === 'XLSX') exportToExcel(data, reportName, fields);
-      if (fileFormat === 'CSV') exportToCSV(data, reportName, fields);
-    } catch (e) {
-      toast({ title: 'Erro ao exportar', description: 'Ocorreu um erro ao gerar o arquivo.', variant: 'destructive' });
-      throw e;
-    }
-  }
-
-  // --- ATUALIZAR EXPORTAÇÃO PARA USAR filteredData ---
-  const handleDownload = async (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    try {
-      const data = await loadReport('custom', selectedFields.map(field => ({
-        'municipalities.name': 'municipality',
-        'municipalities.regioes.nome': 'region',
-        'regional_nuclei.name': 'regional_nucleus',
-        'status_processos.nome': 'status',
-        contrato_assinado: 'contract_signed',
-      } as Record<string, string>)[field] || field));
-      if (!data.length) {
-        toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
-        return;
-      }
-      if (fileFormat === 'PDF') exportToPDF(data, reportName, selectedFields);
-      if (fileFormat === 'XLSX') exportToExcel(data, reportName, selectedFields);
-      if (fileFormat === 'CSV') exportToCSV(data, reportName, selectedFields);
-    } catch (e) {
-      toast({ title: 'Erro ao exportar', description: 'Ocorreu um erro ao gerar o arquivo.', variant: 'destructive' });
-    }
-  };
-
-  const generateReport = (reportName: string) => {
-    handleDownload(reportName, 'PDF');
-  };
-
-  const [reportStatuses, setReportStatuses] = useState<Record<string, 'available' | 'processing' | 'error'>>({});
-
-  const handleReportAction = async (reportType: string, action: 'generate' | 'retry') => {
-    setReportStatuses(prev => ({ ...prev, [reportType]: 'processing' }));
-    try {
-      await handlePredefinedDownload(reportType, 'PDF', reports.find(r => r.type === reportType)?.title || 'Relatório');
-      setReportStatuses(prev => ({ ...prev, [reportType]: 'available' }));
     } catch {
-      setReportStatuses(prev => ({ ...prev, [reportType]: 'error' }));
-      toast({ title: 'Erro ao gerar relatório', description: 'Ocorreu um erro ao processar o relatório. Tente novamente.', variant: 'destructive' });
+      setCardStates((previous) => ({ ...previous, [reportType]: { status: 'error' } }));
+      toast({ title: 'Não foi possível gerar o relatório', description: 'Tente novamente em alguns instantes.', variant: 'destructive' });
     }
-  };
+  }
 
-  const reports = [
-    {
-      title: 'Relatório de Processos',
-      description: 'Relatório completo de todos os processos com status, valores e prazos',
-      type: 'process' as const,
-      status: reportStatuses['process'] || 'available' as const,
-      lastGenerated: '2024-07-04T10:30:00'
-    },
-    {
-      title: 'Análise Financeira',
-      description: 'Análise detalhada dos valores investidos por região e município',
-      type: 'financial' as const,
-      status: reportStatuses['financial'] || 'available' as const,
-      lastGenerated: '2024-07-03T15:45:00'
-    },
-    {
-      title: 'Dashboard Executivo',
-      description: 'Visão executiva com principais KPIs e indicadores',
-      type: 'dashboard' as const,
-      status: reportStatuses['dashboard'] || 'processing' as const
-    },
-    {
-      title: 'Relatório por Município',
-      description: 'Detalhamento dos investimentos por município',
-      type: 'municipality' as const,
-      status: reportStatuses['municipality'] || 'available' as const,
-      lastGenerated: '2024-07-04T08:15:00'
+  function exportResult(result: ReportResult, fileFormat: 'PDF' | 'XLSX' | 'CSV', title: string) {
+    if (!result.rows.length) {
+      toast({ title: 'Nenhum dado para exportar', description: 'Gere um relatório com registros antes de baixar um arquivo.', variant: 'destructive' });
+      return;
     }
-  ];
+    const safeName = `${slugify(title)}-${new Date(result.generated_at).toISOString().slice(0, 10)}`;
+    const rows = translatedRows(result);
+    const headers = result.fields.map((field) => REPORT_FIELD_LABELS[field]);
+
+    if (fileFormat === 'CSV') {
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...result.rows.map((row) => result.fields.map((field) => formatValue(row[field], field)))]);
+      const csv = XLSX.utils.sheet_to_csv(worksheet);
+      saveAs(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `${safeName}.csv`);
+    } else if (fileFormat === 'XLSX') {
+      const workbook = XLSX.utils.book_new();
+      const summarySheet = XLSX.utils.aoa_to_sheet([
+        ['Relatório', title],
+        ['Gerado em', new Date(result.generated_at).toLocaleString('pt-BR')],
+        ['Quantidade de registros', result.row_count],
+        ['Filtros aplicados', filtersDescription(result.filters_applied)],
+      ]);
+      const detailsSheet = XLSX.utils.aoa_to_sheet([headers, ...result.rows.map((row) => result.fields.map((field) => formatValue(row[field], field)))]);
+      if (result.fields.length) {
+        (detailsSheet as any)['!autofilter'] = {
+          ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: result.rows.length, c: result.fields.length - 1 } }),
+        };
+        (detailsSheet as any)['!freeze'] = { xSplit: 0, ySplit: 1 };
+      }
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
+      XLSX.utils.book_append_sheet(workbook, detailsSheet, 'Detalhes');
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${safeName}.xlsx`);
+    } else {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      doc.setFontSize(16);
+      doc.text(title, 14, 15);
+      doc.setFontSize(9);
+      doc.text(`Gerado em: ${new Date(result.generated_at).toLocaleString('pt-BR')}`, 14, 22);
+      doc.text(`Registros: ${result.row_count}`, 14, 28);
+      doc.text(`Filtros: ${filtersDescription(result.filters_applied)}`, 14, 34, { maxWidth: 265 });
+      autoTable(doc, {
+        startY: 40,
+        head: [headers],
+        body: result.rows.map((row) => result.fields.map((field) => formatValue(row[field], field))),
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: [30, 64, 175] },
+      });
+      doc.save(`${safeName}.pdf`);
+    }
+    toast({ title: 'Download iniciado', description: `Arquivo ${fileFormat} gerado com sucesso.` });
+  }
+
+  const activeRows = activeResult?.rows ?? [];
+  const pageCount = Math.max(1, Math.ceil(activeRows.length / pageSize));
+  const visibleRows = activeRows.slice((page - 1) * pageSize, page * pageSize);
+  const statusBreakdown = Object.entries(summary.by_status ?? {});
 
   return (
     <div className="space-y-6" role="main" aria-label="Relatórios e exportações">
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">Início</BreadcrumbLink>
-          </BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink href="/">Início</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Relatórios</BreadcrumbPage>
-          </BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>Relatórios e Exportações</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Relatórios</h1>
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight">Relatórios e Exportações</h1>
         <p className="text-muted-foreground">
-          Gere relatórios personalizados sobre transferências e investimentos
+          Gere relatórios oficiais com dados atualizados do portal, aplique filtros e exporte os resultados em PDF, XLSX ou CSV.
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
-        </p>
-      </div>
+      </header>
 
-      {/* Botão Personalizar Campos do Relatório - AGORA MAIS VISÍVEL */}
-      <div className="flex justify-end mb-4">
-        <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
-          <DialogTrigger asChild>
-            <Button variant="outline" onClick={() => setShowFieldSelector(true)} aria-label="Personalizar campos do relatório">
-              Personalizar Campos do Relatório
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Selecione os campos para exportação</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {ALL_FIELDS.map(field => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedFields.includes(field.key)}
-                    onCheckedChange={checked => {
-                      if (checked) setSelectedFields([...selectedFields, field.key]);
-                      else setSelectedFields(selectedFields.filter(f => f !== field.key));
-                    }}
-                    id={`field-${field.key}`}
-                  />
-                  <label htmlFor={`field-${field.key}`} className="cursor-pointer">{field.label}</label>
-                </div>
-              ))}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Filtros do relatório</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Data inicial</label>
+              <DatePicker selected={dateRange.from} onSelect={(date) => setDateRange((previous) => ({ ...previous, from: date }))} placeholderText="Data inicial" />
             </div>
-            <div className="flex items-center gap-2 border-t pt-4">
-              <Checkbox
-                id="signed-contracts-only"
-                checked={signedContractsOnly}
-                onCheckedChange={checked => setSignedContractsOnly(checked === true)}
-              />
-              <label htmlFor="signed-contracts-only" className="cursor-pointer text-sm font-medium">
-                Buscar e baixar somente processos com contrato assinado
-              </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Data final</label>
+              <DatePicker selected={dateRange.to} onSelect={(date) => setDateRange((previous) => ({ ...previous, to: date }))} placeholderText="Data final" />
             </div>
-            {/* Indicação clara de download */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded flex flex-col gap-2">
-              <span className="font-medium text-blue-700">Após personalizar os campos, baixe o relatório no formato desejado:</span>
-              <div className="flex gap-2 flex-wrap">
-                <Button size="sm" onClick={() => handleDownload('Relatório Personalizado', 'PDF')} aria-label="Baixar relatório personalizado em PDF">
-                  Baixar PDF
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'XLSX')} aria-label="Baixar relatório personalizado em XLSX">
-                  Baixar XLS
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => handleDownload('Relatório Personalizado', 'CSV')} aria-label="Baixar relatório personalizado em CSV">
-                  Baixar CSV
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Filtros */}
-      <section aria-labelledby="filtros-relatorio">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2" id="filtros-relatorio">
-              <BarChart3 className="h-5 w-5" aria-hidden="true" />
-              Filtros de Relatório
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="date-from">Período (De)</label>
-                <DatePicker
-                  selected={dateRange.from}
-                  onSelect={(date) => setDateRange(prev => ({...prev, from: date}))}
-                  placeholderText="Data inicial"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="date-to">Período (Até)</label>
-                <DatePicker
-                  selected={dateRange.to}
-                  onSelect={(date) => setDateRange(prev => ({...prev, to: date}))}
-                  placeholderText="Data final"
-                />
-              </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Município</label>
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start font-normal">
-                    <span className="truncate">{selectedMunicipalityLabel}</span>
-                  </Button>
-                </PopoverTrigger>
+                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start font-normal"><span className="truncate">{selectedMunicipalityLabel}</span></Button></PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
-                  <div className="max-h-72 overflow-y-auto space-y-1">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                      onClick={() => setMunicipality([])}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter' || event.key === ' ') setMunicipality([]);
-                      }}
-                    >
-                      <Checkbox checked={municipality.length === 0} />
-                      <span>Todos os municípios</span>
-                    </div>
-                    {allMunicipalities.map((m: any) => {
-                      const municipalityId = String(m.id);
-                      return (
-                        <div
-                          key={m.id}
-                          role="button"
-                          tabIndex={0}
-                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                          onClick={() => toggleMunicipality(municipalityId)}
-                          onKeyDown={event => {
-                            if (event.key === 'Enter' || event.key === ' ') toggleMunicipality(municipalityId);
-                          }}
-                        >
-                          <Checkbox checked={municipality.includes(municipalityId)} />
-                          <span>{m.name}</span>
-                        </div>
-                      );
-                    })}
+                  <div className="max-h-72 space-y-1 overflow-y-auto">
+                    {allMunicipalities.map((item) => (
+                      <label key={item.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                        <Checkbox checked={municipality.includes(String(item.id))} onCheckedChange={() => toggleValue(municipality, String(item.id), setMunicipality)} />
+                        {item.name}
+                      </label>
+                    ))}
+                    {!allMunicipalities.length && <p className="p-2 text-sm text-muted-foreground">Nenhum município disponível.</p>}
                   </div>
                 </PopoverContent>
               </Popover>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Núcleo Regional</label>
+              <label className="text-sm font-medium">Núcleo regional</label>
               <Select value={nucleus} onValueChange={setNucleus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um núcleo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os núcleos</SelectItem>
-                  {allNuclei.map((n: any) => (
-                    <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger><SelectValue placeholder="Todos os núcleos" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todos os núcleos</SelectItem>{allNuclei.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Região</label>
               <Select value={region} onValueChange={setRegion}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma região" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as regiões</SelectItem>
-                  {allRegions.map((r: any) => (
-                    <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectTrigger><SelectValue placeholder="Todas as regiões" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Todas as regiões</SelectItem>{allRegions.map((item) => <SelectItem key={item.id} value={item.nome}>{item.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status do Processo</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="Criado">Criado</SelectItem>
-                  <SelectItem value="Em Análise">Em Análise</SelectItem>
-                  <SelectItem value="Aprovado">Aprovado</SelectItem>
-                  <SelectItem value="Em Execução">Em Execução</SelectItem>
-                  <SelectItem value="Finalizado">Finalizado</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Status do processo</label>
+              <Popover>
+                <PopoverTrigger asChild><Button variant="outline" className="w-full justify-start font-normal">{statusFilter.length ? `${statusFilter.length} status selecionado(s)` : 'Todos os status'}</Button></PopoverTrigger>
+                <PopoverContent className="w-64 p-2">
+                  {statusOptions.map((status) => <label key={status} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"><Checkbox checked={statusFilter.includes(status)} onCheckedChange={() => toggleValue(statusFilter, status, setStatusFilter)} />{status}</label>)}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Valor Proponente (mínimo)</label>
-              <input type="number" className="input input-bordered w-full" value={proponentValue} onChange={e => setProponentValue(e.target.value)} placeholder="Valor mínimo" />
+              <label htmlFor="min-proponent-value" className="text-sm font-medium">Valor mínimo do proponente</label>
+              <input id="min-proponent-value" type="number" min="0" className="input input-bordered w-full" value={proponentValue} onChange={(event) => setProponentValue(event.target.value)} placeholder="R$ 0,00" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Prazo de Vigência</label>
-              <Select value={vigenciaStatus} onValueChange={setVigenciaStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
+              <label className="text-sm font-medium">Situação da vigência</label>
+              <Select value={vigenciaStatus} onValueChange={(value) => setVigenciaStatus(value as VigenciaFilter)}>
+                <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="vencidos">Vencidos</SelectItem>
-                  <SelectItem value="vigentes">Vigentes</SelectItem>
-                  <SelectItem value="proximos">Próximos do vencimento (30 dias)</SelectItem>
+                  <SelectItem value="ate_7_dias">Até 7 dias</SelectItem>
+                  <SelectItem value="ate_30_dias">Até 30 dias</SelectItem>
+                  <SelectItem value="ate_60_dias">Até 60 dias</SelectItem>
+                  <SelectItem value="ate_90_dias">Até 90 dias</SelectItem>
+                  <SelectItem value="sem_prazo">Sem prazo</SelectItem>
+                  <SelectItem value="concluidas">Concluídas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {/* Outros filtros relevantes podem ser adicionados aqui */}
-          </div>
-          <div className="flex gap-4 mt-4">
+            <label className="flex items-center gap-2 self-end pb-2 text-sm">
+              <Checkbox checked={signedContractsOnly} onCheckedChange={(checked) => setSignedContractsOnly(checked === true)} />
+              Somente contratos assinados
+            </label>
             <div className="space-y-2">
               <label className="text-sm font-medium">Ordenar por</label>
-              <Select value={sortField} onValueChange={setSortField}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Campo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="total_concedente_value">Valor do Concedente</SelectItem>
-                  <SelectItem value="total_proponente_value">Valor do Proponente</SelectItem>
-                  <SelectItem value="total_portaria_value">Valor Total da Portaria</SelectItem>
-                  <SelectItem value="saldo_repassar">Saldo a Repassar</SelectItem>
-                  <SelectItem value="valor_repassado">Valor Repassado</SelectItem>
-                  <SelectItem value="num_processos">Número de Processos</SelectItem>
-                </SelectContent>
+              <Select value={sortField} onValueChange={(value) => setSortField(value as ReportField)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(REPORT_FIELD_LABELS).map(([field, label]) => <SelectItem key={field} value={field}>{label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Ordem</label>
-              <Select value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ordem" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="desc">Maior para menor</SelectItem>
-                  <SelectItem value="asc">Menor para maior</SelectItem>
-                </SelectContent>
+              <label className="text-sm font-medium">Direção</label>
+              <Select value={sortDirection} onValueChange={(value) => setSortDirection(value as 'asc' | 'desc')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="desc">Maior para menor</SelectItem><SelectItem value="asc">Menor para maior</SelectItem></SelectContent>
               </Select>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <section aria-labelledby="indicadores-relatorio">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 id="indicadores-relatorio" className="text-xl font-semibold">Indicadores do relatório</h2>
+          {executiveQuery.isFetching && <span className="text-sm text-muted-foreground" aria-live="polite">Atualizando indicadores...</span>}
+        </div>
+        {executiveQuery.isError ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+            <span className="flex items-center gap-2"><AlertCircle className="h-4 w-4" />Não foi possível carregar os indicadores. Tente novamente.</span>
+            <Button size="sm" variant="outline" onClick={() => executiveQuery.refetch()}><RefreshCw className="mr-2 h-4 w-4" />Tentar novamente</Button>
+          </div>
+        ) : executiveQuery.isLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" aria-live="polite"><div className="h-28 animate-pulse rounded-lg bg-muted" /><div className="h-28 animate-pulse rounded-lg bg-muted" /><div className="h-28 animate-pulse rounded-lg bg-muted" /><div className="h-28 animate-pulse rounded-lg bg-muted" /></div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card><CardContent className="flex items-center gap-3 p-6"><FileText className="h-8 w-8 text-blue-600" /><div><p className="text-2xl font-bold">{summary.process_count ?? 0}</p><p className="text-xs text-muted-foreground">Registros no relatório</p></div></CardContent></Card>
+            <Card><CardContent className="flex items-center gap-3 p-6"><TrendingUp className="h-8 w-8 text-green-600" /><div><p className="text-2xl font-bold">{formatCurrency(summary.total_portaria_value ?? 0)}</p><p className="text-xs text-muted-foreground">Valor total da portaria</p></div></CardContent></Card>
+            <Card><CardContent className="flex items-center gap-3 p-6"><Users className="h-8 w-8 text-purple-600" /><div><p className="text-2xl font-bold">{summary.municipality_count ?? 0}</p><p className="text-xs text-muted-foreground">Municípios no relatório</p></div></CardContent></Card>
+            <Card><CardContent className="flex items-center gap-3 p-6"><MapPin className="h-8 w-8 text-orange-600" /><div><p className="text-2xl font-bold">{summary.regional_nucleus_count ?? 0}</p><p className="text-xs text-muted-foreground">Núcleos regionais</p></div></CardContent></Card>
+          </div>
+        )}
+        {!executiveQuery.isLoading && !executiveQuery.isError && (
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total pago</p><p className="font-semibold">{formatCurrency(summary.total_paid ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Saldo a repassar</p><p className="font-semibold">{formatCurrency(summary.balance ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Processos vencidos</p><p className="font-semibold">{summary.expired_count ?? 0}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Próximos do vencimento</p><p className="font-semibold">{summary.expiring_30_days_count ?? 0}</p></CardContent></Card>
+          </div>
+        )}
       </section>
 
-      {/* Estatísticas Rápidas */}
-      <section aria-labelledby="estatisticas-rapidas">
-        <h2 id="estatisticas-rapidas" className="sr-only">Estatísticas Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {!executiveQuery.isLoading && !executiveQuery.isError && statusBreakdown.length > 0 && (
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-2xl font-bold">{String(visibleSummary.process_count ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">Registros no relatório</p>
-              </div>
-            </div>
+          <CardHeader><CardTitle>Distribuição por status</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {statusBreakdown.map(([label, count]) => {
+              const percentage = summary.process_count ? (count / summary.process_count) * 100 : 0;
+              return <div key={label} className="space-y-1"><div className="flex justify-between text-sm"><span>{label}</span><span className="font-medium">{count} ({percentage.toFixed(1)}%)</span></div><div className="h-2 rounded bg-muted"><div className="h-2 rounded bg-primary" style={{ width: `${Math.min(100, percentage)}%` }} /></div></div>;
+            })}
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold">R$ {Number(visibleSummary.total_portaria_value ?? 0).toLocaleString('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })}</p>
-                <p className="text-xs text-muted-foreground">Valor total da portaria</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Users className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-2xl font-bold">{String(visibleSummary.municipality_count ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">Municípios no relatório</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-8 w-8 text-orange-600" />
-              <div>
-                <p className="text-2xl font-bold">{String(visibleSummary.regional_nucleus_count ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">Núcleos regionais</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
+
+      <section aria-labelledby="relatorios-predefinidos">
+        <h2 id="relatorios-predefinidos" className="mb-4 text-xl font-semibold">Relatórios predefinidos</h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {REPORTS.map((report) => {
+            const state = cardStates[report.type] ?? { status: 'available' as const };
+            const result = state.result;
+            return <ReportCard
+              key={report.type}
+              {...report}
+              status={state.status}
+              lastGenerated={state.lastGenerated}
+              onGenerate={() => void runReport(report.type)}
+              onRetry={() => void runReport(report.type)}
+              onView={result ? () => { setActiveResult(result); setActiveTitle(report.title); } : undefined}
+              onDownloadPDF={result?.row_count ? () => exportResult(result, 'PDF', report.title) : undefined}
+              onDownloadExcel={result?.row_count ? () => exportResult(result, 'XLSX', report.title) : undefined}
+              onDownloadCSV={result?.row_count ? () => exportResult(result, 'CSV', report.title) : undefined}
+            />;
+          })}
+        </div>
       </section>
 
-      {statusBreakdown.length > 0 && (
-        <section aria-labelledby="distribuicao-status">
+      <section aria-labelledby="relatorio-personalizado">
+        <Card>
+          <CardHeader><CardTitle id="relatorio-personalizado">Relatório personalizado</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm text-muted-foreground">Escolha os campos que deseja incluir e gere um relatório usando os filtros atuais.</p>
+            <div className="flex flex-wrap gap-2">
+              <Dialog open={showFieldSelector} onOpenChange={setShowFieldSelector}>
+                <DialogTrigger asChild><Button variant="outline">Selecionar campos ({selectedFields.length})</Button></DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader><DialogTitle>Campos do relatório personalizado</DialogTitle></DialogHeader>
+                  <div className="max-h-96 space-y-2 overflow-y-auto">
+                    {Object.entries(REPORT_FIELD_LABELS).map(([field, label]) => <label key={field} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"><Checkbox checked={selectedFields.includes(field as ReportField)} onCheckedChange={(checked) => setSelectedFields(checked ? [...selectedFields, field as ReportField] : selectedFields.filter((item) => item !== field))} />{label}</label>)}
+                  </div>
+                  <Button onClick={() => setShowFieldSelector(false)}>Concluir seleção</Button>
+                </DialogContent>
+              </Dialog>
+              <Button onClick={() => void runReport('custom', selectedFields)} disabled={cardStates.custom?.status === 'processing'}>
+                {cardStates.custom?.status === 'processing' && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                Gerar personalizado
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {activeResult && (
+        <section aria-labelledby="resultado-relatorio">
           <Card>
-            <CardHeader><CardTitle id="distribuicao-status">Distribuição por status</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {statusBreakdown.map(([label, count]) => {
-                const percentage = Number(visibleSummary.process_count) > 0 ? (count / Number(visibleSummary.process_count)) * 100 : 0;
-                return <div key={label} className="space-y-1"><div className="flex justify-between text-sm"><span>{label}</span><span className="font-medium">{count}</span></div><div className="h-2 rounded bg-muted"><div className="h-2 rounded bg-primary" style={{ width: `${percentage}%` }} /></div></div>;
-              })}
+            <CardHeader>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <CardTitle id="resultado-relatorio">{activeTitle}</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
+                    Gerado em {new Date(activeResult.generated_at).toLocaleString('pt-BR')} • {activeResult.row_count} registro(s)
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">Filtros: {filtersDescription(activeResult.filters_applied)}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => exportResult(activeResult, 'PDF', activeTitle)} disabled={!activeResult.row_count}>PDF</Button>
+                  <Button size="sm" variant="outline" onClick={() => exportResult(activeResult, 'XLSX', activeTitle)} disabled={!activeResult.row_count}>XLSX</Button>
+                  <Button size="sm" variant="outline" onClick={() => exportResult(activeResult, 'CSV', activeTitle)} disabled={!activeResult.row_count}>CSV</Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!activeResult.row_count ? (
+                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Nenhum registro foi encontrado com os filtros selecionados.</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader><TableRow>{activeResult.fields.map((field) => <TableHead key={field}>{REPORT_FIELD_LABELS[field]}</TableHead>)}</TableRow></TableHeader>
+                      <TableBody>{visibleRows.map((row, index) => <TableRow key={`${activeResult.report_id}-${index}`}>{activeResult.fields.map((field) => <TableCell key={field}>{formatValue(row[field], field)}</TableCell>)}</TableRow>)}</TableBody>
+                    </Table>
+                  </div>
+                  {activeResult.row_count >= 2000 && <p className="mt-3 text-sm text-amber-700">A consulta atingiu o limite de registros. Refine os filtros para gerar um arquivo mais específico.</p>}
+                  <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+                    <span>Exibindo {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, activeRows.length)} de {activeRows.length}</span>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Anterior</Button>
+                      <span className="self-center">Página {page} de {pageCount}</span>
+                      <Button size="sm" variant="outline" disabled={page >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Próxima</Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </section>
       )}
-
-      {/* Lista de Relatórios */}
-      <section aria-labelledby="lista-relatorios">
-        <h2 id="lista-relatorios" className="sr-only">Lista de Relatórios</h2>
-        {isLoadingProcesses ? (
-          <div className="text-center py-8" role="status" aria-live="polite">Carregando dados dos relatórios...</div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {reports.map((report, index) => (
-            <ReportCard
-              key={index}
-              title={report.title}
-              description={report.description}
-              type={report.type}
-              status={report.status}
-              lastGenerated={report.lastGenerated}
-              onGenerate={() => handleReportAction(report.type, 'generate')}
-              onRetry={() => handleReportAction(report.type, 'retry')}
-              onView={report.status === 'available' ? () => console.log(`Visualizar ${report.title}`) : undefined}
-              onDownloadPDF={() => handlePredefinedDownload(report.type, 'PDF', report.title)}
-              onDownloadExcel={() => handlePredefinedDownload(report.type, 'XLSX', report.title)}
-              onDownloadCSV={() => handlePredefinedDownload(report.type, 'CSV', report.title)}
-            />
-          ))}
-        </div>
-      )}
-      </section>
-
-      {/* Ações Rápidas */}
-      <section aria-labelledby="acoes-rapidas">
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle id="acoes-rapidas">Ações Rápidas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => handleDownload('Relatório Completo', 'PDF')} aria-label="Baixar relatório completo em PDF">
-                Relatório Completo (PDF)
-              </Button>
-              <Button variant="outline" onClick={() => handleDownload('Dados Exportação', 'XLSX')} aria-label="Exportar dados em XLSX">
-                Exportar Dados (XLSX)
-              </Button>
-              <Button variant="outline" onClick={() => handleDownload('Resumo Executivo', 'CSV')} aria-label="Baixar resumo executivo em CSV">
-                Resumo Executivo (CSV)
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }
