@@ -172,6 +172,34 @@ export function normalizeProcess(row: any, now = new Date()): Record<string, unk
   };
 }
 
+/**
+ * Events do not have a foreign key to regional_nuclei.  Keep their
+ * normalization here so the Edge Function never attempts an invalid embedded
+ * PostgREST relationship when a report also includes events.
+ */
+export function normalizeEvent(row: any): Record<string, unknown> {
+  return {
+    id: row.id,
+    process_number: row.numero_processo ?? "",
+    object: row.objeto ?? row.nome ?? "",
+    category: "evento",
+    municipality: row.municipalities?.name ?? row.municipio_nome ?? "",
+    region: row.municipalities?.regioes?.nome ?? "",
+    regional_nucleus: row.nucleo_origem_texto ?? "",
+    status: row.foi_pago === true ? "Pago" : "Não pago",
+    contract_signed: String(row.contrato_assinado ?? "").toLowerCase() === "sim" || row.contrato_assinado === true,
+    total_concedente_value: Number(row.valor_concedente || 0),
+    total_proponente_value: Number(row.valor_proponente || 0),
+    total_portaria_value: Number(row.valor_concedente || 0) + Number(row.valor_proponente || 0),
+    total_paid: row.foi_pago === true ? Number(row.valor_concedente || 0) : 0,
+    balance: row.foi_pago === true ? 0 : Number(row.valor_concedente || 0),
+    created_at: row.created_at ?? row.data_evento,
+    vigencia_date: row.data_final ?? row.data_evento,
+    vigencia_status: row.foi_pago === true ? "concluidas" : "vigentes",
+    last_tramitacao: "",
+  };
+}
+
 export function filterAndSortRows(rows: Record<string, unknown>[], request: GenerateReportRequest, now = new Date()): Record<string, unknown>[] {
   const filters = request.filters ?? {};
   const result = rows.filter((row) => {
