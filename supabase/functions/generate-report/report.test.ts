@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterAndSortRows, normalizeProcess, parseRequestBody, summarize, vigenciaStatus } from './report.ts';
+import { filterAndSortRows, normalizeEvent, normalizeProcess, parseRequestBody, summarize, vigenciaStatus } from './report.ts';
 
 test('aceita relatório válido com filtros permitidos', () => {
   const result = parseRequestBody(JSON.stringify({
@@ -38,6 +38,25 @@ test('normaliza parcelas e calcula pago e saldo', () => {
   assert.equal(row.total_paid, 300);
   assert.equal(row.balance, 700);
   assert.equal(row.paid_parcel_count, 1);
+});
+
+test('normaliza eventos sem depender de uma relação inexistente com núcleos regionais', () => {
+  const row = normalizeEvent({
+    id: 11,
+    numero_processo: 'EV-11',
+    objeto: 'Evento cultural',
+    municipio_nome: 'Lages',
+    nucleo_origem_texto: 'Núcleo Serrano',
+    foi_pago: false,
+    contrato_assinado: 'Sim',
+    valor_concedente: 500,
+    valor_proponente: 100,
+    data_evento: '2026-09-01',
+  });
+
+  assert.equal(row.regional_nucleus, 'Núcleo Serrano');
+  assert.equal(row.total_portaria_value, 600);
+  assert.equal(row.contract_signed, true);
 });
 
 test('aplica filtro por nome e limita ordenação ao conjunto permitido', () => {

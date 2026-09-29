@@ -5,7 +5,7 @@ import {
   MAX_BODY_BYTES,
   MAX_ROWS,
   filterAndSortRows,
-  isRecord,
+  normalizeEvent,
   normalizeProcess,
   parseRequestBody,
   summarize,
@@ -73,7 +73,7 @@ async function fetchProcesses(request: GenerateReportRequest): Promise<any[]> {
 
 async function fetchEvents(request: GenerateReportRequest): Promise<any[]> {
   if (!supabase) throw new Error("missing_supabase_config");
-  let query = supabase.from("events").select(`id, ano, contrato_assinado, data_evento, data_final, foi_pago, municipio_id, municipio_nome, nome, numero_processo, objeto, tipo, valor_concedente, valor_proponente, municipalities(id, name, region_id, regional_nucleus_id, regioes(id, nome)), regional_nuclei(id, name, acronym)`).limit(MAX_ROWS);
+  let query = supabase.from("events").select(`id, ano, contrato_assinado, created_at, data_evento, data_final, foi_pago, municipio_id, municipio_nome, nome, numero_processo, nucleo_origem_texto, objeto, tipo, valor_concedente, valor_proponente, municipalities(id, name, region_id, regional_nucleus_id, regioes(id, nome))`).limit(MAX_ROWS);
   const filters = request.filters ?? {};
   if (filters.municipality_ids?.length) query = query.in("municipio_id", filters.municipality_ids);
   if (filters.date_from) query = query.gte("data_evento", filters.date_from);
@@ -81,29 +81,6 @@ async function fetchEvents(request: GenerateReportRequest): Promise<any[]> {
   const { data, error } = await query.order("data_evento", { ascending: false });
   if (error) throw new Error("event_query_failed");
   return data ?? [];
-}
-
-function normalizeEvent(row: any): Record<string, unknown> {
-  return {
-    id: row.id,
-    process_number: row.numero_processo ?? "",
-    object: row.objeto ?? row.nome ?? "",
-    category: "evento",
-    municipality: row.municipalities?.name ?? row.municipio_nome ?? "",
-    region: row.municipalities?.regioes?.nome ?? "",
-    regional_nucleus: row.regional_nuclei?.name ?? "",
-    status: row.foi_pago === true ? "Pago" : "Não pago",
-    contract_signed: String(row.contrato_assinado ?? "").toLowerCase() === "sim" || row.contrato_assinado === true,
-    total_concedente_value: Number(row.valor_concedente || 0),
-    total_proponente_value: Number(row.valor_proponente || 0),
-    total_portaria_value: Number(row.valor_concedente || 0) + Number(row.valor_proponente || 0),
-    total_paid: row.foi_pago === true ? Number(row.valor_concedente || 0) : 0,
-    balance: row.foi_pago === true ? 0 : Number(row.valor_concedente || 0),
-    created_at: row.created_at ?? row.data_evento,
-    vigencia_date: row.data_final ?? row.data_evento,
-    vigencia_status: row.foi_pago === true ? "concluidas" : "vigentes",
-    last_tramitacao: "",
-  };
 }
 
 Deno.serve(async (req) => {

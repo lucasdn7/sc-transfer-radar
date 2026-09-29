@@ -31,7 +31,7 @@ A função depende de `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente d
 
 ## Próximas etapas
 
-1. Confirmar no projeto de produção se os relacionamentos `process_parcels`, `municipalities`, `regional_nuclei` e `status_processos` possuem exatamente os campos usados aqui.
+1. Confirmar no projeto de produção se os relacionamentos de processos `process_parcels`, `municipalities`, `regional_nuclei` e `status_processos` possuem exatamente os campos usados aqui. Eventos usam `nucleo_origem_texto`, pois a tabela `events` não possui relação com `regional_nuclei`.
 2. Adicionar rate limit específico para geração de relatórios antes do deploy público.
 3. Criar geração profissional de XLSX/PDF e Storage privado para arquivos grandes.
 4. Adicionar RPCs agregadoras para relatórios financeiros quando os campos de pagamentos estiverem confirmados.
