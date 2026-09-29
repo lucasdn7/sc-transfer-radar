@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { generateReport as requestReport } from '@/lib/reportApi';
 
 // Lista de campos importantes para relatório de repasses
 const ALL_FIELDS = [
@@ -35,6 +36,11 @@ const ALL_FIELDS = [
   { key: 'total_proponente_value', label: 'Valor Total do Proponente' },
   { key: 'total_concedente_value', label: 'Valor Total do Concedente' },
   { key: 'licitado_value', label: 'Valor Licitado' },
+  { key: 'total_paid', label: 'Total Pago' },
+  { key: 'balance', label: 'Saldo a Repassar' },
+  { key: 'parcel_count', label: 'Quantidade de Parcelas' },
+  { key: 'paid_parcel_count', label: 'Parcelas Pagas' },
+  { key: 'vigencia_status', label: 'Situação da Vigência' },
   { key: 'created_at', label: 'Data de Criação' },
   { key: 'vigencia_date', label: 'Data de Vigência' },
   { key: 'last_tramitacao', label: 'Última Tramitação' },
@@ -123,6 +129,7 @@ export default function Reports() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [vigenciaStatus, setVigenciaStatus] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [reportSummary, setReportSummary] = useState<Record<string, unknown> | null>(null);
 
   const { data: processesData = [], isLoading: isLoadingProcesses } = useProcesses({
     searchTerm: '',
@@ -148,6 +155,30 @@ export default function Reports() {
         : [...prev, municipalityId]
     ));
   };
+
+  const reportFilters = () => ({
+    municipality_ids: municipality.map(Number),
+    regional_nucleus_id: nucleus === 'all' ? undefined : Number(nucleus),
+    region_name: region === 'all' ? undefined : region,
+    status_names: statusFilter === 'all' ? undefined : [statusFilter],
+    date_from: dateRange.from?.toISOString().slice(0, 10),
+    date_to: dateRange.to?.toISOString().slice(0, 10),
+    vigencia: vigenciaStatus,
+    signed_contract_only: signedContractsOnly,
+    min_proponent_value: proponentValue ? Number(proponentValue) : undefined,
+  });
+
+  async function loadReport(reportType: string, fields?: string[]) {
+    const result = await requestReport({
+      report_type: reportType,
+      format: 'json',
+      filters: reportFilters(),
+      fields,
+      sort: { field: sortField, direction: sortOrder },
+    });
+    setReportSummary(result.summary);
+    return result.rows;
+  }
 
   // --- FILTRAGEM E ORDENAÇÃO DOS DADOS ---
   const filteredData = useMemo(() => {
@@ -190,13 +221,29 @@ export default function Reports() {
     return data;
   }, [processesData, municipality, nucleus, region, proponentValue, sortField, sortOrder, vigenciaStatus, statusFilter]);
 
+  const visibleSummary = reportSummary || {
+    process_count: filteredData.length,
+    total_portaria_value: filteredData.reduce((sum, item) => sum + Number(item.total_portaria_value || 0), 0),
+    municipality_count: new Set(filteredData.map(item => item.municipality_id).filter(Boolean)).size,
+    regional_nucleus_count: new Set(filteredData.map(item => item.regional_nucleus_id).filter(Boolean)).size,
+  };
+  const statusBreakdown = Object.entries((visibleSummary.by_status as Record<string, number> | undefined) || {});
+
   // Função para filtrar os campos exportados, tratando nulos e aninhados
   function filterFields(data: any[], fields: string[]) {
     return data.map(item => {
       const filtered: Record<string, any> = {};
       fields.forEach(field => {
-        // Suporte a campos aninhados
-        let value = field.split('.').reduce((acc, key) => acc?.[key], item);
+        const serverField: Record<string, string> = {
+          'municipalities.name': 'municipality',
+          'municipalities.regioes.nome': 'region',
+          'regional_nuclei.name': 'regional_nucleus',
+          'status_processos.nome': 'status',
+          contrato_assinado: 'contract_signed',
+          categoria: 'category',
+        };
+        let value = item[serverField[field] || field];
+        if (value === undefined) value = field.split('.').reduce((acc, key) => acc?.[key], item);
         if (value === null || value === undefined) value = '';
         if (typeof value === 'object' && value !== null) value = JSON.stringify(value);
         filtered[field] = value;
@@ -273,30 +320,44 @@ export default function Reports() {
   }
 
   // Função para exportar relatório pré-definido
-  function handlePredefinedDownload(reportType: string, fileFormat: 'PDF' | 'XLSX' | 'CSV', reportName: string) {
-    const data = processesData;
+  async function handlePredefinedDownload(reportType: string, fileFormat: 'PDF' | 'XLSX' | 'CSV', reportName: string) {
     const fields = REPORT_FIELDS[reportType] || DEFAULT_FIELDS;
-    if (!data || data.length === 0) {
-      toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
-      return;
-    }
     try {
+      const serverType = reportType === 'process' ? 'processes' : reportType === 'dashboard' ? 'executive' : reportType;
+      const data = await loadReport(serverType, fields.map(field => ({
+        'municipalities.name': 'municipality',
+        'municipalities.regioes.nome': 'region',
+        'regional_nuclei.name': 'regional_nucleus',
+        'status_processos.nome': 'status',
+        contrato_assinado: 'contract_signed',
+      } as Record<string, string>)[field] || field));
+      if (!data.length) {
+        toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
+        return;
+      }
       if (fileFormat === 'PDF') exportToPDF(data, reportName, fields);
       if (fileFormat === 'XLSX') exportToExcel(data, reportName, fields);
       if (fileFormat === 'CSV') exportToCSV(data, reportName, fields);
     } catch (e) {
       toast({ title: 'Erro ao exportar', description: 'Ocorreu um erro ao gerar o arquivo.', variant: 'destructive' });
+      throw e;
     }
   }
 
   // --- ATUALIZAR EXPORTAÇÃO PARA USAR filteredData ---
-  const handleDownload = (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
-    const data = filteredData;
-    if (!data || data.length === 0) {
-      toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
-      return;
-    }
+  const handleDownload = async (reportName: string, fileFormat: 'PDF' | 'XLSX' | 'CSV') => {
     try {
+      const data = await loadReport('custom', selectedFields.map(field => ({
+        'municipalities.name': 'municipality',
+        'municipalities.regioes.nome': 'region',
+        'regional_nuclei.name': 'regional_nucleus',
+        'status_processos.nome': 'status',
+        contrato_assinado: 'contract_signed',
+      } as Record<string, string>)[field] || field));
+      if (!data.length) {
+        toast({ title: 'Nenhum dado encontrado', description: 'Não há dados para exportação.', variant: 'destructive' });
+        return;
+      }
       if (fileFormat === 'PDF') exportToPDF(data, reportName, selectedFields);
       if (fileFormat === 'XLSX') exportToExcel(data, reportName, selectedFields);
       if (fileFormat === 'CSV') exportToCSV(data, reportName, selectedFields);
@@ -311,25 +372,15 @@ export default function Reports() {
 
   const [reportStatuses, setReportStatuses] = useState<Record<string, 'available' | 'processing' | 'error'>>({});
 
-  const handleReportAction = (reportType: string, action: 'generate' | 'retry') => {
+  const handleReportAction = async (reportType: string, action: 'generate' | 'retry') => {
     setReportStatuses(prev => ({ ...prev, [reportType]: 'processing' }));
-    
-    // Simular processamento com possibilidade de erro
-    setTimeout(() => {
-      const shouldFail = Math.random() < 0.1; // 10% chance de erro para simulação
-      
-      if (shouldFail) {
-        setReportStatuses(prev => ({ ...prev, [reportType]: 'error' }));
-        toast({ 
-          title: 'Erro ao gerar relatório', 
-          description: 'Ocorreu um erro ao processar o relatório. Tente novamente.',
-          variant: 'destructive' 
-        });
-      } else {
-        setReportStatuses(prev => ({ ...prev, [reportType]: 'available' }));
-        handlePredefinedDownload(reportType, 'PDF', reports.find(r => r.type === reportType)?.title || 'Relatório');
-      }
-    }, 2000);
+    try {
+      await handlePredefinedDownload(reportType, 'PDF', reports.find(r => r.type === reportType)?.title || 'Relatório');
+      setReportStatuses(prev => ({ ...prev, [reportType]: 'available' }));
+    } catch {
+      setReportStatuses(prev => ({ ...prev, [reportType]: 'error' }));
+      toast({ title: 'Erro ao gerar relatório', description: 'Ocorreu um erro ao processar o relatório. Tente novamente.', variant: 'destructive' });
+    }
   };
 
   const reports = [
@@ -621,8 +672,8 @@ export default function Reports() {
             <div className="flex items-center space-x-2">
               <FileText className="h-8 w-8 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold">24</p>
-                <p className="text-xs text-muted-foreground">Relatórios Gerados</p>
+                <p className="text-2xl font-bold">{String(visibleSummary.process_count ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">Registros no relatório</p>
               </div>
             </div>
           </CardContent>
@@ -632,8 +683,8 @@ export default function Reports() {
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-8 w-8 text-green-600" />
               <div>
-                <p className="text-2xl font-bold">R$ 67M</p>
-                <p className="text-xs text-muted-foreground">Valor Total Analisado</p>
+                <p className="text-2xl font-bold">R$ {Number(visibleSummary.total_portaria_value ?? 0).toLocaleString('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })}</p>
+                <p className="text-xs text-muted-foreground">Valor total da portaria</p>
               </div>
             </div>
           </CardContent>
@@ -643,8 +694,8 @@ export default function Reports() {
             <div className="flex items-center space-x-2">
               <Users className="h-8 w-8 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold">60</p>
-                <p className="text-xs text-muted-foreground">Municípios Ativos</p>
+                <p className="text-2xl font-bold">{String(visibleSummary.municipality_count ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">Municípios no relatório</p>
               </div>
             </div>
           </CardContent>
@@ -654,14 +705,28 @@ export default function Reports() {
             <div className="flex items-center space-x-2">
               <MapPin className="h-8 w-8 text-orange-600" />
               <div>
-                <p className="text-2xl font-bold">21</p>
-                <p className="text-xs text-muted-foreground">Núcleos Regionais</p>
+                <p className="text-2xl font-bold">{String(visibleSummary.regional_nucleus_count ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">Núcleos regionais</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
       </section>
+
+      {statusBreakdown.length > 0 && (
+        <section aria-labelledby="distribuicao-status">
+          <Card>
+            <CardHeader><CardTitle id="distribuicao-status">Distribuição por status</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {statusBreakdown.map(([label, count]) => {
+                const percentage = Number(visibleSummary.process_count) > 0 ? (count / Number(visibleSummary.process_count)) * 100 : 0;
+                return <div key={label} className="space-y-1"><div className="flex justify-between text-sm"><span>{label}</span><span className="font-medium">{count}</span></div><div className="h-2 rounded bg-muted"><div className="h-2 rounded bg-primary" style={{ width: `${percentage}%` }} /></div></div>;
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Lista de Relatórios */}
       <section aria-labelledby="lista-relatorios">
