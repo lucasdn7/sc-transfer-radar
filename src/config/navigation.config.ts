@@ -20,6 +20,7 @@ import {
   BarChart3,
   ClipboardCheck,
   BookOpen,
+  FileCheck,
   GitBranch,
   Settings,
   Star,
@@ -31,6 +32,7 @@ export interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  external?: boolean;
   requiresAuth?: boolean;
   requiredRole?: 'technical' | 'admin' | 'user';
 }
@@ -134,6 +136,12 @@ export const navigationConfig: NavGroup[] = [
         name: "Fluxograma",
         href: "/fluxograma",
         icon: GitBranch,
+      },
+      {
+        name: "Certidões",
+        href: "https://certidoes-sc.vercel.app/",
+        icon: FileCheck,
+        external: true,
       },
     ],
   },

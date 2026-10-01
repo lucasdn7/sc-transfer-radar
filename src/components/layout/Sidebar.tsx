@@ -131,8 +131,25 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1 pl-2">
                     {filteredItems.map((item) => {
-                      const isActive = location.pathname === item.href;
+                      const isActive = !item.external && location.pathname === item.href;
                       const Icon = item.icon;
+                      const itemContent = isCollapsed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex h-8 w-8 items-center justify-center">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            <p>{item.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <>
+                          <Icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                          <span className="flex-1">{item.name}</span>
+                        </>
+                      );
 
                       return (
                         <Button
@@ -145,25 +162,13 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
                           )}
                           asChild
                         >
-                          <Link to={item.href}>
-                            {isCollapsed ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="flex h-8 w-8 items-center justify-center">
-                                    <Icon className="h-4 w-4" />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  <p>{item.name}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <>
-                                <Icon className="mr-2 h-4 w-4 flex-shrink-0" />
-                                <span className="flex-1">{item.name}</span>
-                              </>
-                            )}
-                          </Link>
+                          {item.external ? (
+                            <a href={item.href} target="_blank" rel="noopener noreferrer">
+                              {itemContent}
+                            </a>
+                          ) : (
+                            <Link to={item.href}>{itemContent}</Link>
+                          )}
                         </Button>
                       );
                     })}
