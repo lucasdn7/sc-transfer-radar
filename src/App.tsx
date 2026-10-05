@@ -33,6 +33,7 @@ import Indicators from "./pages/Indicators";
 import Charts from "./pages/Charts";
 import Assistente from "./pages/Assistente";
 import TechnicalNotifications from "./pages/TechnicalNotifications";
+import Checklist from "./pages/Checklist";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,7 @@ const App = () => (
                     <Route path="/dart" element={<DART />} />
                     <Route path="/fluxograma" element={<Flowchart />} />
                     <Route path="/assistente" element={<Assistente />} />
+                    <Route path="/checklist" element={<Checklist />} />
                   </Routes>
                 </AppLayout>
               </BrowserRouter>

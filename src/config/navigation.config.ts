@@ -25,6 +25,7 @@ import {
   Settings,
   Star,
   TrendingUp,
+  ListChecks,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -142,6 +143,11 @@ export const navigationConfig: NavGroup[] = [
         href: "https://certidoes-sc.vercel.app/",
         icon: FileCheck,
         external: true,
+      },
+      {
+        name: "Checklist",
+        href: "/checklist",
+        icon: ListChecks,
       },
     ],
   },

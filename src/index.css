@@ -6,100 +6,100 @@
 @layer base {
   :root,
   [data-theme="dark"] {
-    --bg-primary: #0a0a0a;
-    --bg-surface: #141414;
-    --bg-card: #1a1a1a;
-    --border-default: rgba(255,255,255,0.06);
-    --text-primary: #ffffff;
-    --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    --accent-green: #10b981;
-    --accent-green-muted: rgba(16,185,129,0.15);
+    --bg-primary: #0b1220;
+    --bg-surface: #0f1a2b;
+    --bg-card: #111c2d;
+    --border-default: rgba(148,163,184,0.16);
+    --text-primary: #f1f5f9;
+    --text-secondary: #b6c2d0;
+    --text-muted: #8291a5;
+    --accent-green: #4cbd91;
+    --accent-green-muted: rgba(76,189,145,0.16);
     --accent-red: #ef4444;
     --accent-red-muted: rgba(239,68,68,0.15);
     --accent-amber: #f59e0b;
 
-    --background: 0 0% 4%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 3%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 220 9% 64%;
-    --accent: 0 0% 13%;
-    --accent-foreground: 0 0% 100%;
+    --background: 221 49% 8%;
+    --foreground: 210 40% 96%;
+    --card: 218 45% 12%;
+    --card-foreground: 210 40% 96%;
+    --popover: 218 45% 12%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 160 71% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 216 34% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 216 34% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 216 34% 19%;
+    --accent-foreground: 210 40% 96%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 0.06;
-    --input: 0 0% 100% / 0.08;
-    --ring: 160 84% 39%;
-    --chart-1: 160 84% 39%;
-    --chart-2: 0 0% 100%;
+    --border: 215 25% 29% / 0.7;
+    --input: 215 25% 29% / 0.8;
+    --ring: 160 71% 36%;
+    --chart-1: 160 62% 43%;
+    --chart-2: 210 40% 82%;
     --chart-3: 38 92% 50%;
     --chart-4: 0 84% 60%;
-    --chart-5: 220 9% 64%;
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 0 0% 3%;
-    --sidebar-accent: 0 0% 13%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 100% / 0.06;
-    --sidebar-ring: 160 84% 39%;
+    --chart-5: 215 20% 65%;
+    --sidebar-background: 220 40% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 160 71% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 34% 16%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 215 25% 29% / 0.7;
+    --sidebar-ring: 160 71% 36%;
     --radius: 0.875rem;
   }
 
   [data-theme="light"] {
-    --bg-primary: #f9fafb;
+    --bg-primary: #f3f6f9;
     --bg-surface: #ffffff;
     --bg-card: #ffffff;
-    --border-default: rgba(0,0,0,0.08);
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    --text-muted: #9ca3af;
-    --accent-green: #10b981;
-    --accent-green-muted: rgba(16,185,129,0.13);
+    --border-default: #dce4eb;
+    --text-primary: #172b4d;
+    --text-secondary: #526277;
+    --text-muted: #7b8a9a;
+    --accent-green: #16805d;
+    --accent-green-muted: rgba(22,128,93,0.10);
     --accent-red: #ef4444;
     --accent-red-muted: rgba(239,68,68,0.13);
     --accent-amber: #f59e0b;
 
-    --background: 210 20% 98%;
-    --foreground: 221 39% 11%;
+    --background: 210 33% 97%;
+    --foreground: 215 50% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 221 39% 11%;
+    --card-foreground: 215 50% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 221 39% 11%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 3%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 221 39% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 160 84% 39% / 0.08;
-    --accent-foreground: 160 84% 25%;
+    --popover-foreground: 215 50% 20%;
+    --primary: 160 71% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 215 50% 20%;
+    --muted: 210 30% 95%;
+    --muted-foreground: 215 16% 43%;
+    --accent: 152 43% 94%;
+    --accent-foreground: 160 71% 25%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 0% / 0.08;
-    --input: 0 0% 0% / 0.10;
-    --ring: 160 84% 39%;
-    --chart-1: 160 84% 39%;
-    --chart-2: 221 39% 11%;
+    --border: 213 27% 89%;
+    --input: 213 27% 85%;
+    --ring: 160 71% 30%;
+    --chart-1: 160 71% 30%;
+    --chart-2: 215 50% 20%;
     --chart-3: 38 92% 50%;
     --chart-4: 0 84% 60%;
-    --chart-5: 220 9% 46%;
+    --chart-5: 215 16% 43%;
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 221 39% 11%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 0 0% 3%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 221 39% 11%;
-    --sidebar-border: 0 0% 0% / 0.08;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-foreground: 215 50% 20%;
+    --sidebar-primary: 160 71% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 30% 95%;
+    --sidebar-accent-foreground: 215 50% 20%;
+    --sidebar-border: 213 27% 89%;
+    --sidebar-ring: 160 71% 30%;
   }
 
   * {
@@ -135,9 +135,14 @@
 @layer components {
   .financial-card,
   .dashboard-card {
-    @apply rounded-2xl border bg-card text-card-foreground;
+    @apply rounded-xl border bg-card text-card-foreground;
     border-color: var(--border-default);
-    box-shadow: none;
+    box-shadow: 0 1px 2px rgb(23 43 77 / 0.04);
+  }
+
+  .rounded-xl.border.bg-card,
+  .rounded-2xl.border.bg-card {
+    border-color: var(--border-default);
   }
 
   .theme-toggle {
@@ -196,6 +201,10 @@
 
 .recharts-line-curve {
   stroke-width: 3px;
+}
+
+.recharts-tooltip-cursor {
+  fill: color-mix(in srgb, var(--text-muted), transparent 88%);
 }
 
 .recharts-bar-rectangle path,
@@ -282,6 +291,7 @@ tbody tr {
 .leaflet-control-zoom a {
   color: #374151 !important;
   border-radius: 4px;
+  border-color: var(--border-default) !important;
 }
 
 .leaflet-control-zoom a:hover {
@@ -290,15 +300,18 @@ tbody tr {
 
 .leaflet-control-attribution {
   font-size: 11px !important;
-  background-color: rgba(255, 255, 255, 0.8) !important;
+  background-color: color-mix(in srgb, var(--bg-card), transparent 12%) !important;
+  color: var(--text-secondary) !important;
 }
 
 /* Estilos para popups customizados */
 .custom-popup .leaflet-popup-content-wrapper {
   border-radius: 12px;
   box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-default);
   padding: 0;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .custom-popup .leaflet-popup-content {
@@ -307,9 +320,18 @@ tbody tr {
 }
 
 .custom-popup .leaflet-popup-tip {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .leaflet-control-zoom a {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .leaflet-control-zoom a:hover {
+  background-color: var(--bg-surface) !important;
 }
 
 /* Legacy utility harmonization: preserve component logic while moving older hard-coded Tailwind colors into the theme. */
@@ -380,18 +402,18 @@ textarea::placeholder {
 @layer base {
   :root {
     /* Fundos */
-    --transfers-bg: #F5F4F1;
+    --transfers-bg: #F3F6F9;
     --transfers-surface: #FFFFFF;
-    --transfers-surface-alt: #F8F7F4;
+    --transfers-surface-alt: #F7F9FB;
     
     /* Bordas */
-    --transfers-border: #E2E0D9;
-    --transfers-border-strong: #C8C6BD;
+    --transfers-border: #DCE4EB;
+    --transfers-border-strong: #B8C5D3;
     
     /* Texto */
-    --transfers-text-primary: #1A1A18;
-    --transfers-text-secondary: #5F5E5A;
-    --transfers-text-muted: #9B9990;
+    --transfers-text-primary: #172B4D;
+    --transfers-text-secondary: #526277;
+    --transfers-text-muted: #7B8A9A;
     
     /* Categorias */
     --transfers-color-todos: #1A1A18;
@@ -400,8 +422,8 @@ textarea::placeholder {
     --transfers-color-promo: #7C3AED;
     
     /* Semântico */
-    --transfers-success: #1A7340;
-    --transfers-success-bg: #E8F5EE;
+    --transfers-success: #16805D;
+    --transfers-success-bg: #E8F4EF;
     --transfers-warning: #8A5A00;
     --transfers-warning-bg: #FEF3D0;
     --transfers-danger: #C0392B;
@@ -415,21 +437,21 @@ textarea::placeholder {
 
   [data-theme="dark"] {
     /* Fundos */
-    --transfers-bg: #18181A;
-    --transfers-surface: #242426;
-    --transfers-surface-alt: #2C2C2E;
+    --transfers-bg: #0B1220;
+    --transfers-surface: #111C2D;
+    --transfers-surface-alt: #172337;
     
     /* Bordas */
-    --transfers-border: #3A3A3C;
-    --transfers-border-strong: #4A4A4C;
+    --transfers-border: #29384C;
+    --transfers-border-strong: #3A4B63;
     
     /* Texto */
-    --transfers-text-primary: #F2F1ED;
-    --transfers-text-secondary: #A8A7A3;
-    --transfers-text-muted: #6B6A67;
+    --transfers-text-primary: #F1F5F9;
+    --transfers-text-secondary: #B6C2D0;
+    --transfers-text-muted: #8291A5;
     
     /* Semântico - versões dark */
-    --transfers-success: #2ECC71;
+    --transfers-success: #3FB889;
     --transfers-success-bg: rgba(46,204,113,0.15);
     --transfers-warning: #F39C12;
     --transfers-warning-bg: rgba(243,156,18,0.15);
