@@ -1,7 +1,8 @@
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Clock3, FileCheck2, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, Clock3, Link2, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { isSantaCatarinaMunicipality } from "@/lib/santaCatarinaMunicipalities";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,12 @@ function formatCnpj(value: string) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Não informado";
-  const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+  const brazilianDate = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const isoDate = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const normalized = brazilianDate
+    ? `${brazilianDate[3]}-${brazilianDate[2]}-${brazilianDate[1]}`
+    : isoDate ? `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}` : value;
+  const date = new Date(`${normalized.slice(0, 10)}T12:00:00`);
   return Number.isNaN(date.getTime()) ? "Não informado" : date.toLocaleDateString("pt-BR");
 }
 
@@ -72,30 +78,102 @@ function StatusBadge({ status }: { status: DartStatus | null }) {
   return <Badge variant="outline" className={`gap-1.5 whitespace-nowrap font-medium ${view.badge}`}><Icon className={`h-3.5 w-3.5 ${status === "checking" ? "animate-spin" : ""}`} />{view.label}</Badge>;
 }
 
-function RequirementDetails({ details }: { details: unknown }) {
-  const data = getObject(details);
-  const creditors = Array.isArray(data?.listaCredores) ? data.listaCredores : [];
-  if (!details) return <p className="text-sm text-muted-foreground">Faça uma consulta para carregar os requisitos e comprovantes do DART.</p>;
-  return (
-    <div className="space-y-3">
-      {creditors.length > 0 && <div className="grid gap-2 sm:grid-cols-2">
-        {creditors.map((item, index) => {
-          const creditor = getObject(item) ?? {};
-          const compliant = creditor.flComprovado === true;
-          const name = String(creditor.nome ?? creditor.nmCredor ?? creditor.descricao ?? creditor.nomeCredor ?? `Credor ${index + 1}`);
-          return <div key={`${name}-${index}`} className="flex items-start gap-2 rounded-lg border bg-background p-3">
-            {compliant ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />}
-            <div className="min-w-0"><p className="text-sm font-medium">{name}</p><p className={`mt-0.5 text-xs ${compliant ? "text-emerald-700" : "text-red-700"}`}>{compliant ? "Comprovado" : "Com pendência"}</p></div>
-          </div>;
-        })}
-      </div>}
-      {data?.avisoLegal && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{String(data.avisoLegal)}</p>}
-      <details className="group rounded-lg border bg-background">
-        <summary className="cursor-pointer px-3 py-2.5 text-sm font-medium text-foreground">Ver resposta detalhada do DART</summary>
-        <pre className="max-h-72 overflow-auto border-t bg-muted/30 p-3 text-xs leading-relaxed">{JSON.stringify(details, null, 2)}</pre>
-      </details>
+function RequirementEvidence({ label, records }: { label: string; records: unknown[] }) {
+  if (!records.length) return null;
+  return <details className="group rounded-md border bg-background">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <span>{label} <span className="text-muted-foreground">({records.length})</span></span>
+      <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+    </summary>
+    <div className="grid gap-2 border-t bg-muted/20 p-3 sm:grid-cols-2">
+      {records.map((item, index) => {
+        const record = getObject(item) ?? {};
+        const title = String(record.empresa ?? record.concedente ?? record.titulo ?? record.nome ?? `${label} ${index + 1}`);
+        const status = record.situacao ?? record.status;
+        const document = record.cnpj ?? record.cpfCnpjCredor;
+        const validity = record.validade ?? record.dataValidade ?? record.dataLimite;
+        const compliant = record.flComprovado ?? record.comprovado;
+        const references = [
+          record.ano && `Ano ${record.ano}`,
+          record.numeroEmpenho && `Empenho ${record.numeroEmpenho}`,
+          record.numeroPC && `Prestação de contas ${record.numeroPC}`,
+          record.numeroTR && `Termo ${record.numeroTR}`,
+          record.dataRepasse && `Repasse em ${formatDate(String(record.dataRepasse))}`,
+          record.valor && `Valor ${record.valor}`,
+        ].filter(Boolean);
+        return <div key={`${title}-${index}`} className="min-w-0 rounded-md border bg-background p-3">
+          <p className="break-words text-sm font-medium">{title}</p>
+          {!getObject(item) && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{String(item)}</p>}
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {references.map((reference) => <span key={String(reference)}>{reference}</span>)}
+            {document && <span>CNPJ {formatCnpj(String(document))}</span>}
+            {status && <span>{String(status)}</span>}
+            {validity && <span>Validade: {formatDate(String(validity))}</span>}
+            {typeof compliant === "boolean" && <span className={compliant ? "text-emerald-700" : "text-red-700"}>{compliant ? "Comprovado" : "Com pendência"}</span>}
+          </div>
+        </div>;
+      })}
     </div>
-  );
+  </details>;
+}
+
+function CreditorItem({ creditor, index, depth = 0 }: { creditor: Record<string, unknown>; index: number; depth?: number }) {
+  const name = String(creditor.nomeCredor ?? creditor.nome ?? creditor.nmCredor ?? `Credor ${index + 1}`);
+  const compliant = creditor.flComprovado === true;
+  const requirements = Array.isArray(creditor.listaRequisitos) ? creditor.listaRequisitos : [];
+  const linked = depth < 2 ? Object.entries(creditor)
+    .filter(([key, value]) => /(vinculad|credor|orgao)/i.test(key) && Array.isArray(value))
+    .flatMap(([, value]) => value as unknown[])
+    .map(getObject).filter((item): item is Record<string, unknown> => Boolean(item)) : [];
+
+  return <details className="group rounded-lg border bg-background">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-4">
+      <span className="flex min-w-0 items-start gap-2.5">
+        {compliant ? <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" /> : <XCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-red-700" />}
+        <span className="min-w-0"><span className="block break-words text-sm font-semibold text-slate-900">{name}</span><span className={`mt-0.5 block text-xs ${compliant ? "text-emerald-700" : "text-red-700"}`}>{compliant ? "Regular" : "Com pendência"} · {requirements.length} requisito(s)</span></span>
+      </span>
+      <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+    </summary>
+    <div className="space-y-3 border-t bg-slate-50/70 p-3 sm:p-4">
+      {(creditor.documentoCredor ?? creditor.cnpj) && <p className="text-xs text-muted-foreground">CNPJ: {formatCnpj(String(creditor.documentoCredor ?? creditor.cnpj))}</p>}
+      {requirements.map((item, requirementIndex) => {
+        const requirement = getObject(item) ?? {};
+        const title = String(requirement.tituloRequisito ?? requirement.nome ?? `Requisito ${requirementIndex + 1}`);
+        const passed = requirement.comprovado;
+        const cnds = Array.isArray(requirement.listaCNDs) ? requirement.listaCNDs : [];
+        const accountRecords = Array.isArray(requirement.prestacaoContas) ? requirement.prestacaoContas : [];
+        return <details key={`${title}-${requirementIndex}`} className="group/requirement rounded-md border bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="flex min-w-0 items-start gap-2"><span className="mt-0.5">{passed === true ? <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-700" /> : passed === false ? <XCircle aria-hidden="true" className="h-4 w-4 text-red-700" /> : <Clock3 aria-hidden="true" className="h-4 w-4 text-amber-700" />}</span><span className="min-w-0"><span className="block break-words text-sm font-medium">{title}</span><span className={`mt-1 block text-xs ${passed === true ? "text-emerald-700" : passed === false ? "text-red-700" : "text-amber-700"}`}>{passed === true ? "Atendido" : passed === false ? "Não atendido" : "Sem informação"}{requirement.dataValidade ? ` · validade ${formatDate(String(requirement.dataValidade))}` : ""}</span></span></span>
+            <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open/requirement:rotate-180" />
+          </summary>
+          <div className="space-y-2 border-t p-3">
+            {requirement.mensagem && <p className="text-xs leading-relaxed text-muted-foreground">{String(requirement.mensagem)}</p>}
+            {requirement.mensagemBloqueio && <p className="rounded bg-red-50 p-2 text-xs leading-relaxed text-red-800">{String(requirement.mensagemBloqueio)}</p>}
+            <RequirementEvidence label="Certidões e credores relacionados" records={cnds} />
+            <RequirementEvidence label="Prestações de contas relacionadas" records={accountRecords} />
+            {!requirement.mensagem && !requirement.mensagemBloqueio && !cnds.length && !accountRecords.length && <p className="text-xs text-muted-foreground">O DART não retornou detalhes adicionais para este requisito.</p>}
+          </div>
+        </details>;
+      })}
+      {linked.length > 0 && <div className="space-y-2 border-t pt-3"><h4 className="flex items-center gap-2 text-xs font-semibold text-slate-700"><Link2 aria-hidden="true" className="h-3.5 w-3.5" />Credores vinculados ({linked.length})</h4>{linked.map((item, linkedIndex) => <CreditorItem key={`${String(item.nomeCredor ?? item.nome ?? linkedIndex)}-${linkedIndex}`} creditor={item} index={linkedIndex} depth={depth + 1} />)}</div>}
+    </div>
+  </details>;
+}
+
+function CreditorDetails({ details }: { details: unknown }) {
+  const data = getObject(details);
+  const creditors = Array.isArray(data?.listaCredores) ? data.listaCredores.map(getObject).filter((item): item is Record<string, unknown> => Boolean(item)) : [];
+  if (!details) return <p className="text-sm text-muted-foreground">Faça uma consulta para carregar os requisitos e comprovantes do DART.</p>;
+  return <div className="space-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-900">Credores e órgãos vinculados</h3><span className="text-xs text-muted-foreground">{creditors.length} registros retornados pelo DART</span></div>
+    {creditors.length ? creditors.map((creditor, index) => <CreditorItem key={`${String(creditor.nomeCredor ?? index)}-${index}`} creditor={creditor} index={index} />) : <p className="rounded-md border bg-white p-3 text-sm text-muted-foreground">A consulta não retornou credores para exibir.</p>}
+    {data?.avisoLegal && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{String(data.avisoLegal)}</p>}
+    <details className="group rounded-md border bg-background">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-xs font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Resposta completa do DART <ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" /></summary>
+      <pre className="max-h-72 overflow-auto border-t bg-muted/30 p-3 text-xs leading-relaxed">{JSON.stringify(details, null, 2)}</pre>
+    </details>
+  </div>;
 }
 
 export default function DART() {
@@ -104,6 +182,7 @@ export default function DART() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [checkingIds, setCheckingIds] = useState<Set<number>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [batch, setBatch] = useState<{ current: number; total: number; name: string } | null>(null);
 
   const { data: municipalities = [], isLoading, error } = useQuery({
@@ -121,17 +200,36 @@ export default function DART() {
     const term = search.trim().toLocaleLowerCase("pt-BR");
     const matchesSearch = !term || municipality.name.toLocaleLowerCase("pt-BR").includes(term) || normalizedCnpj(municipality.cnpj).includes(normalizedCnpj(term));
     const status = municipality.dart_status ?? "pending";
-    return matchesSearch && (filter === "all" || status === filter);
+    const pending = status !== "regular" && status !== "irregular";
+    const matchesFilter = filter === "all" || (filter === "pending" ? pending : status === filter);
+    return matchesSearch && matchesFilter;
   }), [municipalities, search, filter]);
 
+  const municipalityCount = municipalities.filter((m) => isSantaCatarinaMunicipality(m.name)).length;
+  const transferCount = municipalities.length - municipalityCount;
+  const regularCount = municipalities.filter((m) => m.dart_status === "regular").length;
+  const irregularCount = municipalities.filter((m) => m.dart_status === "irregular").length;
+  const statusCounts = {
+    regular: regularCount,
+    irregular: irregularCount,
+    pending: municipalities.length - regularCount - irregularCount,
+  };
   const metrics = [
-    { label: "Municípios", count: municipalities.length, icon: FileCheck2, tone: "text-slate-700", accent: "bg-slate-100" },
-    { label: "Regulares", count: municipalities.filter((m) => m.dart_status === "regular").length, icon: CheckCircle2, tone: "text-emerald-700", accent: "bg-emerald-50" },
-    { label: "Irregulares", count: municipalities.filter((m) => m.dart_status === "irregular").length, icon: XCircle, tone: "text-red-700", accent: "bg-red-50" },
-    { label: "Pendentes", count: municipalities.filter((m) => !m.dart_status || m.dart_status === "pending").length, icon: Clock3, tone: "text-amber-700", accent: "bg-amber-50" },
+    { key: "regular", label: "Regulares", count: statusCounts.regular, icon: CheckCircle2, color: "emerald" },
+    { key: "irregular", label: "Irregulares", count: statusCounts.irregular, icon: XCircle, color: "red" },
+    { key: "pending", label: "Pendentes de verificação", count: statusCounts.pending, icon: Clock3, color: "amber" },
   ];
 
-  async function verifyMunicipality(municipality: Municipality): Promise<boolean> {
+  function toggleExpanded(id: number) {
+    setExpandedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function verifyMunicipality(municipality: Municipality, quiet = false): Promise<boolean> {
     setCheckingIds((previous) => new Set(previous).add(municipality.id));
     try {
       const { data, error: invokeError } = await supabase.functions.invoke<VerifyResult>("verificar-dart", {
@@ -153,7 +251,7 @@ export default function DART() {
       toast({ title: `${municipality.name}: ${label}`, description: data?.summary ?? "Resultado atualizado com a consulta oficial do DART." });
       return true;
     } catch (cause) {
-      toast({ title: `Falha ao consultar ${municipality.name}`, description: cause instanceof Error ? cause.message : "Erro inesperado na consulta.", variant: "destructive" });
+      if (!quiet) toast({ title: `Falha ao consultar ${municipality.name}`, description: cause instanceof Error ? cause.message : "Erro inesperado na consulta.", variant: "destructive" });
       return false;
     } finally {
       setCheckingIds((previous) => { const next = new Set(previous); next.delete(municipality.id); return next; });
@@ -164,16 +262,20 @@ export default function DART() {
     if (batch || municipalities.length === 0) return;
     const list = municipalities;
     let succeeded = 0;
+    const failed: string[] = [];
     for (let index = 0; index < list.length; index += 1) {
       setBatch({ current: index + 1, total: list.length, name: list[index].name });
-      if (await verifyMunicipality(list[index])) succeeded += 1;
+      if (index > 0) await new Promise((resolve) => setTimeout(resolve, 500));
+      if (await verifyMunicipality(list[index], true)) succeeded += 1;
+      else failed.push(list[index].name);
     }
     setBatch(null);
     await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
-    toast({ title: "Verificação concluída", description: `${succeeded} de ${list.length} consultas concluídas com resposta do DART.` });
+    const failureSummary = failed.length ? ` Falhas: ${failed.slice(0, 4).join(", ")}${failed.length > 4 ? ` e mais ${failed.length - 4}` : ""}.` : "";
+    toast({ title: failed.length ? "Verificação concluída com falhas" : "Verificação concluída", description: `${succeeded} de ${list.length} consultas concluídas.${failureSummary}`, variant: failed.length ? "destructive" : undefined });
   }
 
-  if (isLoading) return <div className="space-y-5" aria-label="Carregando municípios"><div className="h-8 w-56 animate-pulse rounded bg-muted" /><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-24 animate-pulse rounded-xl bg-muted" />)}</div><div className="h-72 animate-pulse rounded-xl bg-muted" /></div>;
+  if (isLoading) return <div className="space-y-5" aria-label="Carregando municípios"><div className="h-8 w-56 animate-pulse rounded bg-muted" /><div className="grid grid-cols-3 gap-2 sm:gap-3">{[1, 2, 3].map((item) => <div key={item} className="h-32 animate-pulse rounded-lg bg-muted" />)}</div><div className="h-72 animate-pulse rounded-xl bg-muted" /></div>;
   if (error) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">Não foi possível carregar os municípios: {(error as Error).message}</div>;
 
   return <div className="mx-auto w-full max-w-7xl space-y-6 pb-8">
@@ -182,7 +284,7 @@ export default function DART() {
     <section className="flex flex-col gap-4 rounded-2xl border bg-gradient-to-br from-white to-emerald-50/50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-7">
       <div className="flex items-start gap-4">
         <div className="hidden rounded-xl bg-emerald-100 p-3 text-emerald-800 sm:block"><ShieldCheck className="h-7 w-7" /></div>
-        <div><p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Consulta oficial · CIASC</p><h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Regularidade DART</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Consulte a situação dos municípios para Convênio Simplificado. O resultado é atualizado diretamente com os dados oficiais do DART.</p></div>
+        <div><p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Consulta oficial · CIASC</p><h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Regularidade DART</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Municípios de Santa Catarina são consultados como Convênio Simplificado; os demais entes, como Transferência (TRA).</p></div>
       </div>
       <Button onClick={verifyAll} disabled={Boolean(batch) || municipalities.length === 0} className="w-full shrink-0 bg-emerald-800 hover:bg-emerald-900 sm:w-auto">
         <RefreshCw className={`mr-2 h-4 w-4 ${batch ? "animate-spin" : ""}`} />{batch ? `Consultando ${batch.current}/${batch.total}` : "Verificar todos"}
@@ -191,7 +293,25 @@ export default function DART() {
 
     {batch && <Card><CardContent className="space-y-2 p-4"><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Consultando <strong>{batch.name}</strong></span><span className="text-muted-foreground">{batch.current} de {batch.total}</span></div><Progress value={batch.current / batch.total * 100} className="h-2" /></CardContent></Card>}
 
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{metrics.map(({ label, count, icon: Icon, tone, accent }) => <Card key={label} className="shadow-sm"><CardContent className="flex items-center gap-3 p-4 sm:p-5"><div className={`rounded-lg p-2.5 ${accent} ${tone}`}><Icon className="h-5 w-5" /></div><div><p className="text-2xl font-semibold leading-none text-slate-950">{count}</p><p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{label}</p></div></CardContent></Card>)}</div>
+    <section aria-labelledby="dart-summary-title" className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 id="dart-summary-title" className="text-sm font-semibold text-slate-900">Situação dos entes</h2><span className="text-xs text-muted-foreground">{municipalityCount} municípios · {transferCount} registro(s) TRA</span></div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {metrics.map(({ key, label, count, icon: Icon }) => {
+          const percentage = municipalities.length ? Math.round(count / municipalities.length * 100) : 0;
+          const color = key === "regular"
+            ? { border: "border-emerald-200", active: "ring-emerald-700", icon: "text-emerald-700", number: "text-emerald-800", bar: "bg-emerald-600", track: "bg-emerald-100" }
+            : key === "irregular"
+            ? { border: "border-red-200", active: "ring-red-700", icon: "text-red-700", number: "text-red-800", bar: "bg-red-600", track: "bg-red-100" }
+            : { border: "border-amber-200", active: "ring-amber-700", icon: "text-amber-700", number: "text-amber-800", bar: "bg-amber-500", track: "bg-amber-100" };
+          const active = filter === key;
+          return <button key={key} type="button" aria-pressed={active} onClick={() => setFilter(active ? "all" : key)} className={`flex min-h-32 min-w-0 flex-col justify-between rounded-lg border bg-white p-3 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:min-h-36 sm:p-4 ${color.border} ${active ? `ring-2 ${color.active}` : ""}`}>
+            <span className="flex items-start justify-between gap-1"><span className={`text-[11px] font-medium leading-tight text-slate-600 sm:text-sm`}>{label}</span><Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${color.icon}`} /></span>
+            <span className="mt-2"><span className={`block text-2xl font-semibold tabular-nums leading-none sm:text-3xl ${color.number}`}>{count}</span><span className="mt-1.5 block text-[10px] text-muted-foreground sm:text-xs">{percentage}% do total</span></span>
+            <span role="img" aria-label={`${percentage}% dos municípios`} className={`mt-3 block h-1.5 overflow-hidden rounded-full ${color.track}`}><span className={`block h-full rounded-full ${color.bar}`} style={{ width: `${percentage}%` }} /></span>
+          </button>;
+        })}
+      </div>
+    </section>
 
     <Card className="overflow-hidden shadow-sm">
       <CardContent className="space-y-4 p-4 sm:p-5">
@@ -205,24 +325,46 @@ export default function DART() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="hidden overflow-x-auto rounded-lg border xl:block">
           <Table>
-            <TableHeader><TableRow className="bg-muted/40"><TableHead className="min-w-44">Município</TableHead><TableHead className="min-w-36">CNPJ</TableHead><TableHead className="min-w-32">Situação</TableHead><TableHead className="min-w-40">Validade mais próxima</TableHead><TableHead className="min-w-40">Última consulta</TableHead><TableHead className="w-32 text-right">Ação</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow className="bg-muted/40"><TableHead className="min-w-40">Município / ente</TableHead><TableHead className="min-w-36">CNPJ</TableHead><TableHead className="min-w-28">Situação</TableHead><TableHead className="min-w-36">Validade próxima</TableHead><TableHead className="min-w-36">Última consulta</TableHead><TableHead className="min-w-28 text-right">Ação</TableHead></TableRow></TableHeader>
             <TableBody>
-              {filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="h-28 text-center text-muted-foreground">Nenhum município encontrado para este filtro.</TableCell></TableRow> : filtered.map((municipality) => {
+              {filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="h-28 text-center text-muted-foreground">Nenhum ente encontrado para este filtro.</TableCell></TableRow> : filtered.map((municipality) => {
                 const checking = checkingIds.has(municipality.id);
                 const visibleStatus = checking ? "checking" : municipality.dart_status;
-                return <Fragment key={municipality.id}><TableRow className="align-top">
-                  <TableCell className="font-medium text-slate-900">{municipality.name}<p className="mt-1 max-w-xs text-xs font-normal text-muted-foreground">{municipality.dart_detalhes ?? "Sem consulta registrada"}</p></TableCell>
+                const expanded = expandedIds.has(municipality.id);
+                const creditorCount = Array.isArray(getObject(municipality.dart_details)?.listaCredores) ? (getObject(municipality.dart_details)?.listaCredores as unknown[]).length : 0;
+                return [<TableRow key={`municipality-${municipality.id}`} className="align-top">
+                  <TableCell className="font-medium text-slate-900"><button type="button" aria-expanded={expanded} onClick={() => toggleExpanded(municipality.id)} className="group/municipality flex max-w-full items-center gap-1.5 text-left font-semibold text-slate-900 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"><span className="break-words">{municipality.name}</span><Badge variant="outline" className="shrink-0 text-[10px]">{isSantaCatarinaMunicipality(municipality.name) ? "Município" : "TRA"}</Badge><ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} /></button><p className="mt-1 max-w-xs text-xs font-normal text-muted-foreground">{municipality.dart_detalhes ?? "Sem consulta registrada"}</p></TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">{formatCnpj(municipality.cnpj)}</TableCell>
                   <TableCell><StatusBadge status={visibleStatus} /></TableCell>
                   <TableCell className="text-sm">{formatDate(municipality.dart_validade)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDateTime(municipality.dart_verificado_em)}</TableCell>
-                  <TableCell className="text-right"><Button size="sm" variant="outline" disabled={checking || Boolean(batch)} onClick={() => void verifyMunicipality(municipality)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} />{checking ? "Consultando" : "Verificar"}</Button></TableCell>
-                </TableRow><TableRow><TableCell colSpan={6} className="border-t-0 px-4 pb-4 pt-0"><RequirementDetails details={municipality.dart_details} /></TableCell></TableRow></Fragment>;
+                  <TableCell className="text-right"><div className="flex flex-col items-end gap-1.5"><Button size="sm" variant="outline" disabled={checking || Boolean(batch)} onClick={() => void verifyMunicipality(municipality)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} />{checking ? "Consultando" : "Verificar"}</Button><Button variant="ghost" size="sm" aria-expanded={expanded} onClick={() => toggleExpanded(municipality.id)} className="h-7 px-2 text-xs text-muted-foreground">{expanded ? "Ocultar" : `Credores (${creditorCount})`}</Button></div></TableCell>
+                </TableRow>, ...(expanded ? [<TableRow key={`creditors-${municipality.id}`}><TableCell colSpan={6} className="bg-slate-50/70 px-4 py-4"><CreditorDetails details={municipality.dart_details} /></TableCell></TableRow>] : [])];
               })}
             </TableBody>
           </Table>
+        </div>
+
+        <div className="space-y-3 xl:hidden">
+          {filtered.length === 0 ? <div className="rounded-lg border py-10 text-center text-sm text-muted-foreground">Nenhum ente encontrado para este filtro.</div> : filtered.map((municipality) => {
+            const checking = checkingIds.has(municipality.id);
+            const expanded = expandedIds.has(municipality.id);
+            const creditorCount = Array.isArray(getObject(municipality.dart_details)?.listaCredores) ? (getObject(municipality.dart_details)?.listaCredores as unknown[]).length : 0;
+            return <article key={municipality.id} className="overflow-hidden rounded-lg border bg-white">
+              <div className="space-y-3 p-3.5 sm:p-4">
+                <div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><button type="button" aria-expanded={expanded} onClick={() => toggleExpanded(municipality.id)} className="flex max-w-full items-center gap-1.5 text-left font-semibold text-slate-900 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"><span className="break-words">{municipality.name}</span><Badge variant="outline" className="shrink-0 text-[10px]">{isSantaCatarinaMunicipality(municipality.name) ? "Município" : "TRA"}</Badge><ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} /></button><p className="mt-1 break-all font-mono text-xs text-muted-foreground">{formatCnpj(municipality.cnpj)}</p></div><StatusBadge status={checking ? "checking" : municipality.dart_status} /></div>
+                <p className="text-xs leading-relaxed text-muted-foreground">{municipality.dart_detalhes ?? "Ainda não verificado"}</p>
+                <div className="grid grid-cols-2 gap-3 border-t pt-3 text-xs"><div><span className="block text-muted-foreground">Validade próxima</span><span className="mt-1 block font-medium text-slate-800">{formatDate(municipality.dart_validade)}</span></div><div><span className="block text-muted-foreground">Última consulta</span><span className="mt-1 block font-medium text-slate-800">{formatDateTime(municipality.dart_verificado_em)}</span></div></div>
+                <div className="flex flex-col gap-2 border-t pt-3 min-[420px]:flex-row">
+                  <Button variant="outline" size="sm" className="w-full min-[420px]:w-auto" aria-expanded={expanded} onClick={() => toggleExpanded(municipality.id)}><ChevronDown className={`mr-1.5 h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />{expanded ? "Recolher credores" : `Credores e vínculos (${creditorCount})`}</Button>
+                  <Button size="sm" disabled={checking || Boolean(batch)} onClick={() => void verifyMunicipality(municipality)} className="w-full bg-emerald-800 hover:bg-emerald-900 min-[420px]:ml-auto min-[420px]:w-auto"><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} />{checking ? "Consultando" : "Verificar"}</Button>
+                </div>
+              </div>
+              {expanded && <div className="border-t bg-slate-50/70 p-3.5 sm:p-4"><CreditorDetails details={municipality.dart_details} /></div>}
+            </article>;
+          })}
         </div>
       </CardContent>
     </Card>

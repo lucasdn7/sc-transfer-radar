@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isSantaCatarinaMunicipality } from "../../../src/lib/santaCatarinaMunicipalities.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +11,9 @@ const CIASC_URL =
   "https://dart-api.prod.okd4.ciasc.sc.gov.br/api/consulta/consulta";
 const COOLDOWN_MS = 60_000;
 const MAX_BODY_BYTES = 2_000;
-const MAX_RESPONSE_BYTES = 1_000_000;
+const MAX_RESPONSE_BYTES = 5_000_000;
+const UPSTREAM_TIMEOUT_MS = 20_000;
+const UPSTREAM_MAX_ATTEMPTS = 2;
 
 type Status = "regular" | "irregular" | "pending";
 type JsonObject = Record<string, unknown>;
@@ -68,8 +71,21 @@ function normalizeResponse(
   const data = getObject(raw);
   if (!data) throw new Error("Resposta inválida do serviço DART.");
   const legalNotice = String(
-    data.avisoLegal ?? data.mensagem ?? data.message ?? "",
+    data.avisoLegal ?? data.avisolegal ?? data.mensagem ?? data.message ??
+      data.errorMessage ?? "",
   );
+  const normalizedNotice = legalNotice.normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (
+    /nao\s+(esta\s+)?cadastrad[oa].{0,60}sigef|sigef.{0,60}nao\s+cadastrad[oa]|cnpj.{0,60}(nao\s+encontrad[oa]|nao\s+localizad[oa])|nao\s+(ha|existe).{0,40}(cadastro|credor)/i
+      .test(normalizedNotice)
+  ) {
+    return {
+      status: "pending",
+      summary: legalNotice || "CNPJ sem cadastro localizado no SIGEF.",
+      validity: null,
+    };
+  }
   if (
     /não\s+(está\s+)?cadastrad[oa].{0,40}SIGEF|SIGEF.{0,40}não\s+cadastrad[oa]/i
       .test(legalNotice)
@@ -127,6 +143,38 @@ async function readLimited(response: Response) {
   return text + decoder.decode();
 }
 
+async function fetchOfficialDart(url: URL) {
+  for (let attempt = 1; attempt <= UPSTREAM_MAX_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: "application/json" },
+      });
+      const transient = response.status === 429 || response.status >= 500;
+      if (transient && attempt < UPSTREAM_MAX_ATTEMPTS) {
+        await response.body?.cancel();
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        continue;
+      }
+      if (!response.ok) {
+        throw new Error(`Serviço DART indisponível (HTTP ${response.status}).`);
+      }
+      return response;
+    } catch (error) {
+      if (attempt >= UPSTREAM_MAX_ATTEMPTS) throw error;
+      const retryable = error instanceof TypeError ||
+        (error instanceof Error && error.name === "AbortError");
+      if (!retryable) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw new Error("O serviço DART não respondeu após nova tentativa.");
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -172,6 +220,7 @@ Deno.serve(async (request) => {
     );
   }
   if (!municipality) return json({ error: "Município não encontrado." }, 404);
+  const queryType = isSantaCatarinaMunicipality(municipality.name) ? 2 : 1;
 
   const now = new Date();
   const lastChecked = municipality.dart_last_checked_at
@@ -181,6 +230,7 @@ Deno.serve(async (request) => {
     return json({
       municipalityId,
       name: municipality.name,
+      queryType,
       status: municipality.dart_status ?? "pending",
       validity: municipality.dart_validade,
       checkedAt: municipality.dart_verificado_em,
@@ -193,7 +243,13 @@ Deno.serve(async (request) => {
   const cnpj = normalizeCnpj(municipality.cnpj ?? "");
   if (!cnpjIsValid(cnpj)) {
     return json(
-      { error: "O CNPJ cadastrado para este município é inválido." },
+      {
+        error:
+          `O CNPJ cadastrado para esta entidade está inválido; não foi possível consultar como ${
+            queryType === 1 ? "TRA" : "Convênio Simplificado"
+          }.`,
+        queryType,
+      },
       422,
     );
   }
@@ -226,6 +282,7 @@ Deno.serve(async (request) => {
       .eq("id", municipalityId).single();
     return json({
       municipalityId,
+      queryType,
       status: current?.dart_status ?? "pending",
       validity: current?.dart_validade,
       checkedAt: current?.dart_verificado_em,
@@ -238,58 +295,59 @@ Deno.serve(async (request) => {
   try {
     const url = new URL(CIASC_URL);
     url.searchParams.set("cnpjcpf", cnpj);
-    url.searchParams.set("idConsulta", "2");
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12_000);
-    try {
-      const upstream = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: "application/json" },
-      });
-      if (!upstream.ok) {
-        throw new Error(`Serviço DART indisponível (HTTP ${upstream.status}).`);
-      }
-      let raw: unknown;
-      try {
-        raw = JSON.parse(await readLimited(upstream));
-      } catch (error) {
-        if (error instanceof SyntaxError) {
-          throw new Error("O serviço DART retornou dados inválidos.");
-        }
-        throw error;
-      }
-      const result = normalizeResponse(raw);
-      const checkedAt = new Date().toISOString();
-      const { error: updateError } = await admin.from("municipalities").update({
-        dart_status: result.status,
-        dart_validade: result.validity,
-        dart_verificado_em: checkedAt,
-        dart_detalhes: result.summary,
-        dart_details: raw,
-        dart_last_checked_at: checkedAt,
-      }).eq("id", municipalityId);
-      if (updateError) {
-        throw new Error(
-          "Consulta concluída, mas não foi possível salvar o resultado.",
-        );
-      }
-      return json({
-        municipalityId,
-        name: municipality.name,
-        ...result,
-        checkedAt,
-        details: raw,
-        cached: false,
-      });
-    } finally {
-      clearTimeout(timeout);
+    url.searchParams.set("idConsulta", String(queryType));
+    const upstream = await fetchOfficialDart(url);
+    if (!upstream.ok) {
+      throw new Error(`Serviço DART indisponível (HTTP ${upstream.status}).`);
     }
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await readLimited(upstream));
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error("O serviço DART retornou dados inválidos.");
+      }
+      throw error;
+    }
+    const result = normalizeResponse(raw);
+    const checkedAt = new Date().toISOString();
+    const { error: updateError } = await admin.from("municipalities").update({
+      dart_status: result.status,
+      dart_validade: result.validity,
+      dart_verificado_em: checkedAt,
+      dart_detalhes: result.summary,
+      dart_details: raw,
+      dart_last_checked_at: checkedAt,
+    }).eq("id", municipalityId);
+    if (updateError) {
+      throw new Error(
+        "Consulta concluída, mas não foi possível salvar o resultado.",
+      );
+    }
+    return json({
+      municipalityId,
+      name: municipality.name,
+      queryType,
+      ...result,
+      checkedAt,
+      details: raw,
+      cached: false,
+    });
   } catch (error) {
+    console.error("DART verification failed", {
+      municipalityId,
+      queryType,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error),
+    });
     const message = error instanceof Error && error.name === "AbortError"
       ? "A consulta ao serviço DART excedeu o tempo limite. Tente novamente em instantes."
       : error instanceof Error
       ? error.message
       : "Falha temporária ao consultar o DART.";
-    return json({ error: message, code: "DART_UPSTREAM_ERROR" }, 502);
+    return json(
+      { error: message, code: "DART_UPSTREAM_ERROR", queryType },
+      502,
+    );
   }
 });
