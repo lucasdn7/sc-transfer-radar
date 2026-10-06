@@ -1325,6 +1325,8 @@ export type Database = {
           portaria_number: string | null
           process_number: string
           regional_nucleus_id: number | null
+          setor_atual: string | null
+          setor_recebimento: string | null
           status_id: number
           total_concedente_value: number
           total_portaria_value: number
@@ -1349,6 +1351,8 @@ export type Database = {
           portaria_number?: string | null
           process_number: string
           regional_nucleus_id?: number | null
+          setor_atual?: string | null
+          setor_recebimento?: string | null
           status_id: number
           total_concedente_value: number
           total_portaria_value: number
@@ -1373,6 +1377,8 @@ export type Database = {
           portaria_number?: string | null
           process_number?: string
           regional_nucleus_id?: number | null
+          setor_atual?: string | null
+          setor_recebimento?: string | null
           status_id?: number
           total_concedente_value?: number
           total_portaria_value?: number

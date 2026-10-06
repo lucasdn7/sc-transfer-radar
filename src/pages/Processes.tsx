@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, FileText, MapPin, Calendar, Edit, ExternalLink, Star, List, LayoutGrid, Clock, ArrowRight, AlertTriangle, Edit3 } from "lucide-react";
+import { Search, Filter, Plus, FileText, MapPin, Calendar, Building2, CalendarDays, Edit, ExternalLink, Star, List, LayoutGrid, Clock, ArrowRight, AlertTriangle, Edit3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/hooks/useAuth';
@@ -528,6 +528,23 @@ export default function Processes() {
                         </span>
                       </div>
                     </div>
+
+                    {(process.setor_atual || process.setor_recebimento) && (
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500">
+                        {process.setor_atual && (
+                          <span className="inline-flex min-w-0 items-center gap-1.5">
+                            <Building2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                            <span><span className="text-gray-400">Setor atual:</span> {process.setor_atual}</span>
+                          </span>
+                        )}
+                        {process.setor_recebimento && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                            <span><span className="text-gray-400">Recebido em:</span> {formatDateDisplay(process.setor_recebimento)}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {process.updated_at && (
                       <div className="flex items-center text-xs text-gray-500">
