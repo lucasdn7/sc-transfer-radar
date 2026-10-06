@@ -1,1 +1,4 @@
 project_id = "yonisrknsnsrigmgrcvk"
+
+[functions.verificar-dart]
+verify_jwt = false

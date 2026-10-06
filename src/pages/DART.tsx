@@ -1,24 +1,18 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Fragment, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, CheckCircle2, Clock3, FileCheck2, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useToast } from "@/hooks/use-toast";
 
-// ============================================================
-// ⚠️ SUBSTITUA pela URL do seu webhook N8N
-const N8N_WEBHOOK_URL = "/api/dart-verificar";
-// ============================================================
-
 type DartStatus = "regular" | "irregular" | "pending" | "error" | "checking";
-
-interface Municipality {
+type Municipality = {
   id: number;
   name: string;
   cnpj: string;
@@ -26,362 +20,212 @@ interface Municipality {
   dart_validade: string | null;
   dart_verificado_em: string | null;
   dart_detalhes: string | null;
+  dart_details: unknown;
+};
+type VerifyResult = {
+  status?: DartStatus;
+  error?: string;
+  summary?: string;
+  validity?: string | null;
+  checkedAt?: string;
+  details?: unknown;
+  cached?: boolean;
+};
+
+const statusPresentation: Record<string, { label: string; icon: typeof CheckCircle2; badge: string; foreground: string }> = {
+  regular: { label: "Regular", icon: CheckCircle2, badge: "border-emerald-200 bg-emerald-50 text-emerald-800", foreground: "text-emerald-700" },
+  irregular: { label: "Irregular", icon: XCircle, badge: "border-red-200 bg-red-50 text-red-800", foreground: "text-red-700" },
+  pending: { label: "Pendente", icon: Clock3, badge: "border-amber-200 bg-amber-50 text-amber-800", foreground: "text-amber-700" },
+  error: { label: "Erro técnico", icon: AlertCircle, badge: "border-slate-200 bg-slate-100 text-slate-700", foreground: "text-slate-600" },
+  checking: { label: "Consultando", icon: RefreshCw, badge: "border-blue-200 bg-blue-50 text-blue-800", foreground: "text-blue-700" },
+};
+
+function normalizedCnpj(value: string) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function formatCNPJ(cnpj: string) {
-  const c = cnpj.replace(/\D/g, "");
-  if (c.length !== 14) return cnpj;
-  return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+function formatCnpj(value: string) {
+  const cnpj = normalizedCnpj(value);
+  if (!/^[A-Z0-9]{12}\d{2}$/.test(cnpj)) return value || "—";
+  return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}`;
 }
 
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("pt-BR");
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Não informado";
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? "Não informado" : date.toLocaleDateString("pt-BR");
 }
 
-function formatDateTime(iso: string | null) {
-  if (!iso) return "Nunca";
-  const d = new Date(iso);
-  const diff = Date.now() - d.getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "agora";
-  if (min < 60) return `há ${min}min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `há ${h}h`;
-  return `há ${Math.floor(h / 24)}d`;
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "Ainda não consultado";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Ainda não consultado" : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function getObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 function StatusBadge({ status }: { status: DartStatus | null }) {
-  const s = status || "pending";
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
-    regular:   { label: "Regular",      variant: "default",     icon: <CheckCircle2 className="h-3 w-3 mr-1" /> },
-    irregular: { label: "Irregular",    variant: "destructive", icon: <XCircle className="h-3 w-3 mr-1" /> },
-    pending:   { label: "Pendente",     variant: "secondary",   icon: <Clock className="h-3 w-3 mr-1" /> },
-    error:     { label: "Erro",         variant: "outline",     icon: <AlertCircle className="h-3 w-3 mr-1" /> },
-    checking:  { label: "Verificando",  variant: "secondary",   icon: <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> },
-  };
-  const { label, variant, icon } = map[s] || map.pending;
-  return (
-    <Badge variant={variant} className="flex items-center w-fit">
-      {icon}{label}
-    </Badge>
-  );
+  const view = statusPresentation[status ?? "pending"] ?? statusPresentation.pending;
+  const Icon = view.icon;
+  return <Badge variant="outline" className={`gap-1.5 whitespace-nowrap font-medium ${view.badge}`}><Icon className={`h-3.5 w-3.5 ${status === "checking" ? "animate-spin" : ""}`} />{view.label}</Badge>;
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+function RequirementDetails({ details }: { details: unknown }) {
+  const data = getObject(details);
+  const creditors = Array.isArray(data?.listaCredores) ? data.listaCredores : [];
+  if (!details) return <p className="text-sm text-muted-foreground">Faça uma consulta para carregar os requisitos e comprovantes do DART.</p>;
+  return (
+    <div className="space-y-3">
+      {creditors.length > 0 && <div className="grid gap-2 sm:grid-cols-2">
+        {creditors.map((item, index) => {
+          const creditor = getObject(item) ?? {};
+          const compliant = creditor.flComprovado === true;
+          const name = String(creditor.nome ?? creditor.nmCredor ?? creditor.descricao ?? creditor.nomeCredor ?? `Credor ${index + 1}`);
+          return <div key={`${name}-${index}`} className="flex items-start gap-2 rounded-lg border bg-background p-3">
+            {compliant ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />}
+            <div className="min-w-0"><p className="text-sm font-medium">{name}</p><p className={`mt-0.5 text-xs ${compliant ? "text-emerald-700" : "text-red-700"}`}>{compliant ? "Comprovado" : "Com pendência"}</p></div>
+          </div>;
+        })}
+      </div>}
+      {data?.avisoLegal && <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{String(data.avisoLegal)}</p>}
+      <details className="group rounded-lg border bg-background">
+        <summary className="cursor-pointer px-3 py-2.5 text-sm font-medium text-foreground">Ver resposta detalhada do DART</summary>
+        <pre className="max-h-72 overflow-auto border-t bg-muted/30 p-3 text-xs leading-relaxed">{JSON.stringify(details, null, 2)}</pre>
+      </details>
+    </div>
+  );
 }
 
 export default function DART() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
   const [checkingIds, setCheckingIds] = useState<Set<number>>(new Set());
-  const [isVerifyingAll, setIsVerifyingAll] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0, name: "" });
+  const [batch, setBatch] = useState<{ current: number; total: number; name: string } | null>(null);
 
-  const debouncedSearch = useDebouncedValue(searchTerm, 400);
-
-  const { data: municipalities, isLoading, error } = useQuery({
-    queryKey: ["dart-municipalities", debouncedSearch],
+  const { data: municipalities = [], isLoading, error } = useQuery({
+    queryKey: ["dart-municipalities"],
     queryFn: async () => {
-      let query = supabase
-        .from("municipalities")
-        .select("id, name, cnpj, dart_status, dart_validade, dart_verificado_em, dart_detalhes")
-        .not("cnpj", "is", null)
-        .order("name", { ascending: true });
-
-      if (debouncedSearch) {
-        query = query.ilike("name", `%${debouncedSearch}%`);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.from("municipalities")
+        .select("id, name, cnpj, dart_status, dart_validade, dart_verificado_em, dart_detalhes, dart_details")
+        .not("cnpj", "is", null).order("name", { ascending: true });
       if (error) throw error;
-      return (data || []) as Municipality[];
+      return (data ?? []) as Municipality[];
     },
   });
 
-  // Stats
-  const total      = municipalities?.length || 0;
-  const regulares  = municipalities?.filter((m) => m.dart_status === "regular").length || 0;
-  const irregulares= municipalities?.filter((m) => m.dart_status === "irregular").length || 0;
-  const pendentes  = municipalities?.filter((m) => !m.dart_status || m.dart_status === "pending" || m.dart_status === "error").length || 0;
+  const filtered = useMemo(() => municipalities.filter((municipality) => {
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    const matchesSearch = !term || municipality.name.toLocaleLowerCase("pt-BR").includes(term) || normalizedCnpj(municipality.cnpj).includes(normalizedCnpj(term));
+    const status = municipality.dart_status ?? "pending";
+    return matchesSearch && (filter === "all" || status === filter);
+  }), [municipalities, search, filter]);
 
-  // Última verificação
-  const ultimaVerificacao = municipalities
-    ?.filter((m) => m.dart_verificado_em)
-    .sort((a, b) => new Date(b.dart_verificado_em!).getTime() - new Date(a.dart_verificado_em!).getTime())[0]
-    ?.dart_verificado_em;
+  const metrics = [
+    { label: "Municípios", count: municipalities.length, icon: FileCheck2, tone: "text-slate-700", accent: "bg-slate-100" },
+    { label: "Regulares", count: municipalities.filter((m) => m.dart_status === "regular").length, icon: CheckCircle2, tone: "text-emerald-700", accent: "bg-emerald-50" },
+    { label: "Irregulares", count: municipalities.filter((m) => m.dart_status === "irregular").length, icon: XCircle, tone: "text-red-700", accent: "bg-red-50" },
+    { label: "Pendentes", count: municipalities.filter((m) => !m.dart_status || m.dart_status === "pending").length, icon: Clock3, tone: "text-amber-700", accent: "bg-amber-50" },
+  ];
 
-  // Filtro de status
-  const filtered = municipalities?.filter((m) => {
-    const status = m.dart_status || "pending";
-    return filterStatus === "all" || status === filterStatus;
-  }) || [];
-
-  // Verificar um município
-async function verificarUm(m: Municipality) {
-  setCheckingIds((prev) => new Set(prev).add(m.id));
-  try {
-    // Dispara o webhook (resposta imediata — N8N processa em background)
-    const resp = await fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ municipality_id: m.id, cnpj: m.cnpj, name: m.name }),
-    });
-    if (!resp.ok) throw new Error(`Webhook retornou ${resp.status}`);
-
-    toast({ title: m.name, description: "Verificação iniciada, aguarde..." });
-
-    // Polling: tenta 6x a cada 5s até o Supabase ter o resultado
-    let tentativas = 0;
-    const intervalo = setInterval(async () => {
-      tentativas++;
-      const { data } = await supabase
-        .from("municipalities")
-        .select("dart_status, dart_validade, dart_verificado_em")
-        .eq("id", m.id)
-        .single();
-
-      const foiAtualizado = data?.dart_verificado_em &&
-        new Date(data.dart_verificado_em) > new Date(Date.now() - 60000);
-
-      if (foiAtualizado || tentativas >= 6) {
-        clearInterval(intervalo);
-        await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
-        setCheckingIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
-        if (data?.dart_status) {
-          toast({
-            title: m.name,
-            description: `Status: ${data.dart_status === "regular" ? "Regular ✓" : "Irregular ✗"}`,
-            variant: data.dart_status === "regular" ? "default" : "destructive",
-          });
+  async function verifyMunicipality(municipality: Municipality): Promise<boolean> {
+    setCheckingIds((previous) => new Set(previous).add(municipality.id));
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke<VerifyResult>("verificar-dart", {
+        body: { municipalityId: municipality.id },
+      });
+      if (invokeError) {
+        let message = invokeError.message;
+        if (invokeError.context instanceof Response) {
+          try { message = (await invokeError.context.clone().json()).error ?? message; } catch { /* mantém a mensagem da função */ }
         }
+        if (invokeError.name === "FunctionsFetchError") {
+          message = "Não foi possível conectar à Edge Function verificar-dart. A função precisa estar implantada no projeto Supabase e acessível pela rede. O resultado salvo anteriormente foi mantido.";
+        }
+        throw new Error(message);
       }
-    }, 5000);
-
-  } catch (err: any) {
-    toast({ title: "Erro ao verificar", description: err.message, variant: "destructive" });
-    setCheckingIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
-  }
-}
-
-  // Verificar todos
-  async function verificarTodos() {
-    if (!municipalities || isVerifyingAll) return;
-    const lista = municipalities.filter((m) => m.cnpj);
-    if (!confirm(`Verificar ${lista.length} municípios? Isso pode levar alguns minutos.`)) return;
-
-    setIsVerifyingAll(true);
-    setProgress({ current: 0, total: lista.length, name: "" });
-
-    for (let i = 0; i < lista.length; i++) {
-      const m = lista[i];
-      setProgress({ current: i + 1, total: lista.length, name: m.name });
-      try {
-        await fetch(N8N_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ municipality_id: m.id, cnpj: m.cnpj, name: m.name }),
-        });
-      } catch {}
-      await sleep(2000);
+      if (data?.error) throw new Error(data.error);
+      await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
+      const label = statusPresentation[data?.status ?? "pending"]?.label ?? "Pendente";
+      toast({ title: `${municipality.name}: ${label}`, description: data?.summary ?? "Resultado atualizado com a consulta oficial do DART." });
+      return true;
+    } catch (cause) {
+      toast({ title: `Falha ao consultar ${municipality.name}`, description: cause instanceof Error ? cause.message : "Erro inesperado na consulta.", variant: "destructive" });
+      return false;
+    } finally {
+      setCheckingIds((previous) => { const next = new Set(previous); next.delete(municipality.id); return next; });
     }
+  }
 
+  async function verifyAll() {
+    if (batch || municipalities.length === 0) return;
+    const list = municipalities;
+    let succeeded = 0;
+    for (let index = 0; index < list.length; index += 1) {
+      setBatch({ current: index + 1, total: list.length, name: list[index].name });
+      if (await verifyMunicipality(list[index])) succeeded += 1;
+    }
+    setBatch(null);
     await queryClient.invalidateQueries({ queryKey: ["dart-municipalities"] });
-    setIsVerifyingAll(false);
-    setProgress({ current: 0, total: 0, name: "" });
-    toast({ title: "Verificação concluída", description: `${lista.length} municípios verificados.` });
+    toast({ title: "Verificação concluída", description: `${succeeded} de ${list.length} consultas concluídas com resposta do DART.` });
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4" />
-        <div className="h-64 bg-gray-200 rounded" />
+  if (isLoading) return <div className="space-y-5" aria-label="Carregando municípios"><div className="h-8 w-56 animate-pulse rounded bg-muted" /><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-24 animate-pulse rounded-xl bg-muted" />)}</div><div className="h-72 animate-pulse rounded-xl bg-muted" /></div>;
+  if (error) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">Não foi possível carregar os municípios: {(error as Error).message}</div>;
+
+  return <div className="mx-auto w-full max-w-7xl space-y-6 pb-8">
+    <Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink href="/">Início</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>DART</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
+
+    <section className="flex flex-col gap-4 rounded-2xl border bg-gradient-to-br from-white to-emerald-50/50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-7">
+      <div className="flex items-start gap-4">
+        <div className="hidden rounded-xl bg-emerald-100 p-3 text-emerald-800 sm:block"><ShieldCheck className="h-7 w-7" /></div>
+        <div><p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Consulta oficial · CIASC</p><h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Regularidade DART</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Consulte a situação dos municípios para Convênio Simplificado. O resultado é atualizado diretamente com os dados oficiais do DART.</p></div>
       </div>
-    );
-  }
+      <Button onClick={verifyAll} disabled={Boolean(batch) || municipalities.length === 0} className="w-full shrink-0 bg-emerald-800 hover:bg-emerald-900 sm:w-auto">
+        <RefreshCw className={`mr-2 h-4 w-4 ${batch ? "animate-spin" : ""}`} />{batch ? `Consultando ${batch.current}/${batch.total}` : "Verificar todos"}
+      </Button>
+    </section>
 
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Erro ao carregar dados: {(error as Error).message}</p>
-        <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Tentar Novamente
-        </button>
-      </div>
-    );
-  }
+    {batch && <Card><CardContent className="space-y-2 p-4"><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Consultando <strong>{batch.name}</strong></span><span className="text-muted-foreground">{batch.current} de {batch.total}</span></div><Progress value={batch.current / batch.total * 100} className="h-2" /></CardContent></Card>}
 
-  return (
-    <div className="space-y-6">
-      {/* Breadcrumb */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink href="/">Início</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>DART</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{metrics.map(({ label, count, icon: Icon, tone, accent }) => <Card key={label} className="shadow-sm"><CardContent className="flex items-center gap-3 p-4 sm:p-5"><div className={`rounded-lg p-2.5 ${accent} ${tone}`}><Icon className="h-5 w-5" /></div><div><p className="text-2xl font-semibold leading-none text-slate-950">{count}</p><p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{label}</p></div></CardContent></Card>)}</div>
 
-      {/* Header */}
-      <div className="flex justify-between items-start flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">DART — Verificação de Regularidade</h1>
-          <p className="text-gray-600">Situação dos municípios junto aos credores (Convênio Simplificado)</p>
-          {ultimaVerificacao && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Última verificação em lote: {new Date(ultimaVerificacao).toLocaleString("pt-BR")}
-            </p>
-          )}
-        </div>
-        <Button onClick={verificarTodos} disabled={isVerifyingAll}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isVerifyingAll ? "animate-spin" : ""}`} />
-          {isVerifyingAll ? `Verificando ${progress.current}/${progress.total}…` : "Verificar Todos"}
-        </Button>
-      </div>
-
-      {/* Barra de progresso */}
-      {isVerifyingAll && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Verificando: <strong>{progress.name}</strong></span>
-              <span>{progress.current} / {progress.total}</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress.total ? (progress.current / progress.total) * 100 : 0}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{total}</div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">Total</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{regulares}</div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">Regulares</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">{irregulares}</div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">Irregulares</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-600">{pendentes}</div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">Pendentes</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Busca + Filtros */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-              <Input
-                placeholder="Buscar município ou CNPJ..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { key: "all",       label: "Todos"      },
-                { key: "regular",   label: "Regular"    },
-                { key: "irregular", label: "Irregular"  },
-                { key: "pending",   label: "Pendente"   },
-              ].map(({ key, label }) => (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant={filterStatus === key ? "default" : "outline"}
-                  onClick={() => setFilterStatus(key)}
-                >
-                  {label}
-                </Button>
-              ))}
+    <Card className="overflow-hidden shadow-sm">
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div><h2 className="font-semibold text-slate-950">Municípios</h2><p className="mt-1 text-sm text-muted-foreground">A validade exibida é a data mais próxima entre os requisitos retornados.</p></div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative min-w-0 sm:w-64"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar município ou CNPJ" placeholder="Buscar município ou CNPJ" value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" /></div>
+            <div className="flex gap-1 overflow-x-auto pb-1" aria-label="Filtrar por situação">
+              {[{ key: "all", label: "Todos" }, { key: "regular", label: "Regulares" }, { key: "irregular", label: "Irregulares" }, { key: "pending", label: "Pendentes" }].map(({ key, label }) => <Button key={key} size="sm" variant={filter === key ? "secondary" : "ghost"} aria-pressed={filter === key} onClick={() => setFilter(key)} className="shrink-0">{label}</Button>)}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Tabela */}
-      <Card>
-        <CardContent className="p-0">
+        <div className="overflow-x-auto rounded-lg border">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Município</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Status DART</TableHead>
-                <TableHead>Validade Credores</TableHead>
-                <TableHead>Última Verificação</TableHead>
-                <TableHead className="text-right">Ação</TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow className="bg-muted/40"><TableHead className="min-w-44">Município</TableHead><TableHead className="min-w-36">CNPJ</TableHead><TableHead className="min-w-32">Situação</TableHead><TableHead className="min-w-40">Validade mais próxima</TableHead><TableHead className="min-w-40">Última consulta</TableHead><TableHead className="w-32 text-right">Ação</TableHead></TableRow></TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                    Nenhum município encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((m) => {
-                  const isChecking = checkingIds.has(m.id);
-                  return (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.name}</TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {m.cnpj ? formatCNPJ(m.cnpj) : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={isChecking ? "checking" : m.dart_status} />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {formatDate(m.dart_validade)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDateTime(m.dart_verificado_em)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={isChecking || isVerifyingAll}
-                          onClick={() => verificarUm(m)}
-                        >
-                          <RefreshCw className={`h-3 w-3 mr-1 ${isChecking ? "animate-spin" : ""}`} />
-                          {isChecking ? "Verificando..." : "Verificar"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
+              {filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="h-28 text-center text-muted-foreground">Nenhum município encontrado para este filtro.</TableCell></TableRow> : filtered.map((municipality) => {
+                const checking = checkingIds.has(municipality.id);
+                const visibleStatus = checking ? "checking" : municipality.dart_status;
+                return <Fragment key={municipality.id}><TableRow className="align-top">
+                  <TableCell className="font-medium text-slate-900">{municipality.name}<p className="mt-1 max-w-xs text-xs font-normal text-muted-foreground">{municipality.dart_detalhes ?? "Sem consulta registrada"}</p></TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{formatCnpj(municipality.cnpj)}</TableCell>
+                  <TableCell><StatusBadge status={visibleStatus} /></TableCell>
+                  <TableCell className="text-sm">{formatDate(municipality.dart_validade)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDateTime(municipality.dart_verificado_em)}</TableCell>
+                  <TableCell className="text-right"><Button size="sm" variant="outline" disabled={checking || Boolean(batch)} onClick={() => void verifyMunicipality(municipality)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} />{checking ? "Consultando" : "Verificar"}</Button></TableCell>
+                </TableRow><TableRow><TableCell colSpan={6} className="border-t-0 px-4 pb-4 pt-0"><RequirementDetails details={municipality.dart_details} /></TableCell></TableRow></Fragment>;
+              })}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        </div>
+      </CardContent>
+    </Card>
+    <p className="text-xs leading-relaxed text-muted-foreground">Os resultados são fornecidos pelo serviço oficial do DART para Convênio Simplificado. “Pendente” indica ausência de cadastro ou de dados suficientes para confirmar a regularidade.</p>
+  </div>;
 }
