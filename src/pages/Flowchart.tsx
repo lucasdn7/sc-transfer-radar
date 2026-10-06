@@ -1,386 +1,198 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import {
-  ReactFlow,
-  Controls,
-  MiniMap,
-  Background,
-  useNodesState,
-  useEdgesState,
-  type Node,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import { Search, X, Maximize2, Crosshair, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { MemoFlowNode, MemoStartEndNode } from '@/components/flowchart/FlowchartNode';
-import {
-  buildNodes,
-  buildEdges,
-  getStatusNodeId,
-  getNodeOrder,
-  TOTAL_STEPS,
-  nodeDefinitions,
-} from '@/components/flowchart/flowchartConfig';
-import {
-  useProcessCountsByNode,
-  useSearchProcess,
-  useProcessesForNode,
-} from '@/components/flowchart/useFlowchartData';
-import { formatCurrency } from '@/utils/processUtils';
+import { useState } from 'react';
+import { ArrowDown, ArrowRight, Building2, Check, CircleHelp, FileText, Hammer, PartyPopper, ShieldAlert, Sparkles } from 'lucide-react';
 
-const nodeTypes = {
-  flowNode: MemoFlowNode,
-  startEnd: MemoStartEndNode,
+type TransferId = 'convenio' | 'simplificado' | 'fomento' | 'patrocinio';
+type Modality = 'obras' | 'eventos';
+type SimplifiedStep = { actor: string; title: string; details: string[]; municipality?: boolean; decision?: boolean };
+
+const transfers: { id: TransferId; name: string; description: string; icon: typeof Building2; modalities: Modality[] }[] = [
+  { id: 'convenio', name: 'Convênio', description: 'Repasse por convênio', icon: FileText, modalities: ['obras', 'eventos'] },
+  { id: 'simplificado', name: 'Convênio Simplificado', description: 'Procedimento simplificado', icon: Sparkles, modalities: ['obras', 'eventos'] },
+  { id: 'fomento', name: 'Termo de Fomento', description: 'Parceria por termo de fomento', icon: Building2, modalities: ['obras', 'eventos'] },
+  { id: 'patrocinio', name: 'Patrocínio', description: 'Repasse para eventos', icon: PartyPopper, modalities: ['eventos'] },
+];
+
+const simplifiedWorks: SimplifiedStep[] = [
+  { actor: 'GEINFRA', title: 'Análise e diligências', details: ['Analisa o checklist do processo.', 'Envia diligências por ofício, quando necessário.', 'Emite o parecer técnico e encaminha à GEAFIN.'], municipality: true },
+  { actor: 'GEAFIN', title: 'Dados orçamentários', details: ['Informa os dados orçamentários.', 'Devolve à GEINFRA com a dotação orçamentária.', 'Encaminha o processo à GECON.'] },
+  { actor: 'GECON', title: 'Minuta do convênio', details: ['Elabora a minuta do convênio.', 'Devolve o processo à GEINFRA.'] },
+  { actor: 'GEINFRA', title: 'Preparação para assinatura', details: ['Junta o Parecer Referencial, o Anexo I e o Anexo II.', 'Encaminha à GECON para assinatura.'] },
+  { actor: 'GECON', title: 'Assinatura e publicação', details: ['Assina o convênio.', 'Publica o extrato no Diário Oficial do Estado (DOE).', 'Devolve à GEINFRA para validação do DART.'] },
+  { actor: 'GEINFRA', title: 'Validação do DART e documentos', details: ['Confere se o DART está regular no portal SC Transferências.', 'Se estiver regular, encaminha à GEAFIN para pagamento.', 'Se houver pendência, comunica o município pela Tarefa Comunique-se.'], municipality: true, decision: true },
+  { actor: 'GEAFIN', title: 'Pagamento', details: ['Emite a nota de empenho.', 'Faz a liquidação da despesa.', 'Emite a ordem bancária e devolve à GEINFRA.'] },
+  { actor: 'GEINFRA', title: 'Prestação de contas', details: ['Abre a tarefa de Prestação de Contas para SETUR/DIAF/GEAPC.', 'Encaminha o processo à GEAPC para análise.'] },
+];
+
+const actorTone: Record<string, string> = {
+  GEINFRA: 'bg-teal-700 text-white dark:bg-teal-800',
+  GEAFIN: 'bg-blue-700 text-white dark:bg-blue-800',
+  GECON: 'bg-violet-700 text-white dark:bg-violet-800',
 };
 
+function InPreparation({ transfer, modality }: { transfer: string; modality: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-14 text-center sm:px-12">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-background text-muted-foreground shadow-sm">
+        <CircleHelp className="h-6 w-6" aria-hidden="true" />
+      </div>
+      <h3 className="text-xl font-semibold tracking-tight">Fluxograma em elaboração</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+        O fluxo de {modality.toLowerCase()} para {transfer} será publicado aqui quando estiver disponível.
+      </p>
+    </div>
+  );
+}
+
+function SimplifiedWorksFlow() {
+  return (
+    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div>
+        <div className="mb-6 rounded-xl border border-border bg-muted/30 p-5 sm:p-6">
+          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary"><Building2 className="h-4 w-4" /></span>
+            Antes da tramitação
+          </div>
+          <div className="grid gap-4 text-sm leading-6 text-muted-foreground sm:grid-cols-3">
+            <p>O processo pode começar na Casa Civil (SCC/CS), no Gabinete do Secretário (SETUR/GABS) ou diretamente na GEINFRA.</p>
+            <p>O direcionamento do recurso é publicado no DOE por Portaria Conjunta da Casa Civil.</p>
+            <p>Ao receber o processo, registre-o no Portal da SETUR, pelo site ou widget.</p>
+          </div>
+        </div>
+
+        <ol className="relative space-y-4 before:absolute before:bottom-8 before:left-[19px] before:top-8 before:w-px before:bg-border sm:space-y-5">
+          {simplifiedWorks.map((step, index) => (
+            <li key={step.title} className="relative pl-12 sm:pl-14">
+              <span className="absolute left-0 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full border-4 border-background bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+                {index + 1}
+              </span>
+              <article className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold tracking-tight sm:text-lg">{step.title}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {step.municipality && <span className="rounded-md bg-orange-500/10 px-2.5 py-1 text-xs font-medium text-orange-800 dark:text-orange-300">Participação do município</span>}
+                    <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${actorTone[step.actor]}`}>{step.actor}</span>
+                  </div>
+                </div>
+                <ul className="mt-4 space-y-2.5">
+                  {step.details.map((detail) => (
+                    <li key={detail} className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
+                      <Check className="mt-1 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      <span>{detail}</span>
+                    </li>
+                  ))}
+                </ul>
+                {step.decision && (
+                  <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
+                    <div className="rounded-lg bg-emerald-500/10 px-3 py-2.5 text-sm leading-5 text-emerald-800 dark:text-emerald-300"><strong>Regular:</strong> segue para pagamento na GEAFIN.</div>
+                    <div className="rounded-lg bg-amber-500/10 px-3 py-2.5 text-sm leading-5 text-amber-900 dark:text-amber-300"><strong>Com pendência:</strong> comunicar o município pela Tarefa Comunique-se.</div>
+                  </div>
+                )}
+              </article>
+              {index < simplifiedWorks.length - 1 && <ArrowDown className="absolute -bottom-4 left-[13px] z-10 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+        <section className="rounded-xl border border-teal-700/20 bg-teal-700/[0.04] p-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-teal-700 dark:text-teal-400" /> Organize as diligências</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Durante a análise documental, mantenha o processo na caixa SETUR/GEINFRA/DLG para deixar as tarefas pendentes visíveis e a caixa principal organizada.</p>
+        </section>
+        <section className="rounded-xl border border-orange-500/25 bg-orange-500/[0.05] p-5">
+          <h3 className="text-sm font-semibold">Fale com o município</h3>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">A comunicação oficial e o envio dos documentos solicitados nas diligências acontecem exclusivamente pela Tarefa Comunique-se.</p>
+        </section>
+        <section className="rounded-xl border border-border bg-muted/30 p-5">
+          <h3 className="text-sm font-semibold">Documentos para aprovação do pagamento</h3>
+          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm leading-5 text-muted-foreground">
+            <li>DART regular no portal SC Transferências.</li>
+            <li>Matrícula atualizada do imóvel, se tiverem passado mais de 30 dias.</li>
+            <li>Extrato da contrapartida na conta do convênio, quando aplicável.</li>
+            <li>Ordem de serviço com data posterior à assinatura do convênio.</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
 export default function Flowchart() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [searchInput, setSearchInput] = useState('');
-  const debouncedSearch = useDebouncedValue(searchInput, 400);
-  const [nucleusFilter, setNucleusFilter] = useState('all');
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const reactFlowInstance = useRef<any>(null);
+  const [activeTransfer, setActiveTransfer] = useState<TransferId>('simplificado');
+  const transfer = transfers.find((item) => item.id === activeTransfer)!;
+  const [activeModality, setActiveModality] = useState<Modality>(transfer.modalities[0]);
+  const currentModality = transfer.modalities.includes(activeModality) ? activeModality : transfer.modalities[0];
+  const hasDetailedFlow = activeTransfer === 'simplificado' && currentModality === 'obras';
 
-  // Queries
-  const { data: counts = {} } = useProcessCountsByNode(nucleusFilter);
-  const { data: searchResult } = useSearchProcess(debouncedSearch);
-  const { data: nodeProcesses = [] } = useProcessesForNode(selectedNodeId, nucleusFilter);
-  const { data: nuclei = [] } = useQuery({
-    queryKey: ['regional-nuclei-list'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('regional_nuclei')
-        .select('id, name, acronym')
-        .order('name');
-      return data || [];
-    },
-  });
-
-  // Determine highlighted node
-  const highlightedNodeId = useMemo(() => {
-    if (!searchResult) return null;
-    const statusName = (searchResult.status_processos as any)?.nome;
-    if (!statusName) return null;
-    const nodeId = getStatusNodeId(statusName);
-    return nodeId; // null means unmapped, undefined means status not in map
-  }, [searchResult]);
-
-  // Build nodes with counts and highlight
-  const handleNodeClick = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-  }, []);
-
-  const flowNodes = useMemo(() => {
-    const nodes = buildNodes();
-    return nodes.map((n) => ({
-      ...n,
-      data: {
-        ...n.data,
-        count: counts[n.id] ?? 0,
-        isHighlighted: highlightedNodeId === n.id,
-        onClick: handleNodeClick,
-      },
-    }));
-  }, [counts, highlightedNodeId, handleNodeClick]);
-
-  const flowEdges = useMemo(() => buildEdges(), []);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
-  const [edges, , onEdgesChange] = useEdgesState(flowEdges);
-
-  // Sync nodes when data changes - useEffect instead of useMemo
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    setNodes(flowNodes);
-  }, [flowNodes]);
-
-  // Vigencia calculation
-  const vigenciaDays = useMemo(() => {
-    if (!searchResult?.vigencia_date) return null;
-    const diff = new Date(searchResult.vigencia_date).getTime() - Date.now();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }, [searchResult]);
-
-  // Progress
-  const progressInfo = useMemo(() => {
-    if (!highlightedNodeId) return null;
-    const order = getNodeOrder(highlightedNodeId);
-    return { step: order, total: TOTAL_STEPS, percent: Math.round((order / TOTAL_STEPS) * 100) };
-  }, [highlightedNodeId]);
-
-  const statusName = (searchResult?.status_processos as any)?.nome;
-  const isUnmapped = searchResult && (highlightedNodeId === null || highlightedNodeId === undefined);
-
-  // Fullscreen
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      containerRef.current.requestFullscreen();
-    }
+  const selectTransfer = (id: TransferId) => {
+    setActiveTransfer(id);
+    setActiveModality(transfers.find((item) => item.id === id)!.modalities[0]);
   };
-
-  const centerFlow = () => {
-    reactFlowInstance.current?.fitView({ duration: 400 });
-  };
-
-  // Selected node definition for sheet
-  const selectedNodeDef = nodeDefinitions.find((n) => n.id === selectedNodeId);
 
   return (
-    <div ref={containerRef} className="flex flex-col h-[calc(100vh-64px)] relative">
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center gap-3 p-4 border-b bg-background z-10">
-        <h1 className="text-xl font-bold mr-2">Fluxograma</h1>
+    <main className="mx-auto w-full max-w-[1440px] space-y-8 px-4 py-7 sm:px-6 lg:px-8 lg:py-10">
+      <header className="max-w-3xl">
+        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-3 py-1 text-xs font-medium text-primary">
+          <Hammer className="h-3.5 w-3.5" aria-hidden="true" /> Repasses estaduais
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Fluxos de repasse</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+          Consulte as etapas e responsabilidades de cada modalidade de repasse para obras, infraestrutura turística e eventos.
+        </p>
+      </header>
 
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar nº do processo..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 pr-9"
-          />
-          {searchInput && (
-            <button
-              onClick={() => setSearchInput('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-            >
-              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
+      <section aria-label="Tipo de repasse">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {transfers.map((item) => {
+            const Icon = item.icon;
+            const selected = item.id === activeTransfer;
+            return (
+              <button key={item.id} type="button" onClick={() => selectTransfer(item.id)} aria-pressed={selected}
+                className={`group flex min-h-[86px] items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:px-4 ${selected ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${selected ? 'bg-white/15' : 'bg-muted text-primary'}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                <span className="min-w-0"><span className="block text-sm font-semibold leading-5">{item.name}</span><span className={`mt-1 block text-xs ${selected ? 'text-primary-foreground/75' : 'text-muted-foreground'}`}>{item.description}</span></span>
+              </button>
+            );
+          })}
         </div>
+      </section>
 
-        <Select value={nucleusFilter} onValueChange={setNucleusFilter}>
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Todos os núcleos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os núcleos</SelectItem>
-            {nuclei.map((n) => (
-              <SelectItem key={n.id} value={String(n.id)}>
-                {n.acronym} - {n.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex gap-1 ml-auto">
-          <Button variant="outline" size="icon" onClick={centerFlow} title="Centralizar">
-            <Crosshair className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={toggleFullscreen} title="Tela cheia">
-            <Maximize2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Search result panel */}
-      {debouncedSearch && (
-        <div className="absolute top-[72px] right-4 z-20 w-[320px]">
-          {searchResult ? (
-            <Card className="p-4 shadow-xl border">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-sm">{searchResult.process_number}</h3>
-                <button onClick={() => setSearchInput('')}>
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {(searchResult.municipalities as any)?.name}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs">Status:</span>
-                <Badge variant="secondary" className="text-xs">
-                  {statusName || 'N/A'}
-                </Badge>
-              </div>
-
-              {progressInfo && (
-                <div className="mt-3">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    Etapa {progressInfo.step} de {progressInfo.total}
-                  </p>
-                  <Progress value={progressInfo.percent} className="h-2" />
-                </div>
-              )}
-
-              {vigenciaDays !== null && (
-                <p className={`text-xs mt-2 ${vigenciaDays < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {vigenciaDays >= 0
-                    ? `${vigenciaDays} dias restantes de vigência`
-                    : 'Vigência encerrada'}
-                </p>
-              )}
-
-              {isUnmapped && (
-                <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>Etapa não mapeada no fluxograma</span>
-                </div>
-              )}
-
-              <Button variant="outline" size="sm" className="w-full mt-3" asChild>
-                <Link to="/processes">Ver processo completo</Link>
-              </Button>
-            </Card>
-          ) : (
-            <Card className="p-4 shadow-xl border">
-              <p className="text-sm text-muted-foreground">
-                Nenhum processo encontrado com esse número.
-              </p>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* React Flow canvas */}
-      <div className="flex-1 relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          onInit={(instance) => {
-            reactFlowInstance.current = instance;
-          }}
-          minZoom={0.2}
-          maxZoom={2}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={20} />
-          <Controls position="bottom-right" />
-          <MiniMap
-            position="bottom-right"
-            style={{ marginBottom: 50 }}
-            nodeColor={(node: Node) => {
-              const t = (node.data as any)?.type;
-              if (t === 'interno') return '#1a5c3a';
-              if (t === 'externo') return '#0d4d5c';
-              return '#6b7280';
-            }}
-            maskColor="rgba(0,0,0,0.15)"
-          />
-        </ReactFlow>
-
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 z-10">
-          <Card className="p-3 bg-background/80 backdrop-blur-sm border text-xs space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: '#1a5c3a' }} />
-              <span>Setor SETUR (interno)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: '#0d4d5c' }} />
-              <span>Secretaria externa</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: '#e8720c' }} />
-              <span>Documento / ação emitida</span>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Node detail sheet */}
-      <Sheet open={!!selectedNodeId} onOpenChange={(open) => !open && setSelectedNodeId(null)}>
-        <SheetContent className="overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{selectedNodeDef?.label || 'Detalhes da Etapa'}</SheetTitle>
-            <SheetDescription>
-              {selectedNodeDef?.type === 'interno' ? 'Setor SETUR (interno)' : 'Secretaria externa'}
-            </SheetDescription>
-          </SheetHeader>
-
-          {selectedNodeDef?.documents && selectedNodeDef.documents.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm font-medium mb-2">Documentos / Ações:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {selectedNodeDef.documents.map((doc) => (
-                  <Badge
-                    key={doc}
-                    className="text-xs text-white"
-                    style={{ backgroundColor: '#e8720c' }}
-                  >
-                    {doc}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-6">
-            <p className="text-sm font-medium mb-3">
-              Processos nesta etapa ({nodeProcesses.length})
-            </p>
-            {nodeProcesses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nenhum processo nesta etapa no momento.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {nodeProcesses.map((p: any) => {
-                  const days = Math.ceil(
-                    (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24)
-                  );
-                  return (
-                    <Card key={p.id} className="p-3">
-                      <p className="font-mono text-sm font-semibold">{p.process_number}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.municipalities?.name}
-                      </p>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-xs">
-                          {formatCurrency(p.total_portaria_value || 0)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{days} dias nesta etapa</span>
-                      </div>
-                      <Button variant="link" size="sm" className="p-0 h-auto mt-1 text-xs" asChild>
-                        <Link to="/processes">Ver detalhes</Link>
-                      </Button>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex flex-col gap-5 border-b border-border px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Tipo de repasse</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{transfer.name}</h2>
           </div>
-        </SheetContent>
-      </Sheet>
+          <div role="group" aria-label="Modalidade" className="flex w-full rounded-lg bg-muted p-1 sm:w-auto">
+            {transfer.modalities.map((modality) => {
+              const selected = modality === currentModality;
+              const label = modality === 'obras' ? 'Obras e infraestrutura' : 'Eventos';
+              return (
+                <button key={modality} type="button" aria-pressed={selected} onClick={() => setActiveModality(modality)}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none sm:px-4 ${selected ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-      {/* Pulse glow animation */}
-      <style>{`
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 8px 2px rgba(251, 146, 60, 0.5); }
-          50% { box-shadow: 0 0 20px 6px rgba(251, 146, 60, 0.8); }
-        }
-        .animate-pulse-glow {
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
-      `}</style>
-    </div>
+        <div className="p-4 sm:p-6 lg:p-7">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{transfer.name} · {currentModality === 'obras' ? 'Obras e infraestrutura turística' : 'Eventos'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{hasDetailedFlow ? 'Do recebimento do processo ao início da prestação de contas' : 'Etapas do processo de repasse'}</p>
+            </div>
+            {hasDetailedFlow && <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-800 dark:text-emerald-300"><Check className="h-3.5 w-3.5" /> Fluxo disponível</span>}
+          </div>
+          {hasDetailedFlow ? <SimplifiedWorksFlow /> : <InPreparation transfer={transfer.name} modality={currentModality === 'obras' ? 'Obras e infraestrutura turística' : 'Eventos'} />}
+        </div>
+      </section>
+
+      <footer className="flex items-start gap-3 px-1 text-xs leading-5 text-muted-foreground">
+        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <p>Os fluxogramas orientam a tramitação. Consulte as normas vigentes e o processo para confirmar documentos e encaminhamentos aplicáveis ao caso.</p>
+      </footer>
+    </main>
   );
 }

@@ -20,7 +20,7 @@ the server responded with a status of 404 ()
 Please see <URL> for tips on updating to the new Forced Colors Mode standard.
 ```
 
-**Causa**: Bibliotecas CSS (provavelmente do Mapbox GL JS) usando prefixos CSS antigos do Internet Explorer.
+**Causa**: Bibliotecas CSS usando prefixos antigos do Internet Explorer.
 
 ## Soluções Implementadas
 
@@ -37,7 +37,7 @@ Please see <URL> for tips on updating to the new Forced Colors Mode standard.
 ### 3. Melhorias no Componente do Mapa
 - ✅ Timeout aumentado de 15s para 30s
 - ✅ Melhor tratamento de erros específicos
-- ✅ Validação aprimorada de token do Mapbox
+- ✅ Validação aprimorada de configuração do mapa
 - ✅ Sistema de retry implementado
 
 ## Como Resolver Completamente

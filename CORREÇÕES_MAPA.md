@@ -13,7 +13,7 @@
 
 ### 2. Timeout do Mapa (15 segundos)
 **Problema**: O mapa estava configurado com timeout muito baixo (15 segundos), causando erros prematuros.
-**Causa**: Conexões lentas ou carregamento inicial do Mapbox GL JS podem demorar mais que 15 segundos.
+**Causa**: Conexões lentas ou o carregamento inicial do mapa podiam demorar mais que 15 segundos.
 
 **Solução**:
 - Aumentado timeout de 15 para 30 segundos
@@ -39,7 +39,7 @@
 - Indicador de "conexão lenta" após múltiplas tentativas
 
 ### 4. Otimizações de Performance
-- Configurações otimizadas do Mapbox GL JS:
+- Configurações otimizadas do mapa:
   - `maxTileCacheSize: 50` - reduz uso de memória
   - `preserveDrawingBuffer: false` - melhora performance
   - `refreshExpiredTiles: true` - recarrega tiles automaticamente
@@ -58,7 +58,7 @@
    - Linha 219: Aumentado timeout de 15s para 30s
    - Linha 202-216: Melhorado tratamento de erros
    - Linha 40-50: Adicionado validação de token
-   - Linha 67-72: Otimizações de performance do Mapbox
+   - Linha 67-72: Otimizações de desempenho do mapa
    - Adicionado sistema de retry e contador de tentativas
 
 ## Resultado Esperado
