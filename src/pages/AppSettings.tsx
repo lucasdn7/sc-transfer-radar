@@ -31,7 +31,7 @@ function LabelWithTooltip({ htmlFor, children, tooltip }: { htmlFor: string, chi
       {children}
       <span tabIndex={0} aria-label={tooltip} className="group relative focus:outline-none focus:ring-2 focus:ring-primary rounded-full">
         <Info className="h-4 w-4 text-gray-400 group-hover:text-primary" />
-        <span className="absolute left-6 top-1/2 -translate-y-1/2 z-10 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+        <span className="absolute left-6 top-1/2 -translate-y-1/2 z-10 hidden whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity pointer-events-none group-hover:opacity-100 group-focus:opacity-100 lg:block">
           {tooltip}
         </span>
       </span>
@@ -242,12 +242,12 @@ export default function AppSettings() {
   return (
     <div className="space-y-6">
       {showOnboarding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full relative animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 shadow-lg animate-fade-in sm:p-8">
             <button onClick={skipOnboarding} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" aria-label="Fechar tutorial">×</button>
             <h2 className="text-xl font-bold mb-2">{onboardingSteps[onboardingStep.current].title}</h2>
             <p className="mb-4 text-gray-700">{onboardingSteps[onboardingStep.current].desc}</p>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button onClick={skipOnboarding} className="text-sm text-gray-500 underline">Não mostrar novamente</button>
               <button onClick={nextOnboarding} className="bg-primary text-white px-4 py-2 rounded font-medium">
                 {onboardingStep.current === onboardingSteps.length - 1 ? 'Começar' : 'Próximo'}
@@ -496,7 +496,7 @@ export default function AppSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div>
                 <LabelWithTooltip htmlFor="version" tooltip="Versão atual do sistema.">Versão:</LabelWithTooltip>
                 <p className="text-gray-600">1.0.0</p>

@@ -9,6 +9,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ExpiringContractsReportButton } from "@/components/layout/ExpiringContractsReportButton";
 import { ThemeToggle } from "./ThemeToggle";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 const publicNavItems = [
   { to: "/", icon: Home, label: "Dashboard" },
@@ -34,6 +35,7 @@ export function TopHeader() {
     } else {
       navigate('/technical-auth');
     }
+    setIsMobileMenuOpen(false);
   };
 
   const getNavItems = () => {
@@ -47,33 +49,36 @@ export function TopHeader() {
   };
 
   return (
+    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-[var(--bg-surface)] backdrop-blur-xl transition-colors duration-200">
       {/* Main Header */}
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-[var(--accent-green)]" />
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Transfer Radar SC</h1>
-              <p className="text-xs text-muted-foreground">Sistema de Transferências Financeiras</p>
+      <div className="px-3 py-3 sm:px-6 sm:py-4">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <Shield className="h-6 w-6 shrink-0 text-[var(--accent-green)] sm:h-8 sm:w-8" />
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-bold tracking-tight text-foreground sm:text-xl">Transfer Radar SC</h1>
+              <p className="hidden text-xs text-muted-foreground sm:block">Sistema de Transferências Financeiras</p>
             </div>
           </Link>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             {isAuthenticated && <NotificationCenter />}
             <ThemeToggle />
-            <ExpiringContractsReportButton />
+            <div className="hidden lg:block"><ExpiringContractsReportButton /></div>
 
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden"
+              className="lg:hidden"
+              aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={isMobileMenuOpen}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
 
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden lg:flex items-center space-x-2">
               {isAuthenticated && (
                 <div className="flex items-center space-x-2 mr-4">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -107,10 +112,10 @@ export function TopHeader() {
       </div>
 
       {/* Navigation Bar */}
-      <nav className="border-t border-border bg-background/60">
+      <div className="border-t border-border bg-background/60">
         <div className="px-6">
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-1">
+          <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-1">
             {getNavItems().map((item) => (
               <Link
                 key={item.to}
@@ -142,8 +147,9 @@ export function TopHeader() {
           </div>
 
           {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden py-2 space-y-1">
+          <SheetContent side="right" className="w-[min(20rem,88vw)] overflow-y-auto p-4 lg:hidden">
+            <SheetTitle className="sr-only">Menu principal</SheetTitle>
+            <nav aria-label="Navegação principal" className="space-y-1 pt-8">
               {getNavItems().map((item) => (
                 <Link
                   key={item.to}
@@ -194,7 +200,7 @@ export function TopHeader() {
                   variant={isAuthenticated ? "outline" : "default"}
                   size="sm"
                   onClick={handleAuthAction}
-                  className="w-full mx-4 mt-2 flex items-center justify-center space-x-2"
+                  className="w-full mt-2 flex items-center justify-center space-x-2"
                 >
                   {isAuthenticated ? (
                     <>
@@ -209,10 +215,11 @@ export function TopHeader() {
                   )}
                 </Button>
               </div>
-            </div>
-          )}
+            </nav>
+          </SheetContent>
         </div>
-      </nav>
+      </div>
     </header>
+    </Sheet>
   );
 }

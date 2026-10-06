@@ -50,16 +50,16 @@ export default function Map() {
 
       <div className="grid grid-cols-1 gap-6">
         {/* Área do Mapa */}
-        <Card className="h-[800px]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <Card className="flex h-[55vh] min-h-96 flex-col sm:h-[70vh] lg:h-[800px]">
+          <CardHeader className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center">
               <MapPin className="h-5 w-5" />
               Mapa de Convênios
               <Button 
                 variant="outline" 
                 size="sm" 
                 asChild 
-                className="ml-auto"
+                className="w-full sm:ml-auto sm:w-auto"
               >
                 <a href={mapUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -68,7 +68,7 @@ export default function Map() {
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-full p-4">
+          <CardContent className="min-h-0 flex-1 p-3 sm:p-4">
             <ExternalMapIframe mapUrl={mapUrl} />
           </CardContent>
         </Card>

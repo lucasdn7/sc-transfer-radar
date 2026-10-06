@@ -126,7 +126,7 @@ export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAs
               <div className="animate-pulse text-muted-foreground">Carregando...</div>
             </div>
           ) : (
-            <div className="w-full h-[350px]">
+            <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
               <ChartRenderer type={chartType} data={chartData} metricLabel={metricLabel} />
             </div>
           )}
@@ -143,7 +143,7 @@ export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAs
           </div>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={valoresPagosPorMes}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -167,7 +167,7 @@ export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAs
           </div>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={valoresPagosPorAno}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -191,7 +191,7 @@ export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAs
           </div>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={valoresEmpilhadosPorMunicipio} stackOffset="none">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -215,7 +215,7 @@ export function DashboardCharts({ contratoAssinadoFilter = false }: { contratoAs
           </div>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={valoresEmpilhadosPorNucleo} stackOffset="none">
                 <CartesianGrid strokeDasharray="3 3" />

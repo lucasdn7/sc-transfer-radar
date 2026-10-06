@@ -151,7 +151,7 @@ export function Assistente() {
       <SheetTrigger asChild>
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 h-14 w-14 p-0"
+          className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full p-0 shadow-lg sm:bottom-6 sm:right-6 sm:h-14 sm:w-14"
         >
           <MessageSquare className="h-6 w-6" />
         </Button>

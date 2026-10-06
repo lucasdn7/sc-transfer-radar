@@ -92,7 +92,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Dashboard de transferências">
+    <div className="mx-auto min-h-screen max-w-[1280px] p-3 px-3 sm:p-6 sm:px-7" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Dashboard de transferências">
       {/* Título da página */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold" style={{ color: 'var(--transfers-text-primary)' }}>Dashboard</h1>

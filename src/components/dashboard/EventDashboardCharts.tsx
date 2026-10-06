@@ -30,7 +30,7 @@ export function EventDashboardCharts() {
           <CardTitle className="text-lg font-semibold">Valor Total por Ano</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.valueByYear || []} label="Valor total" />}
           </div>
         </CardContent>
@@ -41,7 +41,7 @@ export function EventDashboardCharts() {
           <CardTitle className="text-lg font-semibold">Eventos por Ano</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="w-full h-[350px]">
+          <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]">
             {isLoading ? <div className="h-full flex items-center justify-center animate-pulse text-muted-foreground">Carregando...</div> : <EventBarChart data={data?.eventsByYear || []} label="Eventos" />}
           </div>
         </CardContent>

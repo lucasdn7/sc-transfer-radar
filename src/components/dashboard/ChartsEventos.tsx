@@ -68,11 +68,11 @@ function ExportButtons({ chartRef, filename }: { chartRef: React.RefObject<HTMLD
 }
 
 function EmptyChart({ message = "Sem dados para exibir" }: { message?: string }) {
-  return <div className="h-[350px] flex items-center justify-center text-sm text-muted-foreground" role="status">{message}</div>;
+  return <div className="h-[240px] sm:h-[300px] lg:h-[350px] flex items-center justify-center text-sm text-muted-foreground" role="status">{message}</div>;
 }
 
 function ChartFrame({ title, description, filename, chartRef, children, wide = false }: { title: string; description: string; filename: string; chartRef: React.RefObject<HTMLDivElement>; children: ReactNode; wide?: boolean }) {
-  return <Card className={wide ? "col-span-1 md:col-span-2" : ""}><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle className="text-lg font-semibold">{title}</CardTitle><CardDescription>{description}</CardDescription></div><ExportButtons chartRef={chartRef} filename={filename} /></CardHeader><CardContent><div ref={chartRef} className="h-[350px] w-full" role="img" aria-label={title}>{children}</div></CardContent></Card>;
+  return <Card className={wide ? "col-span-1 md:col-span-2" : ""}><CardHeader className="flex flex-col items-start justify-between gap-3 sm:flex-row"><div className="min-w-0"><CardTitle className="text-lg font-semibold">{title}</CardTitle><CardDescription>{description}</CardDescription></div><ExportButtons chartRef={chartRef} filename={filename} /></CardHeader><CardContent><div ref={chartRef} className="h-[240px] sm:h-[300px] lg:h-[350px] w-full" role="img" aria-label={title}>{children}</div></CardContent></Card>;
 }
 
 export function ChartsEventos({ data, onRetry }: { data: EventChartData | undefined; onRetry?: () => void }) {

@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatCurrency, getStatusColor, getStatusLabel } from "@/utils/processUtils";
 import { SystemNotifications } from "@/components/notifications/SystemNotifications";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { EnhancedStatsCards } from "@/components/dashboard/EnhancedStatsCards";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { EnhancedCharts } from "@/components/dashboard/EnhancedCharts";
@@ -41,6 +42,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 type TransferStatus = Database['public']['Enums']['transfer_status'];
 
 export function Dashboard() {
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const [filters, setFilters] = useState({
     year: "",
     regionalNucleus: "",
@@ -308,7 +310,7 @@ export function Dashboard() {
             </select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
               {tipoMunicipio === 'bar' ? (
                 <BarChart data={municipios} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -346,7 +348,7 @@ export function Dashboard() {
             </select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
               {tipoContrapartida === 'bar' ? (
                 <BarChart data={municipios} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -384,7 +386,7 @@ export function Dashboard() {
             </select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
               {tipoNucleo === 'bar' ? (
                 <BarChart data={nucleos} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -422,7 +424,7 @@ export function Dashboard() {
             </select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
               {tipoNucleoProcessos === 'bar' ? (
                 <BarChart data={nucleos} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -460,7 +462,7 @@ export function Dashboard() {
             </select>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={isMobile ? 220 : 260}>
               {tipoMunicipioProcessos === 'bar' ? (
                 <BarChart data={municipios} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />

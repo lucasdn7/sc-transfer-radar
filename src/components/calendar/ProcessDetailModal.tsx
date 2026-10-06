@@ -78,7 +78,7 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
             <p className="text-sm text-gray-600">{safe(() => process.object)}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <h4 className="font-medium flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
@@ -108,7 +108,7 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
               <DollarSign className="h-4 w-4" />
               Valores
             </h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div>
                 <span className="font-medium">Valor Total:</span>
                 <div className="text-green-600 font-bold">
@@ -135,7 +135,7 @@ export function ProcessDetailModal({ process, isOpen, onClose }: ProcessDetailMo
           {/* Resumo das Parcelas */}
           <div className="space-y-2">
             <h4 className="font-medium">Resumo das Parcelas</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div>
                 <span className="font-medium">Parcelas Pagas:</span>
                 <div className="text-blue-600 font-bold">

@@ -21,6 +21,7 @@ import { Settings } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // Métricas disponíveis
 const METRICS = [
@@ -151,9 +152,9 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
 
   return (
     <div className="grid gap-4">
-      <div className="flex justify-between items-center mb-2">
+      <div className="mb-2 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h2 className="text-lg font-semibold">Gráficos Personalizáveis</h2>
-        <Button onClick={addChart} variant="outline">Adicionar Gráfico</Button>
+        <Button onClick={addChart} variant="outline" className="w-full sm:w-auto">Adicionar Gráfico</Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {charts.map((chart, idx) => (
@@ -166,13 +167,13 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
             className="cursor-move"
           >
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between relative">
-                <CardTitle className="text-base">
+              <CardHeader className="relative flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="min-w-0 pr-2 text-base">
                   {METRICS.find((m) => m.key === chart.metric)?.label}
                   {" - "}
                   {CHART_TYPES.find((t) => t.key === chart.chartType)?.label}
                 </CardTitle>
-                <div className="flex items-center gap-2 absolute top-2 right-2 z-10">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     className="p-1 rounded hover:bg-muted transition"
                     onClick={() => setCharts((prev) => prev.map((c, i) => i === idx ? { ...c, editing: !c.editing } : c))}
@@ -215,7 +216,7 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
                   </button>
                 </div>
                 {chart.editing && (
-                  <div className="absolute right-0 top-8 bg-white border rounded shadow p-2 z-20 flex flex-col gap-2 min-w-[180px]">
+                  <div className="absolute right-0 top-full z-20 flex min-w-[180px] max-w-[calc(100vw-2rem)] flex-col gap-2 rounded border bg-white p-2 shadow sm:max-w-none">
                     <label className="text-xs font-semibold">Métrica</label>
                     <select
                       className="border rounded px-2 py-1 mb-2"
@@ -261,9 +262,11 @@ export const CustomizableDashboardCharts: React.FC<CustomizableDashboardChartsPr
 
 // Renderiza o gráfico conforme o tipo
 const ChartRenderer: React.FC<{ type: string; data: any[]; metricLabel: string }> = ({ type, data, metricLabel }) => {
+  const isMobile = useMediaQuery("(max-width: 639px)");
+  const chartHeight = isMobile ? 180 : 220;
   if (type === "bar") {
     return (
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
@@ -276,7 +279,7 @@ const ChartRenderer: React.FC<{ type: string; data: any[]; metricLabel: string }
   }
   if (type === "line") {
     return (
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
@@ -289,7 +292,7 @@ const ChartRenderer: React.FC<{ type: string; data: any[]; metricLabel: string }
   }
   if (type === "pie") {
     return (
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <PieChart>
           <Pie
             data={data}

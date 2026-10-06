@@ -123,7 +123,7 @@ export default function Charts() {
 
   if (category === 'promo') {
     return (
-      <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }}>
+      <div className="mx-auto min-h-screen max-w-[1280px] p-3 px-3 sm:p-6 sm:px-7" style={{ backgroundColor: 'var(--transfers-bg)' }}>
         <div className="mb-6">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--transfers-text-primary)' }}>Gráficos</h1>
           <p className="text-sm" style={{ color: 'var(--transfers-text-muted)' }}>Visualizações ricas</p>
@@ -150,7 +150,7 @@ export default function Charts() {
   }
 
   return (
-    <div className="min-h-screen p-6 px-7 max-w-[1280px] mx-auto" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Gráficos e visualizações de dados">
+    <div className="mx-auto min-h-screen max-w-[1280px] p-3 px-3 sm:p-6 sm:px-7" style={{ backgroundColor: 'var(--transfers-bg)' }} role="main" aria-label="Gráficos e visualizações de dados">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -189,8 +189,8 @@ export default function Charts() {
           <div className="space-y-6">
             {isLoadingCharts ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Skeleton className="h-[400px] w-full rounded-xl" />
-                <Skeleton className="h-[400px] w-full rounded-xl" />
+                <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
+                <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
               </div>
             ) : (
               <ChartsTodos data={chartsData} />
@@ -240,7 +240,7 @@ export default function Charts() {
                       <Skeleton className="h-64 w-full" />
                     </div>
                   ) : (
-                    <div className="w-full h-[350px]" role="img" aria-label={`Gráfico de ${metricLabel} por ${groupLabel}`}>
+                    <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]" role="img" aria-label={`Gráfico de ${metricLabel} por ${groupLabel}`}>
                       <ChartRenderer type={chartType} data={chartData} metricLabel={metricLabel} />
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function Charts() {
             {/* Gráfico de valores pagos por mês */}
             <section aria-labelledby="grafico-mes">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="text-lg font-semibold" id="grafico-mes">Valores Pagos por Mês</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -260,7 +260,7 @@ export default function Charts() {
                       <Skeleton className="h-64 w-full" />
                     </div>
                   ) : (
-                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por mês">
+                    <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]" role="img" aria-label="Gráfico de valores pagos por mês">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={valoresPagosPorMes}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -280,7 +280,7 @@ export default function Charts() {
             {/* Gráfico de valores pagos por ano */}
             <section aria-labelledby="grafico-ano">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="text-lg font-semibold" id="grafico-ano">Valores Pagos por Ano</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -289,7 +289,7 @@ export default function Charts() {
                       <Skeleton className="h-64 w-full" />
                     </div>
                   ) : (
-                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico de valores pagos por ano">
+                    <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]" role="img" aria-label="Gráfico de valores pagos por ano">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={valoresPagosPorAno}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -309,7 +309,7 @@ export default function Charts() {
             {/* Gráfico empilhado por município */}
             <section aria-labelledby="grafico-municipio">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="text-lg font-semibold" id="grafico-municipio">Valores Repassados e a Repassar por Município</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -318,7 +318,7 @@ export default function Charts() {
                       <Skeleton className="h-64 w-full" />
                     </div>
                   ) : (
-                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por município">
+                    <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por município">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={valoresEmpilhadosPorMunicipio} stackOffset="none">
                           <CartesianGrid strokeDasharray="3 3" />
@@ -338,7 +338,7 @@ export default function Charts() {
             {/* Gráfico empilhado por núcleo */}
             <section aria-labelledby="grafico-nucleo">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="text-lg font-semibold" id="grafico-nucleo">Valores Repassados e a Repassar por Núcleo Regional</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -347,7 +347,7 @@ export default function Charts() {
                       <Skeleton className="h-64 w-full" />
                     </div>
                   ) : (
-                    <div className="w-full h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por núcleo regional">
+                    <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px]" role="img" aria-label="Gráfico empilhado de valores repassados e a repassar por núcleo regional">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={valoresEmpilhadosPorNucleo} stackOffset="none">
                           <CartesianGrid strokeDasharray="3 3" />
@@ -369,8 +369,8 @@ export default function Charts() {
         {category === 'obras' && (
           isLoadingCharts ? (
             <div className="space-y-6">
-              <Skeleton className="h-[400px] w-full rounded-xl" />
-              <Skeleton className="h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
             </div>
           ) : (
             <ChartsObras data={chartsData} />
@@ -380,8 +380,8 @@ export default function Charts() {
         {category === 'eventos' && (
           isLoadingCharts ? (
             <div className="space-y-6">
-              <Skeleton className="h-[400px] w-full rounded-xl" />
-              <Skeleton className="h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
+              <Skeleton className="h-[260px] sm:h-[320px] lg:h-[400px] w-full rounded-xl" />
             </div>
           ) : (
             <ChartsEventos data={chartsData} onRetry={() => void refetchCharts()} />

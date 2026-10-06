@@ -118,7 +118,7 @@ export default function Documents() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="flex justify-between items-center mb-2">
+          <div className="mb-2 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Documentação</h1>
               <p className="text-muted-foreground">
@@ -128,7 +128,7 @@ export default function Documents() {
                 Última atualização: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
               </p>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')}><List className="h-4 w-4 mr-1" /> Lista</Button>
               <Button variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')}><LayoutGrid className="h-4 w-4 mr-1" /> Cards</Button>
               {isAuthenticated && (
@@ -185,7 +185,7 @@ export default function Documents() {
           {/* Listagem de documentos */}
           {viewMode === 'list' ? (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full min-w-[720px] border-collapse">
                 <thead>
                   <tr>
                     <th className="border px-2 py-1 bg-gray-100">Nome</th>

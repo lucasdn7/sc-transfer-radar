@@ -12,7 +12,7 @@ export function CategorySelector() {
 
   return (
     <div 
-      className="rounded-xl p-1 flex gap-1"
+      className="rounded-xl p-1 flex flex-wrap gap-1 sm:flex-nowrap"
       style={{
         backgroundColor: 'var(--transfers-surface)',
         border: '1px solid var(--transfers-border)',
@@ -22,7 +22,7 @@ export function CategorySelector() {
         <button
           key={cat.key}
           onClick={() => setCategory(cat.key)}
-          className="px-4 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center gap-2"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium transition-all duration-200 sm:flex-none sm:px-4"
           style={{
             backgroundColor: category === cat.key ? `var(--transfers-color-${cat.key})` : 'transparent',
             color: category === cat.key ? 'white' : 'var(--transfers-text-secondary)',

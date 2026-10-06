@@ -106,7 +106,7 @@ export function EnhancedCharts({ statusData, regionalData, monthlyData }: Charts
         </CardHeader>
         <CardContent>
           {regionalData && regionalData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-[300px]">
+            <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] lg:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={regionalData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -143,7 +143,7 @@ export function EnhancedCharts({ statusData, regionalData, monthlyData }: Charts
               </ResponsiveContainer>
             </ChartContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-[220px] sm:h-[260px] lg:h-[300px] flex items-center justify-center text-muted-foreground">
               Nenhum dado disponível
             </div>
           )}
@@ -157,7 +157,7 @@ export function EnhancedCharts({ statusData, regionalData, monthlyData }: Charts
             <CardTitle>Evolução Mensal</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
+            <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] lg:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" />

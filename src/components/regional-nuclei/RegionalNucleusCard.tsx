@@ -22,14 +22,14 @@ export function RegionalNucleusCard({ nucleus, stats, isAuthenticated, onEdit }:
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{nucleus.name}</CardTitle>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <CardTitle className="break-words text-lg">{nucleus.name}</CardTitle>
             <Badge variant="outline" className="mt-2">
               {nucleus.acronym}
             </Badge>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link to={`/municipalities?nucleus=${nucleus.id}`}>
                 Ver Municípios

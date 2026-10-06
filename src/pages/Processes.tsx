@@ -290,8 +290,8 @@ export default function Processes() {
         )}
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
           <Input
             placeholder="Buscar por número do processo, objeto ou município..."
@@ -551,7 +551,7 @@ export default function Processes() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t sm:grid-cols-3">
                       <div className="text-center">
                         <div className="text-sm font-medium text-gray-900">
                           {formatCurrency(process.total_concedente_value)}
@@ -571,7 +571,7 @@ export default function Processes() {
                         <div className="text-xs text-gray-500">Licitado</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 pt-2">
+                    <div className="grid grid-cols-2 gap-4 pt-2 sm:grid-cols-3">
                       <div className="text-center">
                         <div className="text-sm font-medium text-gray-900">
                           {paidParcels}/{totalParcels}
@@ -618,7 +618,7 @@ export default function Processes() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr>
                 <th className="border px-2 py-1 bg-gray-100">Nº Processo</th>
@@ -790,7 +790,7 @@ export default function Processes() {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t sm:grid-cols-3">
                         <div className="text-center">
                           <div className="text-sm font-medium text-gray-900">
                             {formatCurrency(event.valor_concedente)}

@@ -12,9 +12,11 @@ import { useState, useEffect } from "react";
 
 interface SidebarProps {
   onCollapseChange?: (collapsed: boolean) => void;
+  onNavigate?: () => void;
+  collapsible?: boolean;
 }
 
-export function Sidebar({ onCollapseChange }: SidebarProps) {
+export function Sidebar({ onCollapseChange, onNavigate, collapsible = true }: SidebarProps) {
   const location = useLocation();
   const { userRole } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -163,11 +165,11 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
                           asChild
                         >
                           {item.external ? (
-                            <a href={item.href} target="_blank" rel="noopener noreferrer">
+                            <a href={item.href} target="_blank" rel="noopener noreferrer" onClick={onNavigate}>
                               {itemContent}
                             </a>
                           ) : (
-                            <Link to={item.href}>{itemContent}</Link>
+                            <Link to={item.href} onClick={onNavigate}>{itemContent}</Link>
                           )}
                         </Button>
                       );
@@ -181,7 +183,7 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
       </ScrollArea>
 
       {/* Collapse toggle button */}
-      <div className="border-t border-border p-2">
+      {collapsible && <div className="border-t border-border p-2">
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -209,7 +211,7 @@ export function Sidebar({ onCollapseChange }: SidebarProps) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </div>
+      </div>}
     </aside>
   );
 }

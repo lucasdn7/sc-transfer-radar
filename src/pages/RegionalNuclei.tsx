@@ -182,7 +182,7 @@ export default function RegionalNuclei() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr>
                 <th className="border px-2 py-1 bg-gray-100">Nome</th>

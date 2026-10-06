@@ -169,7 +169,7 @@ export default function TerritorialInconsistencies() {
       </Breadcrumb>
 
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:justify-between">
         <div>
           <Button variant="ghost" asChild className="mb-4">
             <Link to="/municipalities">
@@ -241,8 +241,8 @@ export default function TerritorialInconsistencies() {
           {inconsistencies.map((inc, index) => (
             <Card key={index} className="border-l-4 border-l-red-500">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 items-center gap-2">
                     {getInconsistencyIcon(inc.type)}
                     <CardTitle className="text-lg">{inc.description}</CardTitle>
                   </div>
@@ -253,8 +253,8 @@ export default function TerritorialInconsistencies() {
                 <div className="space-y-3">
                   {inc.municipalities.map((m) => (
                     <div key={m.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div>
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                        <div className="min-w-0">
                           <div className="font-medium">{m.name}</div>
                           <div className="text-sm text-gray-600">
                             ID: {m.id} • CNPJ: {m.cnpj || 'N/A'}

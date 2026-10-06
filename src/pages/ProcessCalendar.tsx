@@ -239,7 +239,7 @@ export default function ProcessCalendar() {
         {/* Navegação contextual para outras telas de Monitoramento */}
         {navigationCard}
 
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Calendário de Processos</h1>
             <p className="text-muted-foreground">
@@ -247,7 +247,7 @@ export default function ProcessCalendar() {
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 self-center sm:self-auto">
             <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -301,7 +301,7 @@ export default function ProcessCalendar() {
         )}
 
         {/* Legenda */}
-        <div className="flex gap-4 items-center mb-2">
+        <div className="mb-2 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-blue-500"></span> Processos Vigentes</div>
           <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-green-500"></span> Parcelas Repassadas</div>
           <div className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-red-500"></span> Processos Vencidos</div>
@@ -315,6 +315,8 @@ export default function ProcessCalendar() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto overscroll-x-contain">
+            <div className="min-w-[700px]">
             <div className="grid grid-cols-7 gap-1 mb-4">
               {dayNames.map(day => (
                 <div key={day} className="p-2 text-center font-medium text-gray-600 bg-gray-50 rounded">
@@ -377,6 +379,8 @@ export default function ProcessCalendar() {
                 );
               })}
             </div>
+            </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -390,7 +394,7 @@ export default function ProcessCalendar() {
                 {processes.map(process => (
                   <div 
                     key={process.id} 
-                    className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex flex-col justify-between gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer sm:flex-row sm:items-center"
                     onClick={() => handleProcessClick(process)}
                   >
                     <div className="space-y-1">
@@ -455,8 +459,8 @@ export default function ProcessCalendar() {
             // Descobrir o índice da parcela atual (1-based)
             const parcelaAtual = selectedParcel.parcel_number;
             return (
-              <div className="fixed z-50 left-0 top-0 w-full h-full flex items-center justify-center bg-black bg-opacity-40">
-                <Card className="w-full max-w-md shadow-2xl">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <Card className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto shadow-2xl">
                   <CardHeader>
                     <CardTitle>Detalhes da Parcela Repassada</CardTitle>
                   </CardHeader>

@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 /** Formato devolvido pela edge function `generate-report` em `charts`. */
 export type ChartSpec = {
@@ -45,12 +46,14 @@ function shorten(label: string, max = 14) {
 }
 
 function ChartBody({ chart }: { chart: ChartSpec }) {
+  const isMobile = useMediaQuery("(max-width: 639px)");
   const full = formatter(chart.unit);
   const axis = formatter(chart.unit, true);
+  const chartHeight = isMobile ? 220 : 280;
 
   if (chart.type === "pie") {
     return (
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <PieChart>
           <Pie data={chart.data} dataKey="value" nameKey={chart.x_key} innerRadius={55} outerRadius={95} paddingAngle={2}>
             {chart.data.map((_, index) => (
@@ -66,7 +69,7 @@ function ChartBody({ chart }: { chart: ChartSpec }) {
 
   if (chart.type === "line") {
     return (
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <LineChart data={chart.data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey={chart.x_key} tick={{ fontSize: 12 }} minTickGap={16} />
@@ -82,7 +85,7 @@ function ChartBody({ chart }: { chart: ChartSpec }) {
 
   const stacked = chart.type === "stacked_bar";
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
       <BarChart data={chart.data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey={chart.x_key} tickFormatter={(v: string) => shorten(String(v))} tick={{ fontSize: 12 }} interval={0} angle={-25} textAnchor="end" height={60} />
@@ -106,7 +109,7 @@ export default function ReportCharts({ charts }: { charts?: ChartSpec[] }) {
   if (!charts || charts.length === 0) return null;
 
   return (
-    <section aria-label="Gráficos do relatório" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))" }}>
+    <section aria-label="Gráficos do relatório" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))" }}>
       {charts.map((chart) => (
         <figure key={chart.id} style={{ margin: 0, padding: 16, border: "1px solid rgba(128,128,128,0.25)", borderRadius: 8 }}>
           <figcaption style={{ marginBottom: 12 }}>

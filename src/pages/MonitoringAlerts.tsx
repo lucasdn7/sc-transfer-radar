@@ -202,7 +202,7 @@ export default function MonitoringAlerts() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoria de Alerta</label>
               <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as AlertCategory)}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,7 +220,7 @@ export default function MonitoringAlerts() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Status do Processo</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

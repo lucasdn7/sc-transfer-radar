@@ -72,7 +72,9 @@ export function EventCalendar() {
         <div className="flex gap-4 items-center mb-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-purple-500" /> Eventos</div>
         </div>
-        <div className="grid grid-cols-7 gap-1 mb-4">
+        <div className="overflow-x-auto overscroll-x-contain">
+        <div className="min-w-[700px]">
+        <div className="mb-4 grid grid-cols-7 gap-1">
           {dayNames.map(day => <div key={day} className="p-2 text-center font-medium text-gray-600 bg-gray-50 rounded">{day}</div>)}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -95,10 +97,12 @@ export function EventCalendar() {
             );
           })}
         </div>
+        </div>
+        </div>
       </CardContent>
       {selectedEvent && (
-        <div className="fixed z-50 left-0 top-0 w-full h-full flex items-center justify-center bg-black bg-opacity-40">
-          <Card className="w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto shadow-2xl">
             <CardHeader><CardTitle>Detalhes do Evento</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <div><b>Nome:</b> {selectedEvent.name}</div>
