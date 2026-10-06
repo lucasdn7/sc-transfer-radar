@@ -12,7 +12,7 @@ const CIASC_URL =
 const COOLDOWN_MS = 60_000;
 const MAX_BODY_BYTES = 2_000;
 const MAX_RESPONSE_BYTES = 5_000_000;
-const UPSTREAM_TIMEOUT_MS = 20_000;
+const UPSTREAM_TIMEOUT_MS = 45_000;
 const UPSTREAM_MAX_ATTEMPTS = 2;
 
 type Status = "regular" | "irregular" | "pending";
